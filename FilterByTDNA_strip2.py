@@ -9,33 +9,30 @@ import sys
 fin = open(sys.argv[1], "r")
 fout = open("{0}_out_strip6.fastq".format(sys.argv[1].split(".")[0]), "w")
 
+TDNA = "TGTCTAAGCGTCAATTTGTTTACACCACAATATATC"
+T_min = 5
+
 left = ""
-right = ""
 headerline = ""
+
 for k, line in enumerate(fin):
-    n = 36
-    TDNA = "TGTCTAAGCGTCAATTTGTTTACACCACAATATATC"
     if k % 4 == 1:
         left = 0
-        right = len(line)
-        line = line.rstrip()
-        while line[0:n] == TDNA:
-            out = "yes"
-            line = line[n:]
-            left = n
-            line = line+"\n"
+        for i in range(len(TDNA)):
+            if line[i] != TDNA[i]:
+                left = i
+                break
+        if left >= T_min:
+            match = True
             fout.write(headerline)
-            fout.write(line)
-            n = n - 1
-            TDNA = TDNA[0:n]
-    elif k%4 == 2 and out == "yes":
+            fout.write(line[left:])
+    elif k%4 == 2 and match:
         fout.write(line)
-    elif k%4 == 3 and out == "yes":
-        line = line.rstrip()
-        line = line[left:]+"\n"
-        fout.write(line)
+    elif k%4 == 3 and match:
+        fout.write(line[left:])
     elif k%4 == 0:
-        out = "no"
+        match = False
+        # cache for later, in case it *is* a match
         headerline = line
 
 
