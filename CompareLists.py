@@ -33,13 +33,13 @@ b=sys.argv[2].split("_")
 
 fout = open("{0}_{1}_compared_list.txt".format(a[0], b[0]), "w")
 
-fout.write("In {0} but not {1} \n".format(a[0], b[0]))
+fout.write("Only in {0} \n".format(a[0], b[0]))
 for i in range(len(finalList1)):
     line_list = [str(finalList1[i]), "\n"]
     line = "\t".join(line_list)
     fout.write(line)
 
-fout.write("\n In {0} but not {1} \n".format(b[0], a[0]))
+fout.write("\n Only in {1} \n".format(b[0], a[0]))
 for i in range(len(finalList2)):
     line_list = [str(finalList2[i]), "\n"]
     line = "\t".join(line_list)
