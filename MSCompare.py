@@ -20,18 +20,19 @@ def buildGeneList(file):
     countsB = []
     fin = open(file, "r")
     for line in fin:
-#        if line.startswith('P'):
-        columns = re.split(r'\t+', line)
-        geneID.append(columns[0])
-        countsA.append(columns[1])
-        countsB.append(columns[2])
-        coverageA.append(columns[3])
-        coverageB.append(columns[4])
+        if line.startswith('C'):
+            lineString = line.rstrip('\r\n')
+            columns = re.split(r'\t+', lineString)
+            geneID.append(columns[0])
+            countsA.append(columns[1])
+            countsB.append(columns[2])
+            coverageA.append(columns[3])
+            coverageB.append(columns[4])
     return geneID, coverageA, coverageB, countsA, countsB
     fin.close()
 
 def pickGenes(geneList, countListA, countListB, coverageListA, coverageListB):
-    n = 1
+    n = 0
     selectGenes = []
     selectCountsA = []
     selectCountsB = []
@@ -40,10 +41,10 @@ def pickGenes(geneList, countListA, countListB, coverageListA, coverageListB):
     while n < len(geneList):
         if int(countListA[n]) > 10 or int(countListB[n]) > 10:
             selectGenes.append(geneList[n])
-            selectCountsA.append(countList[n])
-            selectCountsB.append(countList[n])
-            selectCoverageA.append(coverageList[n])
-            selectCoverageB.append(coverageList[n])
+            selectCountsA.append(countListA[n])
+            selectCountsB.append(countListB[n])
+            selectCoverageA.append(coverageListA[n])
+            selectCoverageB.append(coverageListB[n])
         n += 1
     return selectGenes, selectCountsA, selectCountsB, selectCoverageA, selectCoverageB
 
@@ -64,7 +65,10 @@ finalCounts1a = []
 finalCounts1b = []
 finalCounts2a = []
 finalCounts2b = []
-finalCoverage1 = []
+finalCoverage1a = []
+finalCoverage1b = []
+finalCoverage2a = []
+finalCoverage2b = []
 for i in range(len(sGenes1)):
     if sGenes1[i] in sGenes2:
         finalGenes1.append(sGenes1[i])
@@ -76,20 +80,23 @@ for i in range(len(sGenes1)):
         finalCoverage1b.append(sCoverage1b[i])
         finalCoverage2a.append(sCoverage2a[i])
         finalCoverage2b.append(sCoverage2b[i])
+print len(finalGenes1)
 
-#finalList2 = []
-#for i in range(len(geneList2)):
-#    if geneList2[i] not in geneList1:
-#        finalList2.append(geneList2[i])
+ratio = []
+for i in range(len(finalGenes1)):
+    ratio.append(((float(finalCounts2a[i])+float(finalCounts2b[i]))/2)/((float(finalCounts1a[i])+float(finalCounts1b[i]))/2))
 
 a=sys.argv[1].split(".")
 b=sys.argv[2].split(".")
 
 fout = open("{0}_{1}_comparison.txt".format(a[0], b[0]), "w")
 
-#fout.write("Accession","\t","Counts 1A","\t","Counts 1B","\t","Counts2A","\t","Counts 2B","\t","Coverage 1A","\t","Coverage 1B","\t","Coverage 2A","\t","Coverage 2B","\n")
+header_list = ("Accession","Counts {0}A".format(a[0], "w"),"Counts {0}B".format(a[0], "w"),"Counts {0}A".format(b[0], "w"),"Counts {0}B".format(b[0], "w"),"Coverage {0}A".format(a[0], "w"),"Coverage {0}B".format(a[0], "w"),"Coverage {0}A".format(b[0], "w"),"Coverage {0}B".format(b[0], "w"),"Ratio of average counts from {1}/{0}".format(a[0], b[0], "w"),"\n")
+header = "\t".join(header_list)
+fout.write(header)
+
 for i in range(len(finalGenes1)):
-    line_list = [str(finalGenes1[i]), str(finalCounts1a[i]), str(finalCounts1b[i]), str(finalCounts2a[i]), str(finalCounts2b[i]), str(finalCoverage1a[i]), str(finalCoverage1b[i]), str(finalCoverage2a[i]), str(finalCoverage2b[i]), "\n"]
+    line_list = [str(finalGenes1[i]), str(finalCounts1a[i]), str(finalCounts1b[i]), str(finalCounts2a[i]), str(finalCounts2b[i]), str(finalCoverage1a[i]), str(finalCoverage1b[i]),str(finalCoverage2a[i]),str(finalCoverage2b[i]),str(ratio[i]),'\n']
     line = "\t".join(line_list)
     fout.write(line)
 
