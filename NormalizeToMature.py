@@ -6,7 +6,7 @@ Configuration file format (tab separated):
 SampleName1 SampleName2
 ControlRNAcountsA   ControlRNAcountsA
 ControlRNAcountsB   ControlRNAcountsB
-ControlRNAcountsW   ControlRNAcountsW
+TotalcountsW   TotalcountsW
 
 Note: .bam files must be named *A_al_sorted.bam for exon sequencing, *B_al_sorted.bam for total spliceosome sequencing, *W_al_sorted.bam for mature sequencing'''
 

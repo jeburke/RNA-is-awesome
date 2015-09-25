@@ -55,7 +55,7 @@ def normalize_counts(table1,table2,table3,config):
             print c1
             c2 = controlValues[n][1]
             print c2
-            merged[name+"_norm"] = pandas.Series((merged[name]/c1)/(merged[name.strip("A_exons")+"B_total"]/merged[name.strip("Length")]/c2), index = merged.index)
+            merged[name+"_norm"] = pandas.Series((merged[name]/c1)/(merged[name.strip("A_exons")+"B_total"]/c2), index = merged.index)
             n += 1
     merged.fillna(0)
     return merged
@@ -92,7 +92,11 @@ def normalize_to_mature(table1, table2, table3, config):
             print c1
             c2 = controlValues[n][1]
             print c2
-            merged[name+"_norm"] = pandas.Series((merged[name]/c2)/(merged["150831CM763-W_total"]/merged[name.strip("Length")]), index = merged.index)
+            c3 = controlValues[n][2]
+            print c3
+            c4 = controlValues[n][3]
+            print c4
+            merged[name+"_norm"] = pandas.Series((merged[name]/c3)/(merged["150831CM763-W_total"]/c4/merged[name.strip("Length")]), index = merged.index)
             n += 1
     merged.fillna(0)
     return merged
