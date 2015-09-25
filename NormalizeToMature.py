@@ -1,13 +1,14 @@
 __author__ = 'jordanburke'
 
-'''Usage: python towerHeight.py <exon_table> <total_table> <transcipt_lengths> <configuration file> <RNAi_list> <prefix>
+'''Usage: python NormalizeToMature.py <exon_table> <total_table> <transcipt_lengths> <configuration file> <RNAi_list> <prefix>
 
 Configuration file format (tab separated):
 SampleName1 SampleName2
 ControlRNAcountsA   ControlRNAcountsA
 ControlRNAcountsB   ControlRNAcountsB
+ControlRNAcountsW   ControlRNAcountsW
 
-Note: .bam files must be named *A_al_sorted.bam for exon sequencing and *B_al_sorted.bam for total sequencing'''
+Note: .bam files must be named *A_al_sorted.bam for exon sequencing, *B_al_sorted.bam for total spliceosome sequencing, *W_al_sorted.bam for mature sequencing'''
 
 import pandas
 import numpy
@@ -15,9 +16,6 @@ import matplotlib.pyplot as plt
 import sys
 from scipy import stats
 import math
-import beeswarm
-import random
-import argparse
 import SPTools
 
 def configure(file):
@@ -30,7 +28,6 @@ def configure(file):
         controlReads.append(row[1])
     print sample
     print controlReads
-
 
 #################################################################
 ## Convert input tables to dataframes                          ##
@@ -45,7 +42,7 @@ configFile = SPTools.build_tables(sys.argv[4])
 ## Process exon counts and filter for genes of interest        ##
 #################################################################
 
-normalizedTable = SPTools.normalize_counts(exonCounts,totalCounts, transcriptLength, configFile)
+normalizedTable = SPTools.normalize_to_mature(exonCounts,totalCounts, transcriptLength, configFile)
 filteredList = SPTools.filter_transcripts(normalizedTable, sys.argv[5])
 
 #################################################################
@@ -102,13 +99,6 @@ ax1.scatter(RNAixvalues, RNAiyvalues, color = 'coral', label="RNAi targets")
 ax1.set_xlabel("Replicate 1 Exons/Total")
 ax1.set_ylabel("Replicate 2 Exons/Total")
 ax1.legend(loc = 'lower right')
-ax1.set_xlim([-1,90])
-ax1.set_ylim([-1,90])
+#ax1.set_xlim([-1,90])
+#ax1.set_ylim([-1,90])
 plt.show()
-
-#randm_xvalues = [xvalues[i] for i in sorted(random.sample(xrange(len(xvalues)), 100))]
-#randm_RNAixvalues = [RNAixvalues[i] for i in sorted(random.sample(xrange(len(RNAixvalues)), 100))]
-#randm_yvalues = [yvalues[i] for i in sorted(random.sample(xrange(len(yvalues)), 100))]
-#randm_RNAiyvalues = [RNAiyvalues[i] for i in sorted(random.sample(xrange(len(RNAiyvalues)), 100))]
-#bs, ax2 = beeswarm.beeswarm([randm_xvalues,randm_RNAixvalues, randm_yvalues,randm_RNAiyvalues], positions = [1,2,3,4], labels = ["Replicate 1 All", "Replicate 1 RNAi","Replicate 2 All","Replicate 2 RNAi"],col=["blue","coral","blue","coral"])
-#plt.show()
