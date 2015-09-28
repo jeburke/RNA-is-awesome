@@ -3,10 +3,7 @@ __author__ = 'jordanburke'
 import HTSeq
 import matplotlib
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-#import seaborn as sns
-import gobs
-import numpy
+import gobsChr
 import pandas as pd
 import copy
 import os
@@ -51,7 +48,7 @@ for f in BAM_files:
 #                                                                                    #
 ######################################################################################
 
-transcripts=gobs.transcript_factory(sys.argv[1])
+transcripts=gobsChr.transcript_factory(sys.argv[1])
 
 ###################################################################################################################
 # COUNTING READS                                                                                                  #
@@ -66,13 +63,13 @@ CDS_len_di={}
 
 for transcript in transcripts:
     transcript_coord=transcript.getCoordinates()
-    transcript_iv=gobs.HTSeq_iv(transcript_coord)
+    transcript_iv=gobsChr.HTSeq_iv(transcript_coord)
     transcript_feature_di[transcript.getName()]=transcript_iv
     transcript_len_di[transcript.getName()]=transcript_iv.end-transcript_iv.start
     transcript_exon_coords=transcript.getAllExonCoordinates()
     transcript_coord=transcript.getCoordinates()
     CDS_coord=transcript.getCDSCoordinates()
-    CDS_iv=gobs.HTSeq_iv(CDS_coord)
+    CDS_iv=gobsChr.HTSeq_iv(CDS_coord)
     CDS_feature_di[transcript.getName()]=CDS_iv
     CDS_len_di[transcript.getName()]=CDS_iv.end-CDS_iv.start
 
@@ -82,13 +79,13 @@ print len(CDS_feature_di)," CDS feature intervals defined"
 df_total=pd.DataFrame()
 column_headers=[]
 p=multiprocessing.Pool(processes=24)
-params=[]
+params_total_counts=[]
 
 for bamfilereader in BAM_file_readers:
     column_headers.append(bamfilereader.filename.split("/")[-1])
     params_total_counts.append((bamfilereader,CDS_feature_di))
 
-total_results=p.map(gobs.count_reads,params_total_counts)
+total_results=p.map(gobsChr.count_reads,params_total_counts)
 
 for result, column_header in zip(total_results,column_headers):
     ds=pd.Series(result)
@@ -97,4 +94,4 @@ for result, column_header in zip(total_results,column_headers):
 df_total_sorted=df_total.sort()
 
 fout = open("{0}_totalcounts.tsv".format(sys.argv[2]), "w")
-fout.write(pandas.DataFrame.to_csv(df_total_sorted, sep='\t'))
+fout.write(pd.DataFrame.to_csv(df_total_sorted, sep='\t'))

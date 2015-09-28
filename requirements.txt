@@ -1,0 +1,6 @@
+primer3-py
+HTSeq
+numpy
+pandas
+matplotlib
+python-hm

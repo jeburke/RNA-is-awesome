@@ -10,14 +10,10 @@ ControlRNAcountsB   ControlRNAcountsB
 Note: .bam files must be named *A_al_sorted.bam for exon sequencing and *B_al_sorted.bam for total sequencing'''
 
 import pandas
-import numpy
 import matplotlib.pyplot as plt
 import sys
 from scipy import stats
 import math
-import beeswarm
-import random
-import argparse
 import SPTools
 
 def configure(file):

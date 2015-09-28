@@ -1,14 +1,7 @@
 __author__ = 'jordanburke'
 
 import pandas
-import numpy
-import matplotlib.pyplot as plt
-import sys
-from scipy import stats
-import math
-import beeswarm
-import random
-import argparse
+
 
 
 #################################################################
@@ -30,10 +23,10 @@ def build_tables(file):
 ## internal control RNA.                                       ##
 #################################################################
 
-def normalize_counts(table1,table2,table3,config):
-    df1 = table1
-    df2 = table2
-    df3 = table3
+def normalize_counts(exon_counts,total_counts,lengths,config):
+    df1 = exon_counts
+    df2 = total_counts
+    df3 = lengths
     df4 = config
     merged = pandas.merge(df1,df2,on="Transcrip",left_index=True,how='left',suffixes=('_exons','_total'))
     merged = pandas.merge(merged,df3, on="Transcrip", left_index=True, how = 'left')
@@ -67,18 +60,16 @@ def normalize_counts(table1,table2,table3,config):
 ## internal control RNA.                                       ##
 #################################################################
 
-def normalize_to_mature(table1, table2, table3, config):
-    df1 = table1
-    df2 = table2
-    df3 = table3
-    df4 = config
-    merged = pandas.merge(df1,df2,on="Transcrip",left_index=True,how='left',suffixes=('_exons','_total'))
-    merged = pandas.merge(merged,df3, on="Transcrip", left_index=True, how = 'left')
+def normalize_to_mature(total_counts, lengths, config):
+    df1 = total_counts
+    df2 = lengths
+    df3 = config
+    merged = pandas.merge(df1,df2, on="Transcrip", left_index=True, how = 'left')
     configNames = []
     controlValues = []
-    for name in df4.columns:
+    for name in df3.columns:
         configNames.append(name)
-        s = pandas.Series(df4[name])
+        s = pandas.Series(df3[name])
         l = s.tolist()
         controlValues.append(l)
     names = []
@@ -87,16 +78,15 @@ def normalize_to_mature(table1, table2, table3, config):
         names.append(name)
         if name.strip() == "Transcrip":
             print "Reading table"
-        elif n < len(configNames) and name == configNames[n]+"-B_total":
+        elif n < len(configNames) and name == configNames[n]+"-B":
             c1 = controlValues[n][0]
             print c1
             c2 = controlValues[n][1]
             print c2
             c3 = controlValues[n][2]
             print c3
-            c4 = controlValues[n][3]
-            print c4
-            merged[name+"_norm"] = pandas.Series((merged[name]/c3)/(merged["150831CM763-W_total"]/c4/merged[name.strip("Length")]), index = merged.index)
+            merged[name+"_norm"] = pandas.Series(((merged[name])/(merged[name.strip("B")+"W"])/merged[name.strip("Length")]), index = merged.index)
+            print merged[name+"_norm"]
             n += 1
     merged.fillna(0)
     return merged
