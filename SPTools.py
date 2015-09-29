@@ -120,7 +120,6 @@ def filter_transcripts(mergedtable, list):
 #################################################################
 
 def get_ratios(normalizedResults, a):
-    name = ""
     values = []
     n = 0
     for name in normalizedResults.columns:
@@ -133,3 +132,4 @@ def get_ratios(normalizedResults, a):
             else:
                 n += 1
     return values
+

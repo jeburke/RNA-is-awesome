@@ -16,6 +16,7 @@ import sys
 from scipy import stats
 import math
 import SPTools
+import random
 
 def configure(file):
     sample = []
@@ -52,3 +53,34 @@ fout.write(pandas.DataFrame.to_csv(normalizedTable, sep='\t'))
 
 fout = open("{0}_RNAi_occupancy.tsv".format(sys.argv[5]),"w")
 fout.write(pandas.DataFrame.to_csv(filteredList, sep='\t'))
+
+#################################################################
+## Get lists from dataframes to make scatter plots and do some ##
+## statistics                                                  ##
+#################################################################
+
+xvalues = SPTools.get_ratios(normalizedTable, 0)
+xvalues = [0 if math.isnan(x) else x for x in xvalues]
+yvalues = SPTools.get_ratios(normalizedTable, 1)
+yvalues = [0 if math.isnan(x) else x for x in yvalues]
+
+RNAixvalues = SPTools.get_ratios(filteredList, 0)
+RNAixvalues = [0 if math.isnan(x) else x for x in RNAixvalues]
+RNAiyvalues = SPTools.get_ratios(filteredList, 1)
+RNAiyvalues = [0 if math.isnan(x) else x for x in RNAiyvalues]
+
+#################################################################
+## Histogram                                                   ##
+#################################################################
+
+#fig = plt.figure()
+#ax1 = fig.add_subplot(111)
+#ax1.hist(xvalues, bins = 60, normed=True, color='royalblue', label='All')
+#ax1.hist(RNAixvalues, bins = 20, normed=True, color='coral', alpha=0.5, label='RNAi')
+#ax1.set_xlabel("Value")
+#ax1.set_ylabel("Frequency")
+##ax1.set_xscale("log")
+##ax1.set_yscale("log")
+#ax1.set_xlim(0,0.4)
+#ax1.legend()
+#plt.show()

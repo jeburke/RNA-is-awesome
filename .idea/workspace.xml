@@ -2,12 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2343dc0-3eac-42f5-899b-8591fb4cdf7f" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/conf/H99.config" afterPath="$PROJECT_DIR$/conf/H99.config" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/NormalizeToMature.py" afterPath="$PROJECT_DIR$/NormalizeToMature.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SPTools.py" afterPath="$PROJECT_DIR$/SPTools.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SPanalyzeExons.py" afterPath="$PROJECT_DIR$/SPanalyzeExons.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/towerHeight.py" afterPath="$PROJECT_DIR$/towerHeight.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="RNA-is-awesome.iws" />
@@ -33,7 +29,7 @@
         <entry file="file://$PROJECT_DIR$/towerHeight.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="21" column="25" selection-start-line="21" selection-start-column="25" selection-end-line="21" selection-end-column="25" />
+              <caret line="93" column="0" selection-start-line="93" selection-start-column="0" selection-end-line="94" selection-end-column="26" />
               <folding>
                 <element signature="e#408#421#0" expanded="true" />
               </folding>
@@ -41,11 +37,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="NormalizeToMature.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="NormalizeToMature.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/NormalizeToMature.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="52" column="54" selection-start-line="52" selection-start-column="54" selection-end-line="52" selection-end-column="54" />
+            <state vertical-scroll-proportion="0.86238533">
+              <caret line="85" column="11" selection-start-line="85" selection-start-column="11" selection-end-line="85" selection-end-column="11" />
               <folding>
                 <element signature="e#498#511#0" expanded="true" />
               </folding>
@@ -57,17 +53,17 @@
         <entry file="file://$PROJECT_DIR$/SPTools.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="86" column="20" selection-start-line="86" selection-start-column="20" selection-end-line="86" selection-end-column="20" />
+              <caret line="135" column="0" selection-start-line="135" selection-start-column="0" selection-end-line="135" selection-end-column="0" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Histogram.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="Histogram.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Histogram.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.3440367">
-              <caret line="15" column="0" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
+            <state vertical-scroll-proportion="0.0">
+              <caret line="10" column="0" selection-start-line="10" selection-start-column="0" selection-end-line="13" selection-end-column="10" />
               <folding />
             </state>
           </provider>
@@ -139,8 +135,8 @@
         <option value="$USER_HOME$/python-hm/gobsChr.py" />
         <option value="$PROJECT_DIR$/SPanalyzeExons.py" />
         <option value="$PROJECT_DIR$/towerHeight.py" />
-        <option value="$PROJECT_DIR$/NormalizeToMature.py" />
         <option value="$PROJECT_DIR$/SPTools.py" />
+        <option value="$PROJECT_DIR$/NormalizeToMature.py" />
       </list>
     </option>
   </component>
@@ -148,8 +144,8 @@
     <order />
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="282" />
-    <option name="y" value="42" />
+    <option name="x" value="49" />
+    <option name="y" value="50" />
     <option name="width" value="1359" />
     <option name="height" value="1053" />
   </component>
@@ -345,10 +341,10 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="282" y="42" width="1359" height="1053" extended-state="0" />
-    <editor active="false" />
+    <frame x="49" y="50" width="1359" height="1053" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29179648" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29179648" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -590,22 +586,20 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/towerHeight.py">
+    <entry file="file://$PROJECT_DIR$/Histogram.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="21" column="25" selection-start-line="21" selection-start-column="25" selection-end-line="21" selection-end-column="25" />
-          <folding>
-            <element signature="e#408#421#0" expanded="true" />
-          </folding>
+          <caret line="10" column="0" selection-start-line="10" selection-start-column="0" selection-end-line="13" selection-end-column="10" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/NormalizeToMature.py">
+    <entry file="file://$PROJECT_DIR$/towerHeight.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="52" column="54" selection-start-line="52" selection-start-column="54" selection-end-line="52" selection-end-column="54" />
+          <caret line="93" column="0" selection-start-line="93" selection-start-column="0" selection-end-line="94" selection-end-column="26" />
           <folding>
-            <element signature="e#498#511#0" expanded="true" />
+            <element signature="e#408#421#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -613,16 +607,18 @@
     <entry file="file://$PROJECT_DIR$/SPTools.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="86" column="20" selection-start-line="86" selection-start-column="20" selection-end-line="86" selection-end-column="20" />
+          <caret line="135" column="0" selection-start-line="135" selection-start-column="0" selection-end-line="135" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Histogram.py">
+    <entry file="file://$PROJECT_DIR$/NormalizeToMature.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.3440367">
-          <caret line="15" column="0" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
-          <folding />
+        <state vertical-scroll-proportion="0.86238533">
+          <caret line="85" column="11" selection-start-line="85" selection-start-column="11" selection-end-line="85" selection-end-column="11" />
+          <folding>
+            <element signature="e#498#511#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
