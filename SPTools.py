@@ -79,14 +79,17 @@ def normalize_to_mature(total_counts, lengths, config):
         if name.strip() == "Transcrip":
             print "Reading table"
         elif n < len(configNames) and name == configNames[n]+"-B":
+            print "Reading sample " +name
             c1 = controlValues[n][0]
-            print c1
+            print "Control value 1 = " +c1
             c2 = controlValues[n][1]
-            print c2
+            print "Control value 2 = " +c2
             c3 = controlValues[n][2]
-            print c3
+            print "Control value 3 = " +c3
+            untagged = controlValues[n][3]
+            print "Untagged sample is " +untagged
             merged[name+"_norm"] = pandas.Series(((merged[name])/(merged[name.strip("B")+"W"])/merged[name.strip("Length")]), index = merged.index)
-            print merged[name+"_norm"]
+            merged[name+"_norm_untagged"] = pandas.Series((merged[name+"_norm"]/merged[untagged]), index = merged.index)
             n += 1
     merged.fillna(0)
     return merged
@@ -127,7 +130,6 @@ def get_ratios(normalizedResults, a):
             if n == a:
                 s = pandas.Series(normalizedResults[name])
                 values = s.tolist()
-                print name
                 n += 1
             else:
                 n += 1

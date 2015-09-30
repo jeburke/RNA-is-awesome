@@ -26,8 +26,6 @@ def configure(file):
         row = line.split("\t")
         sample.append(row[0])
         controlReads.append(row[1])
-    print sample
-    print controlReads
 
 #################################################################
 ## Convert input tables to dataframes                          ##
