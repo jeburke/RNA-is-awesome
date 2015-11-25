@@ -2,10 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2343dc0-3eac-42f5-899b-8591fb4cdf7f" name="Default" comment="">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/LaSSO_header_generator.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/MatureTest_occupancy.xlsx" afterPath="$PROJECT_DIR$/MatureTest_occupancy.xlsx" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/NormalizeToMature.py" afterPath="$PROJECT_DIR$/NormalizeToMature.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SPTools.py" afterPath="$PROJECT_DIR$/SPTools.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/conf/mature.conf" afterPath="$PROJECT_DIR$/conf/mature.conf" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/requirements.txt" afterPath="$PROJECT_DIR$/requirements.txt" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/sortBlastn.py" afterPath="$PROJECT_DIR$/sortBlastn.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="RNA-is-awesome.iws" />
@@ -31,7 +31,7 @@
         <entry file="file://$PROJECT_DIR$/towerHeight.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="93" column="0" selection-start-line="93" selection-start-column="0" selection-end-line="94" selection-end-column="26" />
+              <caret line="47" column="65" selection-start-line="47" selection-start-column="65" selection-end-line="47" selection-end-column="65" />
               <folding>
                 <element signature="e#408#421#0" expanded="true" />
               </folding>
@@ -39,33 +39,33 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="NormalizeToMature.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/NormalizeToMature.py">
+      <file leaf-file-name="LaSSO_header_generator.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/LaSSO_header_generator.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="27" column="35" selection-start-line="27" selection-start-column="35" selection-end-line="27" selection-end-column="35" />
+              <caret line="14" column="17" selection-start-line="14" selection-start-column="17" selection-end-line="14" selection-end-column="17" />
               <folding>
-                <element signature="e#498#511#0" expanded="true" />
+                <element signature="e#28#38#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SPTools.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/SPTools.py">
+      <file leaf-file-name="GeneUtility.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/GeneUtility.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.71291864">
-              <caret line="131" column="35" selection-start-line="131" selection-start-column="35" selection-end-line="131" selection-end-column="35" />
+            <state vertical-scroll-proportion="0.3326613">
+              <caret line="475" column="9" selection-start-line="475" selection-start-column="8" selection-end-line="475" selection-end-column="9" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Histogram.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/Histogram.py">
+      <file leaf-file-name="calc_H99_intron_features.py" pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/python-hm/calc_H99_intron_features.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="10" column="0" selection-start-line="10" selection-start-column="0" selection-end-line="13" selection-end-column="10" />
+              <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -75,7 +75,7 @@
         <entry file="file://$USER_HOME$/python-hm/analyzeSP.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="125" column="0" selection-start-line="125" selection-start-column="0" selection-end-line="125" selection-end-column="31" />
+              <caret line="96" column="0" selection-start-line="96" selection-start-column="0" selection-end-line="96" selection-end-column="0" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -83,35 +83,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SPanalyzeExons.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/SPanalyzeExons.py">
+      <file leaf-file-name="gobs.py" pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/python-hm/gobs.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="96" column="13" selection-start-line="96" selection-start-column="13" selection-end-line="96" selection-end-column="13" />
-              <folding>
-                <element signature="e#28#40#0" expanded="true" />
-              </folding>
+              <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="gobsChr.py" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/python-hm/gobsChr.py">
+      <file leaf-file-name="SPTools.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/SPTools.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
-              <folding>
-                <element signature="e#172#186#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="analyzeRP.py" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/python-hm/analyzeRP.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="114" column="51" selection-start-line="113" selection-start-column="0" selection-end-line="114" selection-end-column="51" />
+              <caret line="131" column="35" selection-start-line="131" selection-start-column="35" selection-end-line="131" selection-end-column="35" />
               <folding />
             </state>
           </provider>
@@ -139,6 +125,11 @@
         <option value="$PROJECT_DIR$/towerHeight.py" />
         <option value="$PROJECT_DIR$/NormalizeToMature.py" />
         <option value="$PROJECT_DIR$/SPTools.py" />
+        <option value="$PROJECT_DIR$/sortBlastn.py" />
+        <option value="$PROJECT_DIR$/preprocess_reads.py" />
+        <option value="$PROJECT_DIR$/CompareLists.py" />
+        <option value="$USER_HOME$/python-hm/analyzeSP.py" />
+        <option value="$PROJECT_DIR$/LaSSO_header_generator.py" />
       </list>
     </option>
   </component>
@@ -146,10 +137,10 @@
     <order />
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="248" />
-    <option name="y" value="27" />
-    <option name="width" value="1573" />
-    <option name="height" value="1053" />
+    <option name="x" value="155" />
+    <option name="y" value="52" />
+    <option name="width" value="1302" />
+    <option name="height" value="922" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
     <OptionsSetting value="true" id="Add" />
@@ -174,7 +165,7 @@
       <sortByType />
     </navigator>
     <panes>
-      <pane id="Scope" />
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -195,13 +186,13 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scratches" />
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="configurable.group.language" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/Histogram.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/GeneUtility.py" />
     <property name="FullScreen" value="false" />
   </component>
   <component name="RunManager">
@@ -343,14 +334,14 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="248" y="27" width="1573" height="1053" extended-state="0" />
-    <editor active="false" />
+    <frame x="155" y="52" width="1302" height="922" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29179648" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3377404" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.2261598" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.2740047" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
@@ -378,10 +369,99 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="XDebuggerManager">
-    <breakpoint-manager />
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="python-line">
+          <url>file://$PROJECT_DIR$/GeneUtility.py</url>
+          <line>158</line>
+        </line-breakpoint>
+      </breakpoints>
+      <option name="time" value="1" />
+    </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$USER_HOME$/python-hm/analyzeRP.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="114" column="51" selection-start-line="113" selection-start-column="0" selection-end-line="114" selection-end-column="51" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/towerHeight.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="93" column="0" selection-start-line="93" selection-start-column="0" selection-end-line="94" selection-end-column="26" />
+          <folding>
+            <element signature="e#408#421#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/NormalizeToMature.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="27" column="35" selection-start-line="27" selection-start-column="35" selection-end-line="27" selection-end-column="35" />
+          <folding>
+            <element signature="e#498#511#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SPTools.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Histogram.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="10" column="0" selection-start-line="10" selection-start-column="0" selection-end-line="13" selection-end-column="10" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/python-hm/analyzeSP.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="125" column="0" selection-start-line="125" selection-start-column="0" selection-end-line="125" selection-end-column="31" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SPanalyzeExons.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="96" column="13" selection-start-line="96" selection-start-column="13" selection-end-line="96" selection-end-column="13" />
+          <folding>
+            <element signature="e#28#40#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/python-hm/gobsChr.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
+          <folding>
+            <element signature="e#172#186#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/python-hm/analyzeRP.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="114" column="51" selection-start-line="113" selection-start-column="0" selection-end-line="114" selection-end-column="51" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/towerHeight.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -397,7 +477,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#498#511#0" expanded="true" />
+            <element signature="e#498#511#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -414,7 +494,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="10" column="0" selection-start-line="10" selection-start-column="0" selection-end-line="13" selection-end-column="10" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -433,7 +512,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="96" column="13" selection-start-line="96" selection-start-column="13" selection-end-line="96" selection-end-column="13" />
           <folding>
-            <element signature="e#28#40#0" expanded="true" />
+            <element signature="e#28#40#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -443,7 +522,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
           <folding>
-            <element signature="e#172#186#0" expanded="true" />
+            <element signature="e#172#186#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -471,7 +550,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="35" column="46" selection-start-line="35" selection-start-column="46" selection-end-line="35" selection-end-column="46" />
           <folding>
-            <element signature="e#498#511#0" expanded="true" />
+            <element signature="e#498#511#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -499,7 +578,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#28#40#0" expanded="true" />
+            <element signature="e#28#40#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -527,7 +606,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="35" column="46" selection-start-line="35" selection-start-column="46" selection-end-line="35" selection-end-column="46" />
           <folding>
-            <element signature="e#498#511#0" expanded="true" />
+            <element signature="e#498#511#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -555,7 +634,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#28#40#0" expanded="true" />
+            <element signature="e#28#40#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -583,7 +662,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="35" column="46" selection-start-line="35" selection-start-column="46" selection-end-line="35" selection-end-column="46" />
           <folding>
-            <element signature="e#498#511#0" expanded="true" />
+            <element signature="e#498#511#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -611,7 +690,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#28#40#0" expanded="true" />
+            <element signature="e#28#40#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -621,34 +700,6 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="114" column="51" selection-start-line="113" selection-start-column="0" selection-end-line="114" selection-end-column="51" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/python-hm/analyzeRP.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="114" column="51" selection-start-line="113" selection-start-column="0" selection-end-line="114" selection-end-column="51" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/python-hm/analyzeSP.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="125" column="0" selection-start-line="125" selection-start-column="0" selection-end-line="125" selection-end-column="31" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/python-hm/gobsChr.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
-          <folding>
-            <element signature="e#172#186#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -656,27 +707,13 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="10" column="0" selection-start-line="10" selection-start-column="0" selection-end-line="13" selection-end-column="10" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/towerHeight.py">
+    <entry file="file://$PROJECT_DIR$/sortBlastn.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="93" column="0" selection-start-line="93" selection-start-column="0" selection-end-line="94" selection-end-column="26" />
-          <folding>
-            <element signature="e#408#421#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/SPanalyzeExons.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="96" column="13" selection-start-line="96" selection-start-column="13" selection-end-line="96" selection-end-column="13" />
-          <folding>
-            <element signature="e#28#40#0" expanded="true" />
-          </folding>
+        <state vertical-scroll-proportion="0.8027523">
+          <caret line="35" column="27" selection-start-line="35" selection-start-column="27" selection-end-line="35" selection-end-column="27" />
         </state>
       </provider>
     </entry>
@@ -685,15 +722,123 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="27" column="35" selection-start-line="27" selection-start-column="35" selection-end-line="27" selection-end-column="35" />
           <folding>
-            <element signature="e#498#511#0" expanded="true" />
+            <element signature="e#498#511#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SPanalyzeExons.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="96" column="13" selection-start-line="96" selection-start-column="13" selection-end-line="96" selection-end-column="13" />
+          <folding>
+            <element signature="e#28#40#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/python-hm/gobsChr.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
+          <folding>
+            <element signature="e#172#186#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/python-hm/analyzeRP.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="114" column="51" selection-start-line="113" selection-start-column="0" selection-end-line="114" selection-end-column="51" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/CompareLists.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.9746434">
+          <caret line="42" column="10" selection-start-line="42" selection-start-column="10" selection-end-line="42" selection-end-column="10" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/CountTowers.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-1.9714738">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/preprocess_reads.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="306" column="46" selection-start-line="306" selection-start-column="46" selection-end-line="306" selection-end-column="46" />
+          <folding>
+            <element signature="e#795#804#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/SPTools.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.71291864">
+        <state vertical-scroll-proportion="0.0">
           <caret line="131" column="35" selection-start-line="131" selection-start-column="35" selection-end-line="131" selection-end-column="35" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/python-hm/analyzeSP.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="96" column="0" selection-start-line="96" selection-start-column="0" selection-end-line="96" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/python-hm/gobs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/towerHeight.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="47" column="65" selection-start-line="47" selection-start-column="65" selection-end-line="47" selection-end-column="65" />
+          <folding>
+            <element signature="e#408#421#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/python-hm/calc_H99_intron_features.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/LaSSO_header_generator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="14" column="17" selection-start-line="14" selection-start-column="17" selection-end-line="14" selection-end-column="17" />
+          <folding>
+            <element signature="e#28#38#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/GeneUtility.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.3326613">
+          <caret line="475" column="9" selection-start-line="475" selection-start-column="8" selection-end-line="475" selection-end-column="9" />
           <folding />
         </state>
       </provider>

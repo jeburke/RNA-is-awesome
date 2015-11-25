@@ -17,6 +17,8 @@ def findHits(file):
             geneID.append(line[7:18]) 
         elif line.startswith("Sequences") or line.startswith("*****"):
             output.append(line.strip())
+    print geneID
+    print len(geneID)
     fin.close()
 
 findHits(sys.argv[1])

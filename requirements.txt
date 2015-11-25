@@ -1,6 +1,7 @@
-primer3-py
-HTSeq
 numpy
+scipy
 pandas
 matplotlib
 python-hm
+primer3-py
+HTSeq
