@@ -146,13 +146,22 @@ class Transcript(object):
                     intron=Coordinates(self.chromosome,next_exon.getEnd()+1,current_exon.getStart()-1,self.strand)
                 introns.append(intron)
         return introns
+
     def getSplicedRNASequence(self,genome):
         result=''
         for exon in self.getAllExonCoordinates():
             result=result+genome.getSequence(exon)
+            #print "Exon:", exon
         return result
+
     def getUnsplicedRNASequence(self,genome):
         self.Coordinates.getSequence(genome)
+
+    def getIntronSequences(self,genome):
+        sequence = []
+        for intron in self.getAllIntronCoordinates():
+            sequence.append(genome.getSequence(intron))
+        return sequence
 
     def getSplicingAnalysisPrimerSet(self,genome,offset,primer_size,wigroom,opttemp):
         exons=self.getAllExonCoordinates()
@@ -1065,7 +1074,7 @@ def transcript_factory(config_file_path):
     for chromosome in chromosomes:
         for gene in chromosome.getElements():
             for transcript in gene.getTranscripts():
-                yield transcript
+                yield transcript, genome
 
 def simpleIOoptions():
     from optparse import OptionParser
