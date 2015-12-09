@@ -81,8 +81,6 @@ start_list = []
 end_list = []
 strand_list = []
 exon_number = []
-intron_seq_id = []
-intron_seq_list = []
 
 #print introns_di["CNAG_04612T2"][0].chrom
 #print introns_di["CNAG_04612T0"][1].start
@@ -104,12 +102,17 @@ for gene, intron_list in introns_di.iteritems():
         n+=1
         exon_number.append(n)
 
+intron_seq_id = []
+intron_seq_list = []
+intron_number = []
+
 for gene, intron_sequence in intron_seq_di.iteritems():
     n = 0
     while n < len(intron_sequence):
        intron_seq_id.append(gene)
        intron_seq_list.append(intron_sequence[n])
        n += 1
+       intron_number.append(n)
 
 
 strand_number = []
@@ -171,3 +174,12 @@ while b < len(intron_seq_list):
     fout2.write(line)
     b += 1
 fout2.close()
+
+fout3 = open("{0}_LaSSO.fasta".format(sys.argv[1]), "w")
+c = 0
+while c < len(intron_seq_list):
+    line_list = [str(transcript_list[c]),"-",str(intron_number[c]),"\n",str(intron_seq_list[c]),"\n"]
+    line = "".join(line_list)
+    fout3.write(line)
+    c += 1
+fout3.close()

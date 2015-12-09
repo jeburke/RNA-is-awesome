@@ -5,7 +5,7 @@
 #                               #
 #################################
 
-import primer3
+#import primer3
 import HTSeq
 import numpy
 import copy
@@ -555,7 +555,7 @@ def make_primer(genome_seq_obj,coord,offset,from_start=True,length=25,wiggleroom
             slice=sequence[offset+wiggle:offset+length+wiggle]
         else:
             slice=sequence[-offset-length+wiggle:-offset+wiggle]
-        tm=primer3.calcTm(slice)
+#        tm=primer3.calcTm(slice)
         primer_list.append((slice,abs(tm-optimalTm)))
     primer_list.sort(key=lambda x:x[1])
     best_primer=primer_list[0][0]
@@ -563,8 +563,8 @@ def make_primer(genome_seq_obj,coord,offset,from_start=True,length=25,wiggleroom
     for n in range(wiggleroom):
         slice1=best_primer[:-n]
         slice2=best_primer[n:]
-        primer_list.append((slice1,abs(primer3.calcTm(slice1)-optimalTm)))
-        primer_list.append((slice2,abs(primer3.calcTm(slice2)-optimalTm)))
+#        primer_list.append((slice1,abs(primer3.calcTm(slice1)-optimalTm)))
+#        primer_list.append((slice2,abs(primer3.calcTm(slice2)-optimalTm)))
     primer_list.sort(key=lambda x:x[1])
     best_best_primer=primer_list[0][0]
     return best_best_primer
