@@ -31,9 +31,11 @@ for k, line2 in enumerate(fin2):
 intron_db_di = dict(zip(intron_list_db, seq_list_db))
 
 for intron, alignment in alignment_di.iteritems():
-    fout.write(intron.strip()+"\n")
-    fout.write(alignment.strip()+"\n")
-    fout.write(intron_db_di[intron].strip()+"\n")
+    print intron.split("_")[2]
+    if intron.split("_")[2] != "int":
+        fout.write(intron.strip()+"\n")
+        fout.write(alignment.strip()+"\n")
+        fout.write(intron_db_di[intron].strip()+"\n"+"\n")
 
 fin1.close()
 fin2.close()
