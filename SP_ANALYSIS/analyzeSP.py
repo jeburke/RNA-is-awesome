@@ -55,6 +55,8 @@ transcript_feature_di={}
 transcript_len_di={}
 exons_di={}
 introns_di={}
+CDS_feature_di={}
+CDS_len_di={}
 
 for transcript, genome in transcripts:
     print transcript
@@ -64,6 +66,10 @@ for transcript, genome in transcripts:
     transcript_len_di[transcript.getName()]=transcript_iv.end-transcript_iv.start
     transcript_exon_coords=transcript.getAllExonCoordinates()
     transcript_intron_coords=transcript.getAllIntronCoordinates()
+    CDS_coord=transcript.getCDSCoordinates()
+    CDS_iv=gobsChr.HTSeq_iv(CDS_coord)
+    CDS_feature_di[transcript.getName()]=CDS_iv
+    CDS_len_di[transcript.getName()]=CDS_iv.end-CDS_iv.start
     if len(transcript_exon_coords)==0:
         print "no introns in ",transcript
         continue
@@ -107,6 +113,8 @@ print len(introns_di)," intron feature intervals defined"
 df_total=pd.DataFrame()
 df_cleaved_exon_counts=pd.DataFrame()
 df_intron_counts=pd.DataFrame()
+df_cleaved_intron_counts=pd.DataFrame()
+df_CDS_total=pd.DataFrame()
 
 column_headers=[]
 p=multiprocessing.Pool(processes=24)
@@ -114,22 +122,37 @@ p=multiprocessing.Pool(processes=24)
 params_total_counts=[]
 params_cleaved_exon_counts=[]
 params_intron_counts=[]
+params_cleaved_intron_counts=[]
+params_cleaved_intron_counts=[]
+params_CDS_counts=[]
 
 for bamfilereader in BAM_file_readers:
     column_headers.append(bamfilereader.filename.split("/")[-1])
     params_total_counts.append((bamfilereader,transcript_feature_di))
     params_cleaved_exon_counts.append((bamfilereader,exons_di))
     params_intron_counts.append((bamfilereader,introns_di))
+    params_cleaved_intron_counts.append((bamfilereader,introns_di))
+    params_CDS_counts.append((bamfilereader,CDS_feature_di))
 
 total_results=p.map(gobsChr.count_reads,params_total_counts)
 
-print len(total_results)," Total results produced"
+print len(total_results)," Total Results Produced"
 
 cleaved_exon_count_results=p.map(gobsChr.count_splicing_intermediates,params_cleaved_exon_counts)
 
 print len(cleaved_exon_count_results), "Cleaved Exon Count Results Produced"
 
-intron_count_results=p.map(gobsChr.count_splicing_intermediates,params_intron_counts)
+intron_count_results=p.map(gobsChr.count_reads_per_region,params_intron_counts)
+
+print len(intron_count_results), "Intron Count Results Produced"
+
+cleaved_intron_count_results=p.map(gobsChr.count_splicing_intermediates,params_cleaved_intron_counts)
+
+print len(cleaved_intron_count_results), "Cleaved Intron Count Results Produced"
+
+CDS_results=p.map(gobsChr.count_reads,params_CDS_counts)
+
+print len(CDS_results), "CDS Count Results Produced"
 
 for result, column_header in zip(total_results,column_headers):
     ds=pd.Series(result)
@@ -145,14 +168,32 @@ for result, column_header in zip(intron_count_results, column_headers):
     ds=pd.Series(result,index=index)
     df_intron_counts[column_header]=ds
 
+for result, column_header in zip(cleaved_intron_count_results, column_headers):
+    index=pd.MultiIndex.from_tuples(result.keys(),names=["Transcript","Intron"])
+    ds=pd.Series(result,index=index)
+    df_cleaved_intron_counts[column_header]=ds
+
+for result, column_header in zip(CDS_results, column_headers):
+    ds=pd.Series(result)
+    df_CDS_total[column_header]=ds
+
 df_total_sorted=df_total.sort()
 
 df_cleaved_exon_counts_sorted=df_cleaved_exon_counts.sort()
 
 df_intron_counts_sorted=df_intron_counts.sort()
 
+df_cleaved_intron_counts_sorted=df_cleaved_intron_counts.sort()
+
+df_CDS_total_sorted=df_cleaved_intron_counts.sort()
+
+
 df_total_sorted.to_csv("{0}_totalcounts.tsv".format(sys.argv[2]),sep="\t")
 
 df_cleaved_exon_counts_sorted.to_csv("{0}_cleaved_five_prime_exon_counts.tsv".format(sys.argv[2]),sep="\t")
 
-df_intron_counts_sorted.to_csv("{0}_intron_3prime_end_counts.tsv".format(sys.argv[2]),sep="\t")
+df_intron_counts_sorted.to_csv("{0}_intron_counts.tsv".format(sys.argv[2]),sep="\t")
+
+df_cleaved_intron_counts_sorted.to_csv("{0}_cleaved_intron_counts.tsv".format(sys.argv[2]),sep="\t")
+
+df_CDS_total_sorted.to_csv("{0}_CDS_totals.tsv".format(sys.argv[2]),sep="\t")

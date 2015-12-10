@@ -1133,6 +1133,14 @@ def count_splicing_intermediates((bamfilereader,exon_di)):
     print len(read_counter)," exon three-prime ends analyzed"
     return read_counter
 
+def count_reads_per_region((bamfilereader,region_di)):
+    read_counter=collections.Counter()
+    for name,regions in region_di.iteritems():
+        for num, region_iv in enumerate(regions[0:-1]):
+            region_interval_rc=interval_reverse_complement(region_iv)
+            read_counter[(name,num+1)]=count_reads_in_a_interval(bamfilereader,region_interval_rc)
+    print len(read_counter)," regions analyzed"
+    return read_counter
 
 
 

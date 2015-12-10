@@ -2,54 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2343dc0-3eac-42f5-899b-8591fb4cdf7f" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Calculate_rpkm_ATMT.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Calculate_rpkm_ATMT_intergenic.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/CountTowers.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Crypto_LaSSO_header.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Crypto_LaSSO_sequence.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Early_gene.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/ExonTest_totalcounts.tsv" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/FastaForLaSSO.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/LaSSO_alignment_db_cat.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/LaSSO_header_generator.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/LaSSO_reverse_complement.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Late_gene.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Late_int.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MSCompare.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MSCompare.py.save" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MSTEST-1.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MSTEST-1_MSTEST-4-6_comparison.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MSTEST-1_MSTEST-4-6_comparison_annot.tsv" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MSTEST-1_MSTEST-4-6_comparison_annot.xlsx" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MSTEST-4-6.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MatureTest2_RNAi_occupancy.tsv" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MatureTest2_occupancy.tsv" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MatureTest2_occupancy.xlsx" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MatureTest_RNAi_occupancy.tsv" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MatureTest_occupancy.tsv" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/MatureTest_occupancy.xlsx" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Mature_test_RNAi.tsv" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Mature_test_towers.tsv" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/NormalizeToMature.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/SPTools.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/SP_README.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/SPanalyzeExons.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Score_splice_sites.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Splice_site_strengths.csv" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/YPAD_gene.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/YPAD_int.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/analyzeSplicing.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/conf/H99.config" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/conf/LaSSO.config" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/conf/configureBAM.config" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/conf/mature.conf" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/gobs.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/gobsChr.py" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/test.fasta" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/test.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/testBlastSort_blastn_hits.txt" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/test_reversed.db" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/towerHeight.py" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="RNA-is-awesome.iws" />
@@ -71,11 +26,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="analyzeSP.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="analyzeSP.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.6666667">
-              <caret line="127" column="14" selection-start-line="127" selection-start-column="14" selection-end-line="127" selection-end-column="14" />
+            <state vertical-scroll-proportion="-18.88889">
+              <caret line="198" column="77" selection-start-line="198" selection-start-column="77" selection-end-line="198" selection-end-column="77" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -97,7 +52,7 @@
         <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeExons.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="4" column="0" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+              <caret line="76" column="60" selection-start-line="73" selection-start-column="4" selection-end-line="76" selection-end-column="60" />
               <folding />
             </state>
           </provider>
@@ -106,9 +61,11 @@
       <file leaf-file-name="gobsChr.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-6.6666665">
-              <caret line="1071" column="17" selection-start-line="1071" selection-start-column="4" selection-end-line="1071" selection-end-column="17" />
-              <folding />
+            <state vertical-scroll-proportion="57.22222">
+              <caret line="1022" column="15" selection-start-line="1022" selection-start-column="4" selection-end-line="1022" selection-end-column="15" />
+              <folding>
+                <element signature="e#188#200#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -117,7 +74,17 @@
         <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_header_generator.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <caret line="29" column="29" selection-start-line="29" selection-start-column="29" selection-end-line="29" selection-end-column="29" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="LaSSO_alignment_db_cat.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.1403162">
+              <caret line="19" column="53" selection-start-line="19" selection-start-column="53" selection-end-line="19" selection-end-column="53" />
               <folding />
             </state>
           </provider>
@@ -157,7 +124,9 @@
         <option value="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeExons.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/CountTowers.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py" />
       </list>
     </option>
   </component>
@@ -165,10 +134,10 @@
     <order />
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="144" />
-    <option name="y" value="39" />
-    <option name="width" value="1695" />
-    <option name="height" value="968" />
+    <option name="x" value="578" />
+    <option name="y" value="122" />
+    <option name="width" value="1346" />
+    <option name="height" value="907" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
     <OptionsSetting value="true" id="Add" />
@@ -220,7 +189,7 @@
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="configurable.group.language" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/SP_ANALYSIS/LaSSO_header_generator.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py" />
     <property name="FullScreen" value="false" />
   </component>
   <component name="RunManager">
@@ -362,14 +331,14 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="144" y="39" width="1695" height="968" extended-state="0" />
-    <editor active="true" />
+    <frame x="578" y="122" width="1346" height="907" extended-state="0" />
+    <editor active="false" />
     <layout>
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32077625" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.34478527" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.20967741" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.26490566" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
@@ -596,7 +565,7 @@
     <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeExons.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="4" column="0" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+          <caret line="76" column="60" selection-start-line="73" selection-start-column="4" selection-end-line="76" selection-end-column="60" />
           <folding />
         </state>
       </provider>
@@ -611,27 +580,37 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-6.6666665">
-          <caret line="1071" column="17" selection-start-line="1071" selection-start-column="4" selection-end-line="1071" selection-end-column="17" />
-          <folding />
+        <state vertical-scroll-proportion="57.22222">
+          <caret line="1022" column="15" selection-start-line="1022" selection-start-column="4" selection-end-line="1022" selection-end-column="15" />
+          <folding>
+            <element signature="e#188#200#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-18.88889">
+          <caret line="198" column="77" selection-start-line="198" selection-start-column="77" selection-end-line="198" selection-end-column="77" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_header_generator.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <caret line="29" column="29" selection-start-line="29" selection-start-column="29" selection-end-line="29" selection-end-column="29" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py">
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.6666667">
-          <caret line="127" column="14" selection-start-line="127" selection-start-column="14" selection-end-line="127" selection-end-column="14" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
+        <state vertical-scroll-proportion="0.1403162">
+          <caret line="19" column="53" selection-start-line="19" selection-start-column="53" selection-end-line="19" selection-end-column="53" />
+          <folding />
         </state>
       </provider>
     </entry>
