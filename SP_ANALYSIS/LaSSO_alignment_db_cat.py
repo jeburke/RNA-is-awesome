@@ -6,7 +6,8 @@ import sys
 
 fin1 = open(sys.argv[1], "r")
 fin2 = open(sys.argv[2], "r")
-fout = open("{0}_concatenated.fasta".format(sys.argv[1].split(".")[0]), "w")
+fout1 = open("{0}_concatenated.fasta".format(sys.argv[1].split(".")[0]), "w")
+fout2 = open("{0}_branch_points.txt".format(sys.argv[1].split(".")[0], "w")
 
 intron_list = []
 alignment_list = []
@@ -30,14 +31,22 @@ for k, line2 in enumerate(fin2):
 
 intron_db_di = dict(zip(intron_list_db, seq_list_db))
 
+header_list = ["Transcript","\t","Intron","\t","BP Position","\n"]
+header = "".join(header_list)
+fout2.write(header)
+
 for intron, alignment in alignment_di.iteritems():
-    print intron.split("_")[2]
     if intron.split("_")[2] != "int":
-        if int(intron.split("@")[1]) > 5:
-            fout.write(intron.strip()+"\n")
-            fout.write("Alignment:"+alignment.strip()+"\n")
-            fout.write("Reference:"+intron_db_di[intron].strip()+"\n"+"\n")
+        if int(intron.split("@")[1]) > 6:
+            fout1.write(intron.strip()+"\n")
+            fout1.write("Alignment:"+alignment.strip()+"\n")
+            fout1.write("Reference:"+intron_db_di[intron].strip()+"\n"+"\n")
+
+            line_list = [str(intron.split(";")[0]).strip(">"),"\t",str(intron.split(":")[2]),"\t",str(intron.split("@")[1]),"\n"]
+            line = "".join(line_list)
+            fout2.write(line_list)
 
 fin1.close()
 fin2.close()
-fout.close()
+fout1.close()
+fout2.close())
