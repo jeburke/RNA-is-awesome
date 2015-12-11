@@ -7,7 +7,7 @@ import sys
 fin1 = open(sys.argv[1], "r")
 fin2 = open(sys.argv[2], "r")
 fout1 = open("{0}_concatenated.fasta".format(sys.argv[1].split(".")[0]), "w")
-fout2 = open("{0}_branch_points.txt".format(sys.argv[1].split(".")[0], "w")
+fout2 = open("{0}_branch_points.txt".format(sys.argv[1].split(".")[0]), "w")
 
 intron_list = []
 alignment_list = []
@@ -35,18 +35,23 @@ header_list = ["Transcript","\t","Intron","\t","BP Position","\n"]
 header = "".join(header_list)
 fout2.write(header)
 
+position_list = []
 for intron, alignment in alignment_di.iteritems():
     if intron.split("_")[2] != "int":
         if int(intron.split("@")[1]) > 6:
             fout1.write(intron.strip()+"\n")
             fout1.write("Alignment:"+alignment.strip()+"\n")
             fout1.write("Reference:"+intron_db_di[intron].strip()+"\n"+"\n")
+            position_list.append(intron)
 
-            line_list = [str(intron.split(";")[0]).strip(">"),"\t",str(intron.split(":")[2]),"\t",str(intron.split("@")[1]),"\n"]
-            line = "".join(line_list)
-            fout2.write(line_list)
+position_list_sorted = position_list.sort()
+
+for position in position_list:
+        line_list = [str(position.split(";")[0]).strip(">"),"\t",str(str(position.split(":")[2]).split("-")[0]),"\t",str(position.split("@")[1]),"\n"]
+        line = "".join(line_list)
+        fout2.write(line)
 
 fin1.close()
 fin2.close()
 fout1.close()
-fout2.close())
+fout2.close()
