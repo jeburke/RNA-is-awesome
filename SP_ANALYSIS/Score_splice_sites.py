@@ -132,7 +132,7 @@ for cnag in gene_list_as_dict:
                 b += 1
             a += 1
 
-        lineout_list = [cnag, str(intron_num), str(score_5prime), str(score_3prime), "\n"]
+        lineout_list = [cnag+"T0", str(intron_num), str(score_5prime), str(score_3prime), "\n"]
         lineout = "\t".join(lineout_list)
         fout.write(lineout)
 

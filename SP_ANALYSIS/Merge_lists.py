@@ -1,4 +1,5 @@
 __author__ = 'jordanburke'
+'''Usage: python Merge_lists.py <as many lists with the same first column header as you want> <output prefix> '''
 
 import sys
 import pandas as pd
@@ -11,17 +12,16 @@ def build_tables(file):
     fin.close()
     return df
 
-
 n = 2
 while n < len(sys.argv)-1:
     file = sys.argv[n]
     df_merge = build_tables(sys.argv[1])
     df = build_tables(file)
-    df_merge = pd.merge(df_merge,df,on="Intron",left_index=True,how = 'left')
+    df_merge = pd.merge(df_merge,df,on=df.columns[0],left_index=True,how = 'left')
     n += 1
 #print df_merge
 
-df_merge_sorted = df_merge.sort(columns="Intron")
+df_merge_sorted = df_merge.sort(columns=df.columns[0])
 
 fout = open("{0}_compared.txt".format(sys.argv[-1].split(".")[0]), "w")
 print fout
