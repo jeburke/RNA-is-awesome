@@ -80,7 +80,7 @@ print pos_matrix_3prime
 
 #Compare each splice site and output scores into a spreadsheet
 fout = open("Splice_site_strengths.csv", "w")
-header_list = ["CNAG", "Intron", "5' Splice Site Score", "3' Splice Site Score", "\n"]
+header_list = ["Transcript","Intron", "5' Splice Site Score", "3' Splice Site Score", "\n"]
 header = "\t".join(header_list)
 fout.write(header)
 
@@ -132,6 +132,8 @@ for cnag in gene_list_as_dict:
                 b += 1
             a += 1
 
+#        format_transcript_list = [cnag, "T0-", str(intron_num)]
+#        format_transcript = "".join(format_transcript_list)
         lineout_list = [cnag+"T0", str(intron_num), str(score_5prime), str(score_3prime), "\n"]
         lineout = "\t".join(lineout_list)
         fout.write(lineout)

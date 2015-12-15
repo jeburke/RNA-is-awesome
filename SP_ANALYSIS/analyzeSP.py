@@ -7,6 +7,16 @@ import multiprocessing
 import time
 import sys
 
+if len(sys.argv) < 2:
+    print '''Usage: python analyzeSP.py <configuration file> <output prefix>
+             Configuration file format:
+             GFF3=/Users/jordanburke/GENOMES/CNA3_FINAL_CALLGENES_1_Chr.gff3
+             FASTA=/Users/jordanburke/GENOMES/CNA3-Chr.fa
+             CEN=/Users/jordanburke/python-hm/H99centromeres.txt
+             SPECIES=CRYPTOCOCCUSNEOFORMANSVARGRUBII
+             BAM=/Users/jordanburke/Documents/JEB/HTseq/JEB003/BAMFILES/CM763-A_sorted.bam'''
+    sys.exit()
+
 t1=time.time()
 #basedir="./"
 print 'reading configuration file'
@@ -59,7 +69,6 @@ CDS_feature_di={}
 CDS_len_di={}
 
 for transcript, genome in transcripts:
-    print transcript
     transcript_coord=transcript.getCoordinates()
     transcript_iv=gobsChr.HTSeq_iv(transcript_coord)
     transcript_feature_di[transcript.getName()]=transcript_iv
@@ -186,7 +195,6 @@ df_intron_counts_sorted=df_intron_counts.sort()
 df_cleaved_intron_counts_sorted=df_cleaved_intron_counts.sort()
 
 df_CDS_total_sorted=df_cleaved_intron_counts.sort()
-
 
 df_total_sorted.to_csv("{0}_totalcounts.tsv".format(sys.argv[2]),sep="\t")
 
