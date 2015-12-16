@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2343dc0-3eac-42f5-899b-8591fb4cdf7f" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/SPTools.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/SPTools.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="RNA-is-awesome.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -38,11 +36,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SPTools.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPTools.py">
+      <file leaf-file-name="NormalizeToMature.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="132" column="83" selection-start-line="132" selection-start-column="83" selection-end-line="132" selection-end-column="83" />
+              <caret line="64" column="3" selection-start-line="64" selection-start-column="3" selection-end-line="64" selection-end-column="3" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="SPTools.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPTools.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="5.8669353">
+              <caret line="194" column="24" selection-start-line="194" selection-start-column="24" selection-end-line="194" selection-end-column="24" />
               <folding>
                 <element signature="e#28#41#0" expanded="true" />
               </folding>
@@ -50,11 +58,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SPNormalizeAndPlot.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="SPNormalizeAndPlot.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.546371">
-              <caret line="97" column="68" selection-start-line="97" selection-start-column="68" selection-end-line="97" selection-end-column="68" />
+            <state vertical-scroll-proportion="0.0">
+              <caret line="106" column="86" selection-start-line="106" selection-start-column="86" selection-end-line="106" selection-end-column="86" />
               <folding>
                 <element signature="e#714#727#0" expanded="true" />
               </folding>
@@ -169,8 +177,8 @@
         <option value="$PROJECT_DIR$/SP_ANALYSIS/Score_splice_sites.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/Merge_lists.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" />
-        <option value="$PROJECT_DIR$/SP_ANALYSIS/SPTools.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/SPTools.py" />
       </list>
     </option>
   </component>
@@ -233,7 +241,7 @@
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="configurable.group.language" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeExons.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" />
     <property name="FullScreen" value="false" />
     <property name="recentsLimit" value="5" />
   </component>
@@ -841,22 +849,22 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPTools.py">
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="132" column="83" selection-start-line="132" selection-start-column="83" selection-end-line="132" selection-end-column="83" />
+          <caret line="106" column="86" selection-start-line="106" selection-start-column="86" selection-end-line="106" selection-end-column="86" />
           <folding>
-            <element signature="e#28#41#0" expanded="true" />
+            <element signature="e#714#727#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py">
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPTools.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.546371">
-          <caret line="97" column="68" selection-start-line="97" selection-start-column="68" selection-end-line="97" selection-end-column="68" />
+        <state vertical-scroll-proportion="5.8669353">
+          <caret line="194" column="24" selection-start-line="194" selection-start-column="24" selection-end-line="194" selection-end-column="24" />
           <folding>
-            <element signature="e#714#727#0" expanded="true" />
+            <element signature="e#28#41#0" expanded="true" />
           </folding>
         </state>
       </provider>

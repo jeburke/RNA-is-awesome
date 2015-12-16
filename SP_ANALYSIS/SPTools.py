@@ -184,17 +184,15 @@ def normalize_to_mature(total_counts, lengths, config):
     return merged
 
 
-
-
 ##################################################################
 ## Filter transcripts based on an input table. In this case I'm ##
 ## giving it a list of RNAi targets. Can be anything, 1 column  ##
 ## format with CNAG IDs                                         ##
 ##################################################################
 
-def filter_transcripts_by_cnag(mergedtable, list):
+def filter_transcripts_by_cnag(mergedtable, list_file):
     geneID = []
-    fin = open(list, "r")
+    fin = open(list_file, "r")
     df = pandas.DataFrame(mergedtable)
     df = df.set_index('Transcrip')
     for line in fin:
@@ -227,6 +225,10 @@ def get_ratios(normalizedResults, a):
                 n += 1
     return values
 
+#################################################################
+## Take log10 of data to make plots prettier                   ##
+#################################################################
+
 def log_ratios(ratio_list):
     log_list = []
     for y in ratio_list:
@@ -241,8 +243,8 @@ def scatter_plot(xvalues1, yvalues1, xvalues2, yvalues2):
     ax1 = fig1.add_subplot(111)
     ax1.scatter(xvalues1, yvalues1, c='royalblue', label='All', alpha = 0.5, edgecolor='royalblue')
     ax1.scatter(xvalues2, yvalues2, c='coral', alpha=0.5, label='Filtered', edgecolor='coral')
-    ax1.set_xlabel("Replicate 1")
-    ax1.set_ylabel("Replicate 2")
+    ax1.set_xlabel("Replicate 1 (log10)")
+    ax1.set_ylabel("Replicate 2 (log10)")
     xlim = ax1.get_xlim()
     ax1.set_ylim(xlim)
     ax1.legend()

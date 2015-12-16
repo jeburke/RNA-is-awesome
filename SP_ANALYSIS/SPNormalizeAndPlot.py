@@ -46,10 +46,11 @@ configFile = SPTools.build_tables(sys.argv[5])
 
 normalizedExonTable = SPTools.normalize_AtoB(exonCounts, totalCounts, transcriptLength, configFile)
 filteredExonList = SPTools.normalize_AtoB_filter_by_counts(exonCounts, totalCounts, transcriptLength, configFile, 1000)
+RNAiExons = SPTools.filter_transcripts_by_cnag(normalizedExonTable, sys.argv[6])
 
 normalizedIntronTable = SPTools.normalize_AtoB(intronCounts, totalCounts, transcriptLength, configFile)
 filteredIntronList = SPTools.normalize_AtoB_filter_by_counts(intronCounts, totalCounts, transcriptLength, configFile, 1000)
-
+RNAiIntrons = SPTools.filter_transcripts_by_cnag(normalizedIntronTable, sys.argv[6])
 
 #################################################################
 ## Write 2 files - one with all data and one with filtered set ##
@@ -61,8 +62,11 @@ fout.write(pandas.DataFrame.to_csv(normalizedExonTable, sep='\t'))
 fout = open("{0}_normalizedIntrons.tsv".format(sys.argv[7]), "w")
 fout.write(pandas.DataFrame.to_csv(normalizedIntronTable, sep='\t'))
 
-#fout = open("{0}_RNAi_normalized5pExons.tsv".format(sys.argv[7]),"w")
-#fout.write(pandas.DataFrame.to_csv(filteredList, sep='\t'))
+fout = open("{0}_RNAi_normalized5pExons.tsv".format(sys.argv[7]),"w")
+fout.write(pandas.DataFrame.to_csv(RNAiExons, sep='\t'))
+
+fout = open("{0}_RNAi_normalizedIntrons.tsv".format(sys.argv[7]),"w")
+fout.write(pandas.DataFrame.to_csv(RNAiIntrons, sep='\t'))
 
 ####################################################################
 ## Get lists from dataframes to make scatter plots and do some    ##
@@ -81,10 +85,11 @@ Intron_yvalues = SPTools.get_ratios(normalizedIntronTable, 1)
 Filt_intron_xvalues = SPTools.get_ratios(filteredIntronList, 0)
 Filt_intron_yvalues = SPTools.get_ratios(filteredIntronList, 1)
 
-#RNAixvalues = SPTools.get_ratios(filteredList, 0)
-#RNAixvalues = [0 if math.isnan(x) else x for x in RNAixvalues]
-#RNAiyvalues = SPTools.get_ratios(filteredList, 1)
-#RNAiyvalues = [0 if math.isnan(x) else x for x in RNAiyvalues]
+RNAi_ex_xvalues = SPTools.get_ratios(RNAiExons, 0)
+RNAi_ex_yvalues = SPTools.get_ratios(RNAiExons, 1)
+RNAi_int_xvalues = SPTools.get_ratios(RNAiIntrons, 0)
+RNAi_int_yvalues = SPTools.get_ratios(RNAiIntrons, 1)
+
 
 #################################################################
 ## Scatter plot of replicates                                  ##
@@ -94,9 +99,12 @@ logExon_xvalue = SPTools.log_ratios(Exon_xvalues)
 logExon_yvalue = SPTools.log_ratios(Exon_yvalues)
 logFiltex_xvalue = SPTools.log_ratios(Filt_exon_xvalues)
 logFiltex_yvalue = SPTools.log_ratios(Filt_exon_yvalues)
+logRNAi_ex_xvalue = SPTools.log_ratios(RNAi_ex_xvalues)
+logRNAi_ex_yvalue = SPTools.log_ratios(RNAi_ex_yvalues)
 print "Number of 5' exons: "+str(len(logExon_xvalue))
 print "Number of 5' exons above cutoff: "+str(len(logFiltex_xvalue))
 SPTools.scatter_plot(logExon_xvalue,logExon_yvalue,logFiltex_xvalue,logFiltex_yvalue)
+SPTools.scatter_plot(logExon_xvalue,logExon_yvalue,logRNAi_ex_xvalue,logRNAi_ex_yvalue)
 
 logIntron_xvalue = SPTools.log_ratios(Intron_xvalues)
 logIntron_yvalue = SPTools.log_ratios(Intron_yvalues)
