@@ -2,8 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2343dc0-3eac-42f5-899b-8591fb4cdf7f" name="Default" comment="">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/SP_ANALYSIS/SPScoreSpliceSites.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/SPTools.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/SPTools.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/Splice_site_strengths.csv" afterPath="$PROJECT_DIR$/SP_ANALYSIS/Splice_site_strengths.csv" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="RNA-is-awesome.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -28,7 +33,7 @@
         <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="160" column="0" selection-start-line="160" selection-start-column="0" selection-end-line="160" selection-end-column="0" />
+              <caret line="168" column="30" selection-start-line="168" selection-start-column="30" selection-end-line="168" selection-end-column="30" />
               <folding>
                 <element signature="e#0#12#0" expanded="true" />
               </folding>
@@ -36,21 +41,23 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="NormalizeToMature.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py">
+      <file leaf-file-name="SPScoreSpliceSites.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPScoreSpliceSites.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="64" column="3" selection-start-line="64" selection-start-column="3" selection-end-line="64" selection-end-column="3" />
-              <folding />
+            <state vertical-scroll-proportion="1.1217039">
+              <caret line="70" column="0" selection-start-line="70" selection-start-column="0" selection-end-line="70" selection-end-column="0" />
+              <folding>
+                <element signature="e#252#262#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SPTools.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="SPTools.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPTools.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="5.8669353">
-              <caret line="194" column="24" selection-start-line="194" selection-start-column="24" selection-end-line="194" selection-end-column="24" />
+            <state vertical-scroll-proportion="0.0">
+              <caret line="37" column="35" selection-start-line="37" selection-start-column="35" selection-end-line="37" selection-end-column="35" />
               <folding>
                 <element signature="e#28#41#0" expanded="true" />
               </folding>
@@ -62,9 +69,9 @@
         <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="106" column="86" selection-start-line="106" selection-start-column="86" selection-end-line="106" selection-end-column="86" />
+              <caret line="68" column="59" selection-start-line="68" selection-start-column="59" selection-end-line="68" selection-end-column="59" />
               <folding>
-                <element signature="e#714#727#0" expanded="true" />
+                <element signature="e#713#726#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -92,31 +99,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="LaSSO_header_generator.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_header_generator.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="125" column="0" selection-start-line="125" selection-start-column="0" selection-end-line="125" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="LaSSO_alignment_db_cat.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="25" column="0" selection-start-line="25" selection-start-column="0" selection-end-line="25" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="Merge_lists.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/Merge_lists.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="48" column="10" selection-start-line="48" selection-start-column="10" selection-end-line="48" selection-end-column="10" />
+              <caret line="40" column="5" selection-start-line="40" selection-start-column="5" selection-end-line="40" selection-end-column="5" />
               <folding>
                 <element signature="e#142#152#0" expanded="true" />
                 <marker date="1450199775000" expanded="true" signature="197:228" placeholder="..." />
@@ -171,14 +158,15 @@
         <option value="$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeExons.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/CountTowers.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py" />
-        <option value="$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/CountTranscriptsInFa.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/Score_splice_sites.py" />
-        <option value="$PROJECT_DIR$/SP_ANALYSIS/Merge_lists.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/Merge_lists.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py" />
         <option value="$PROJECT_DIR$/SP_ANALYSIS/SPTools.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/SPScoreSpliceSites.py" />
       </list>
     </option>
   </component>
@@ -186,9 +174,9 @@
     <order />
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="328" />
-    <option name="y" value="108" />
-    <option name="width" value="1345" />
+    <option name="x" value="188" />
+    <option name="y" value="90" />
+    <option name="width" value="1412" />
     <option name="height" value="895" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
@@ -214,6 +202,8 @@
       <sortByType />
     </navigator>
     <panes>
+      <pane id="Scope" />
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -234,14 +224,12 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="configurable.group.language" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/SP_ANALYSIS/SPTools.py" />
     <property name="FullScreen" value="false" />
     <property name="recentsLimit" value="5" />
   </component>
@@ -409,27 +397,27 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="328" y="108" width="1345" height="895" extended-state="0" />
-    <editor active="false" />
+    <frame x="188" y="90" width="1412" height="895" extended-state="0" />
+    <editor active="true" />
     <layout>
-      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3490683" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.35118306" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.24946082" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.26510575" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25233644" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32990867" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
   <component name="Vcs.Log.UiProperties">
@@ -456,14 +444,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="86" column="0" selection-start-line="86" selection-start-column="0" selection-end-line="86" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPTools.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -786,17 +766,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/Merge_lists.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="48" column="10" selection-start-line="48" selection-start-column="10" selection-end-line="48" selection-end-column="10" />
-          <folding>
-            <element signature="e#142#152#0" expanded="true" />
-            <marker date="1450199775000" expanded="true" signature="197:228" placeholder="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -805,20 +774,18 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="160" column="0" selection-start-line="160" selection-start-column="0" selection-end-line="160" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#12#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_header_generator.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="125" column="0" selection-start-line="125" selection-start-column="0" selection-end-line="125" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-4.6296296">
+          <caret line="21" column="13" selection-start-line="21" selection-start-column="13" selection-end-line="21" selection-end-column="13" />
           <folding />
         </state>
       </provider>
@@ -833,6 +800,16 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="168" column="30" selection-start-line="168" selection-start-column="30" selection-end-line="168" selection-end-column="30" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeExons.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -841,30 +818,43 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py">
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/Merge_lists.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="64" column="3" selection-start-line="64" selection-start-column="3" selection-end-line="64" selection-end-column="3" />
-          <folding />
+          <caret line="40" column="5" selection-start-line="40" selection-start-column="5" selection-end-line="40" selection-end-column="5" />
+          <folding>
+            <element signature="e#142#152#0" expanded="true" />
+            <marker date="1450199775000" expanded="true" signature="197:228" placeholder="..." />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="106" column="86" selection-start-line="106" selection-start-column="86" selection-end-line="106" selection-end-column="86" />
+          <caret line="68" column="59" selection-start-line="68" selection-start-column="59" selection-end-line="68" selection-end-column="59" />
           <folding>
-            <element signature="e#714#727#0" expanded="true" />
+            <element signature="e#713#726#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPTools.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="5.8669353">
-          <caret line="194" column="24" selection-start-line="194" selection-start-column="24" selection-end-line="194" selection-end-column="24" />
+        <state vertical-scroll-proportion="0.0">
+          <caret line="37" column="35" selection-start-line="37" selection-start-column="35" selection-end-line="37" selection-end-column="35" />
           <folding>
             <element signature="e#28#41#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPScoreSpliceSites.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="1.1217039">
+          <caret line="70" column="0" selection-start-line="70" selection-start-column="0" selection-end-line="70" selection-end-column="0" />
+          <folding>
+            <element signature="e#252#262#0" expanded="true" />
           </folding>
         </state>
       </provider>

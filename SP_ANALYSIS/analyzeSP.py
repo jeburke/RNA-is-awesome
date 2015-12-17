@@ -164,6 +164,7 @@ CDS_results=p.map(gobsChr.count_reads,params_CDS_counts)
 print len(CDS_results), "CDS Count Results Produced"
 
 for result, column_header in zip(total_results,column_headers):
+    df_total.index.name = "Transcript"
     ds=pd.Series(result)
     df_total[column_header]=ds
 
@@ -183,6 +184,7 @@ for result, column_header in zip(cleaved_intron_count_results, column_headers):
     df_cleaved_intron_counts[column_header]=ds
 
 for result, column_header in zip(CDS_results, column_headers):
+    df_CDS_total.index.name="Transcript"
     ds=pd.Series(result)
     df_CDS_total[column_header]=ds
 

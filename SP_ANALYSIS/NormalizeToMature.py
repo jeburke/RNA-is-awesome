@@ -21,15 +21,6 @@ import math
 import SPTools
 import random
 
-def configure(file):
-    sample = []
-    controlReads = []
-    fin = open(file, "r")
-    for line in fin:
-        row = line.split("\t")
-        sample.append(row[0])
-        controlReads.append(row[1])
-
 #################################################################
 ## Convert input tables to dataframes                          ##
 #################################################################

@@ -3,9 +3,9 @@ __author__ = 'jordanburke'
 
 '''This script compares counts at splice site features in SP-A to total reads for that transcript in the total Prp19 IP samples (SP-B samples)
 
-Usage: python NormalizeToMature.py <cleaved 5p exon counts> <cleaved intron counts> <premRNA total counts> <transcipt_lengths> <configuration file> <RNAi_list> <prefix>
+Usage: python NormalizeAndPlot.py <cleaved 5p exon counts> <cleaved intron counts> <premRNA total counts> <transcipt_lengths> <configuration file> <RNAi_list> <prefix>
 
-Configuration file format (tab separated):
+Control table file format (tab separated):
 SampleName1 SampleName2
 ControlRNAcountsA   ControlRNAcountsA
 ControlRNAcountsB   ControlRNAcountsB
@@ -14,21 +14,11 @@ ControlRNAcountsW   ControlRNAcountsW
 Note: .bam files must be named *A_al_sorted.bam for exon sequencing, *B_al_sorted.bam for total spliceosome sequencing, *W_al_sorted.bam for mature sequencing'''
 
 import pandas
-import matplotlib.pyplot as plt
 import sys
 from scipy import stats
-import math
 import SPTools
 import random
 
-def configure(file):
-    sample = []
-    controlReads = []
-    fin = open(file, "r")
-    for line in fin:
-        row = line.split("\t")
-        sample.append(row[0])
-        controlReads.append(row[1])
 
 #################################################################
 ## Convert input tables to dataframes                          ##
@@ -38,18 +28,18 @@ exonCounts = SPTools.build_tables(sys.argv[1])
 intronCounts = SPTools.build_tables(sys.argv[2])
 totalCounts = SPTools.build_tables(sys.argv[3])
 transcriptLength = SPTools.build_tables(sys.argv[4])
-configFile = SPTools.build_tables(sys.argv[5])
+controlTable = SPTools.build_tables(sys.argv[5])
 
 #################################################################
 ## Process exon counts and filter for genes of interest        ##
 #################################################################
 
-normalizedExonTable = SPTools.normalize_AtoB(exonCounts, totalCounts, transcriptLength, configFile)
-filteredExonList = SPTools.normalize_AtoB_filter_by_counts(exonCounts, totalCounts, transcriptLength, configFile, 1000)
+normalizedExonTable = SPTools.normalize_AtoB(exonCounts, totalCounts, transcriptLength, controlTable)
+filteredExonList = SPTools.normalize_AtoB_filter_by_counts(exonCounts, totalCounts, transcriptLength, controlTable, 1000)
 RNAiExons = SPTools.filter_transcripts_by_cnag(normalizedExonTable, sys.argv[6])
 
-normalizedIntronTable = SPTools.normalize_AtoB(intronCounts, totalCounts, transcriptLength, configFile)
-filteredIntronList = SPTools.normalize_AtoB_filter_by_counts(intronCounts, totalCounts, transcriptLength, configFile, 1000)
+normalizedIntronTable = SPTools.normalize_AtoB(intronCounts, totalCounts, transcriptLength, controlTable)
+filteredIntronList = SPTools.normalize_AtoB_filter_by_counts(intronCounts, totalCounts, transcriptLength, controlTable, 1000)
 RNAiIntrons = SPTools.filter_transcripts_by_cnag(normalizedIntronTable, sys.argv[6])
 
 #################################################################
@@ -103,13 +93,16 @@ logRNAi_ex_xvalue = SPTools.log_ratios(RNAi_ex_xvalues)
 logRNAi_ex_yvalue = SPTools.log_ratios(RNAi_ex_yvalues)
 print "Number of 5' exons: "+str(len(logExon_xvalue))
 print "Number of 5' exons above cutoff: "+str(len(logFiltex_xvalue))
-SPTools.scatter_plot(logExon_xvalue,logExon_yvalue,logFiltex_xvalue,logFiltex_yvalue)
-SPTools.scatter_plot(logExon_xvalue,logExon_yvalue,logRNAi_ex_xvalue,logRNAi_ex_yvalue)
+SPTools.scatter_plot(logExon_xvalue,logExon_yvalue,logFiltex_xvalue,logFiltex_yvalue, "5p exon counts/SP total", "All", ">1000 reads in B")
+SPTools.scatter_plot(logExon_xvalue,logExon_yvalue,logRNAi_ex_xvalue,logRNAi_ex_yvalue, "5p exon counts/SP total", "All", "RNAi Targets")
 
 logIntron_xvalue = SPTools.log_ratios(Intron_xvalues)
 logIntron_yvalue = SPTools.log_ratios(Intron_yvalues)
 logFiltin_xvalue = SPTools.log_ratios(Filt_intron_xvalues)
 logFiltin_yvalue = SPTools.log_ratios(Filt_intron_yvalues)
+logRNAi_int_xvalue = SPTools.log_ratios(RNAi_int_xvalues)
+logRNAi_int_yvalue = SPTools.log_ratios(RNAi_int_yvalues)
 print "Number of introns: "+str(len(logIntron_xvalue))
 print "Number of introns above cutoff: "+str(len(logFiltin_xvalue))
-SPTools.scatter_plot(logIntron_xvalue,logIntron_yvalue,logFiltin_xvalue,logFiltin_yvalue)
+SPTools.scatter_plot(logIntron_xvalue,logIntron_yvalue,logFiltin_xvalue,logFiltin_yvalue, "Intron counts/SP total", "All", ">1000 reads in B")
+SPTools.scatter_plot(logIntron_xvalue,logIntron_yvalue,logRNAi_int_xvalue,logRNAi_int_yvalue, "Intron counts/SP total", "All", "RNAi Targets")
