@@ -263,9 +263,10 @@ def get_ratios(normalizedResults, a):
 def log_ratios(ratio_list):
     log_list = []
     for y in ratio_list:
-        if y != 0:
+        if float(y) != 0:
+            y = float(y)
             log_list.append(math.log10(y))
-        elif y == 0:
+        elif float(y) == 0:
             log_list.append("NaN")
     return log_list
 

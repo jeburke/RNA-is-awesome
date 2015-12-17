@@ -24,6 +24,7 @@ pos_matrix_5prime = np.zeros([4,8])
 pos_matrix_3prime = np.zeros([4,8])
 
 for cnag in gene_list_as_dict:
+    intron_length = []
     gene = gene_list_as_dict.FindGeneByCNAG(cnag)
     introns = gene.introns
     if gene.strand == "-":
@@ -36,6 +37,7 @@ for cnag in gene_list_as_dict:
             seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
         else:
             seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
+        intron_length.append(len(intron))
         for a, base in enumerate(seq):
              if base == "A":
                  pos_matrix_5prime[0,a] = pos_matrix_5prime[0,a]+1
@@ -80,7 +82,7 @@ print pos_matrix_3prime
 
 #Compare each splice site and output scores into a spreadsheet
 fout = open("Splice_site_strengths.csv", "w")
-header_list = ["Transcript","Intron", "5' Splice Site Score", "3' Splice Site Score", "\n"]
+header_list = ["Transcript","Intron", "5' Splice Site Score", "3' Splice Site Score", "Intron Length", "\n"]
 header = "\t".join(header_list)
 fout.write(header)
 
@@ -134,7 +136,7 @@ for cnag in gene_list_as_dict:
 
 #        format_transcript_list = [cnag, "T0-", str(intron_num)]
 #        format_transcript = "".join(format_transcript_list)
-        lineout_list = [cnag+"T0", str(intron_num), str(score_5prime), str(score_3prime), "\n"]
+        lineout_list = [cnag+"T0", str(intron_num), str(score_5prime), str(score_3prime), str(intron_length), "\n"]
         lineout = "\t".join(lineout_list)
         fout.write(lineout)
 

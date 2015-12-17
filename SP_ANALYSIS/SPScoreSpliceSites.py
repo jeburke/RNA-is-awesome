@@ -8,78 +8,79 @@ import SPTools
 import pandas as pd
 import matplotlib.pyplot as plt
 
-n = 2
-scores_df = SPTools.build_intron_tables(sys.argv[1])
-
-while n < len(sys.argv)-1:
+def merge_tables(n):
     file = sys.argv[n]
     counts_df = SPTools.build_intron_tables(file)
     merged_df = pd.merge(scores_df, counts_df, right_index=True, left_index=True)
-    n += 1
-scores_df_sorted = merged_df.sort(columns=scores_df.columns[0])
-fout = open("{0}_scored_ss.txt".format(sys.argv[-1].split(".")[0]), "w")
-print fout
-scores_df_sorted.to_csv(fout, sep='\t')
-fout.close()
+    scores_df_sorted = merged_df.sort()
+    fout = open("{0}_scored_ss{1}.txt".format(sys.argv[-1].split(".")[0], str(n)), "w")
+    print fout
+    scores_df_sorted.to_csv(fout, sep='\t')
+    fout.close()
+    return scores_df_sorted
 
 def get_points(normalizedResults, a):
     values = []
     n = 0
     for name in normalizedResults.columns:
         if name.split("_")[-1] == "norm":
-            print name
             if n == a:
-                s = pd.Series(normalizedResults[name])
-                values = s.tolist()
+                for entry in normalizedResults[name]:
+                    values.append(entry)
                 n += 1
             else:
                 n += 1
     return values
 
-FiveP_scores = []
-ThreeP_scores = []
-j = 0
-for name in scores_df_sorted.columns:
-    if name.split("_")[-1] =="Score":
-        #print scores_df_sorted[name]
-        #print name
-        if j == 0:
-            #s = pd.Series(scores_df_sorted[name])
-            #FiveP_scores = s.tolist()
-            for score in scores_df_sorted[name].iteritems():
-                FiveP_scores.append(score)
-            #print FiveP_scores
-            j += 1
-        elif j == 1:
-            #s = pd.Series(scores_df_sorted[name])
-            #print s
-            for score in scores_df_sorted[name].iteritems():
-                ThreeP_scores.append(score)
-            #ThreeP_scores = s.toList()
-            j += 1
-        else:
-            break
+def scatter_plot(x,y1,y2,label1, label2, title):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax1.scatter(x, y1, c='royalblue', label=label1, alpha = 0.5, edgecolor='darkslateblue')
+    ax1.scatter(x, y2, c='coral', alpha=0.5, label=label2, edgecolor='coral')
+    ax1.set_xlabel("Splice site scores")
+    ax1.set_ylabel("Feature reads/SP total")
+    ax1.legend()
+    ax1.set_title(title)
+    plt.show()
 
-exons1 = get_points(scores_df_sorted, 0)
-exons2 = get_points(scores_df_sorted, 1)
+def get_scores(merged_table):
+    FiveP_scores = []
+    ThreeP_scores = []
+    j = 0
+    for name in merged_table.columns:
+        if name.split("_")[-1] =="Score":
+            if j == 0:
+                for score in merged_table[name]:
+                    FiveP_scores.append(score)
+                j += 1
+            elif j == 1:
+                for score in merged_table[name]:
+                    ThreeP_scores.append(score)
+                j += 1
+            else:
+                break
+    both_scores = [FiveP_scores, ThreeP_scores]
+    return both_scores
 
-print FiveP_scores[0:20]
-print len(ThreeP_scores)
-print exons1[0:20]
-print len(exons2)
+scores_df = SPTools.build_intron_tables(sys.argv[1])
+exon_merged_df = merge_tables(2)
+intron_merged_df = merge_tables(3)
 
+exon_FiveP_scores = get_scores(exon_merged_df)[0]
+exon_ThreeP_scores = get_scores(exon_merged_df)[1]
+exons1 = get_points(exon_merged_df, 0)
+exons2 = get_points(exon_merged_df, 1)
+intron_FiveP_scores = get_scores(intron_merged_df)[0]
+intron_ThreeP_scores = get_scores(intron_merged_df)[1]
+introns1 = get_points(intron_merged_df, 0)
+introns2 = get_points(intron_merged_df, 1)
 
-fig1 = plt.figure()
-ax1 = fig1.add_subplot(111)
-ax1.scatter(FiveP_scores, exons1, c='royalblue', label="5' splice site scores", alpha = 0.5, edgecolor='darkslateblue')
-ax1.scatter(ThreeP_scores, exons1, c='coral', alpha=0.5, label="3' splice site scores", edgecolor='coral')
-ax1.set_xlabel("Splice site scores")
-ax1.set_ylabel("Replicate 2 (log10)")
-#xlim = ax1.get_xlim()
-#ax1.set_ylim(xlim)
-#ax1.set_xlim(xlim)
-#ylim = ax1.get_ylim()
-ax1.legend()
-ax1.set_title("Splice site scores vs 5' exon values")
-#ax1.plot(xlim, ylim, ls="--", c=".3", lw=1.5)
-plt.show()
+print len(exon_FiveP_scores)
+print len(exons1)
+print len(intron_FiveP_scores)
+print len(introns1)
+
+scatter_plot(exon_FiveP_scores, exons1, exons2, "Replicate 1", "Replicate 2", "5'ss scores vs. normalized 5' exon reads")
+scatter_plot(intron_FiveP_scores, introns1, introns2, "Replicate 2", "Replicate 2", "5'ss scores vs. normalized intron reads")
+scatter_plot(exon_ThreeP_scores, exons1, exons2, "Replicate 1", "Replicate 2", "3'ss scores vs. normalized 5' exon reads")
+scatter_plot(intron_ThreeP_scores, introns1, introns2, "Replicate 1", "Replicate 2", "3'ss scores vs. normalized intron reads")
