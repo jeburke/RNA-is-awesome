@@ -10,15 +10,32 @@ import matplotlib.pyplot as plt
 ## for each type of read (exon, intron or total)               ##
 #################################################################
 
-def build_tables(file):
+def build_tables(file, header='infer', skiprows=None):
     fin = open(file, "r")
-    df = pandas.read_table(fin)
-    new_columns = []
+    df = pandas.read_table(fin, header=header, skiprows=skiprows)
+    #print list(df.columns)
+    columns_list = []
     for column in df.columns:
-        new_columns.append(column.split("_")[0])
-    df.columns = new_columns
-    #df.columns = df.columns.str.rstrip("_sorted.bam")
-    df.fillna(0)
+        if header != 'infer':
+            if column[0] == "Unnamed: 0_level_0":
+                columns_list.append(("Transcript","Transcript"))
+            elif column[0] == "Unnamed: 1_level_0":
+                columns_list.append(("Exon","Exon"))
+            else:
+                columns_list.append((column[0].split("_")[0], column[1]))
+        else:
+            #print column
+            if column == "Unnamed: 0":
+                columns_list.append(("Transcript","Transcript"))
+            elif column == "Transcript":
+                columns_list.append(("Transcript","Transcript"))
+            else:
+                columns_list.append((column.split("_")[0],"Total"))
+    #if header != 'infer':
+    df.columns = pandas.MultiIndex.from_tuples(columns_list)
+    #else:
+    #    df.columns = columns_list
+    df = df.fillna(0)
     return df
 
 ##################################################################
@@ -70,49 +87,16 @@ def build_intron_tables(file):
 ## internal control RNA.                                       ##
 #################################################################
 
-def normalize_counts(exon_counts,total_counts,lengths,config):
-    df1 = exon_counts
-    df2 = total_counts
-    df3 = lengths
-    df4 = config
-    merged = pandas.merge(df1,df2,on="Transcript",left_index=True,how='left',suffixes=('_exons','_total'))
-    merged = pandas.merge(merged,df3, on="Transcript", left_index=True, how = 'left')
-    configNames = []
-    controlValues = []
-    for name in df4.columns:
-        configNames.append(name)
-        s = pandas.Series(df4[name])
-        l = s.tolist()
-        controlValues.append(l)
-    names = []
-    n = 0
-    for name in merged.columns:
-        names.append(name)
-        if name.strip() == "Transcript":
-            print "Reading table"
-        elif n < len(configNames) and name == configNames[n]+"-A_exons":
-            c1 = controlValues[n][0]
-            print c1
-            c2 = controlValues[n][1]
-            print c2
-            merged[name+"_norm"] = pandas.Series((merged[name]/c1)/(merged[name.strip("A_exons")+"B_total"]/c2), index = merged.index)
-            n += 1
-    merged.fillna(0)
-    return merged
-
-#################################################################
-## Normalize counts in A samples to counts in B samples. Also  ##
-## divides by transcript length. c1-c4 are read counts for     ##
-## internal control RNA.                                       ##
-#################################################################
-
-def normalize_AtoB(feature_counts, total_counts, lengths, config):
+def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
     df1 = feature_counts
     df2 = total_counts
     df3 = lengths
     df4 = config
-    merged = pandas.merge(df1,df2, on="Transcript", left_index=True, how = 'left', suffixes = ('_end', '_total'))
-    merged = pandas.merge(merged, df3, on="Transcript", left_index=True, how = 'left')
+    df1_indexed = df1.set_index(df1[("Transcript","Transcript")])
+    df2_indexed = df2.set_index(df2[("Transcript","Transcript")])
+    df3_indexed = df3.set_index(df3[("Transcript","Transcript")])
+    merged = pandas.merge(df1_indexed,df2_indexed, left_index=True, right_index=True, how = 'left')
+    merged = pandas.merge(merged, df3_indexed, left_index=True, right_index=True, how = 'left')
     configNames = []
     controlValues = []
     for name in df4.columns:
@@ -122,11 +106,11 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config):
         controlValues.append(l)
     names = []
     n = 0
-    for name in merged.columns:
+    for name, read_type in merged.columns:
         names.append(name)
         if name.strip() == "Transcript":
             print "Reading table"
-        elif n < len(configNames) and name == configNames[n]+"-A_end":
+        elif n < len(configNames) and name == configNames[n][0]+"-A":
             print "Reading sample " +name
             c1 = controlValues[n][0]
             print "Control value 1 = " +str(c1)
@@ -134,48 +118,16 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config):
             print "Control value 2 = " +str(c2)
             c3 = controlValues[n][2]
             print "Control value 3 = " +str(c3)
-            merged[name+"_norm"] = pandas.Series((((merged[name])/c1)/((merged[name.strip("-A_end")+"-B_total"])/(merged[name.strip("Length")]*c2))), index = merged.index)
-
+            merged[(name.split("-")[0],"5prime Normalized")] = pandas.Series((((merged[(name,"5prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
+            merged[(name.split("-")[0],"3prime Normalized")] = pandas.Series((((merged[(name,"3prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
+            if cutoff > 0:
+                merged = merged[merged[(name.split("-")[0]+"-B","Total")] > cutoff]
             n += 1
-    merged = merged.set_index("Transcript")
+    merged = merged.set_index(("Transcript","Transcript"))
     merged = merged.fillna(0)
+    print len(merged)
     return merged
 
-
-def normalize_AtoB_filter_by_counts(feature_counts, total_counts, lengths, config, cutoff):
-    df1 = feature_counts
-    df2 = total_counts
-    df3 = lengths
-    df4 = config
-    merged = pandas.merge(df1,df2, on="Transcript", left_index=True, how = 'left', suffixes = ('_end', '_total'))
-    merged = pandas.merge(merged, df3, on="Transcript", left_index=True, how = 'left')
-    configNames = []
-    controlValues = []
-    for name in df4.columns:
-        configNames.append(name)
-        s = pandas.Series(df4[name])
-        l = s.tolist()
-        controlValues.append(l)
-    names = []
-    n = 0
-    for name in merged.columns:
-        names.append(name)
-        if name.strip() == "Transcript":
-            print "Reading table"
-        elif n < len(configNames) and name == configNames[n]+"-A_end":
-            print "Reading sample " +name.split("_")[0]
-            c1 = controlValues[n][0]
-            print "Control value 1 = " +str(c1)
-            c2 = controlValues[n][1]
-            print "Control value 2 = " +str(c2)
-            c3 = controlValues[n][2]
-            print "Control value 3 = " +str(c3)
-            merged[name+"_norm"] = pandas.Series((((merged[name])/c1)/((merged[name.strip("-A_end")+"-B_total"])/(merged[name.strip("Length")]*c2))), index = merged.index)
-            merged_filtered = merged[merged[name.split("-")[0]+"-B_total"] > cutoff]
-            n += 1
-    merged_filtered = merged_filtered.set_index("Transcript")
-    merged_filtered = merged_filtered.fillna(0)
-    return merged_filtered
 
 
 #################################################################
@@ -184,35 +136,41 @@ def normalize_AtoB_filter_by_counts(feature_counts, total_counts, lengths, confi
 ## internal control RNA.                                       ##
 #################################################################
 
-def normalize_to_mature(total_counts, lengths, config):
+def normalize_to_mature(total_counts, lengths, config, cutoff=0):
     df1 = total_counts
     df2 = lengths
     df3 = config
-    merged = pandas.merge(df1,df2, on="Transcript", left_index=True, how = 'left')
+    df1_indexed = df1.set_index(df1[("Transcript","Transcript")])
+    df2_indexed = df2.set_index(df2[("Transcript","Transcript")])
+    merged = pandas.merge(df1_indexed,df2_indexed, left_index=True, right_index=True, how = 'left')
     configNames = []
     controlValues = []
     for name in df3.columns:
+        print name
         configNames.append(name)
         s = pandas.Series(df3[name])
         l = s.tolist()
         controlValues.append(l)
+    print controlValues
     names = []
-    n = 0
-    for name in merged.columns:
+    for name, count_type in merged.columns:
         names.append(name)
-        if name.strip() == "Transcript":
-            print "Reading table"
-        elif n < len(configNames) and name == configNames[n]+"-B":
-            print "Reading sample " +name
-            c1 = controlValues[n][0]
-            print "Control value 1 = " +str(c1)
-            c2 = controlValues[n][1]
-            print "Control value 2 = " +str(c2)
-            c3 = controlValues[n][2]
-            print "Control value 3 = " +str(c3)
-            merged[name+"_norm"] = pandas.Series(((merged[name])/(merged[name.strip("B")+"W"])/merged[name.strip("Length")]), index = merged.index)
-            n += 1
+        #if name.strip() == "Transcript":
+        #    print "Reading table"
+        for config_name, sample_type in df3.columns:
+            if name == config_name+"-B":
+                print "Reading sample " +name
+                c1 = df3[(config_name, sample_type)][0]
+                print "Control value 1 = " +str(c1)
+                c2 = df3[(config_name, sample_type)][1]
+                print "Control value 2 = " +str(c2)
+                c3 = df3[(config_name, sample_type)][2]
+                print "Control value 3 = " +str(c3)
+                merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3)), index = merged.index)
+                if cutoff > 0:
+                    merged = merged[merged[(name.split("-")[0]+"-B","Total")] > cutoff]
     merged = merged.fillna(0)
+    print len(merged)
     return merged
 
 
@@ -237,37 +195,35 @@ def filter_transcripts_by_cnag(mergedtable, list_file):
             geneID.append(gene+"T4")
             geneID.append(gene+"T5")
     RNAi_df = df[(df.index.isin(geneID))]
+    print len(RNAi_df)
     return RNAi_df
 
 #################################################################
 ## Convert output from normalize_counts to lists for plotting  ##
 #################################################################
 
-def get_ratios(normalizedResults, a):
+def get_ratios(normalizedResults, samplename, count_type, log=False):
     values = []
-    n = 0
-    for name in normalizedResults.columns:
-        if name[-5:] == "_norm":
-            if n == a:
-                s = pandas.Series(normalizedResults[name])
+    for name1, name2 in normalizedResults.columns:
+        if name2 == count_type:
+            if name1 == samplename:
+                s = pandas.Series(normalizedResults[(name1, name2)])
                 values = s.tolist()
-                n += 1
             else:
-                n += 1
+                continue
+    if log==True:
+        log_list = []
+        for y in values:
+            if y != 0:
+                log_list.append(math.log10(y))
+            else:
+                log_list.append("NaN")
+        values = log_list
     return values
 
-#################################################################
-## Take log10 of data to make plots prettier                   ##
-#################################################################
-
-def log_ratios(ratio_list):
-    log_list = []
-    for y in ratio_list:
-        if y != 0:
-            log_list.append(math.log10(y))
-        elif y == 0:
-            log_list.append("NaN")
-    return log_list
+###################################################################
+## Plot ratios (usually log) of replicates for normalized counts ##
+###################################################################
 
 def scatter_plot(xvalues1, yvalues1, xvalues2, yvalues2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered'):
     fig1 = plt.figure()
