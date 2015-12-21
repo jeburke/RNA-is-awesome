@@ -2,8 +2,22 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d2343dc0-3eac-42f5-899b-8591fb4cdf7f" name="Default" comment="">
+<<<<<<< Updated upstream
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/RNA-is-awesome.iml" afterPath="$PROJECT_DIR$/.idea/RNA-is-awesome.iml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
+=======
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeMature.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/conf/JEB002.config" afterPath="$PROJECT_DIR$/SP_ANALYSIS/conf/JEB002.config" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/JEB002_scored_ss2.txt" afterPath="$PROJECT_DIR$/JEB002_scored_ss2.txt" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/JEB002_scored_ss3.txt" afterPath="$PROJECT_DIR$/JEB002_scored_ss3.txt" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/SPScoreSpliceSites.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/SPScoreSpliceSites.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/SPTools.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/SPTools.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.ipynb_checkpoints/Spliceosome Profiling Analysis-checkpoint.ipynb" afterPath="$PROJECT_DIR$/.ipynb_checkpoints/Spliceosome Profiling Analysis-checkpoint.ipynb" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Spliceosome Profiling Analysis.ipynb" afterPath="$PROJECT_DIR$/Spliceosome Profiling Analysis.ipynb" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py" afterPath="$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+>>>>>>> Stashed changes
     </list>
     <ignored path="RNA-is-awesome.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -23,7 +37,92 @@
     <favorites_list name="RNA-is-awesome" />
   </component>
   <component name="FileEditorManager">
+<<<<<<< Updated upstream
     <leaf />
+=======
+    <leaf>
+      <file leaf-file-name="analyzeSP.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="173" column="44" selection-start-line="170" selection-start-column="0" selection-end-line="173" selection-end-column="44" />
+              <folding>
+                <element signature="e#0#12#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="SPTools.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPTools.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="217" column="18" selection-start-line="217" selection-start-column="18" selection-end-line="217" selection-end-column="18" />
+              <folding>
+                <element signature="e#28#41#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="SPNormalizeAndPlot.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="99" column="23" selection-start-line="99" selection-start-column="23" selection-end-line="99" selection-end-column="23" />
+              <folding>
+                <element signature="e#713#726#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="gobsChr.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="1154" column="13" selection-start-line="1154" selection-start-column="13" selection-end-line="1154" selection-end-column="13" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="SPanalyzeMature.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeMature.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.87205386">
+              <caret line="136" column="61" selection-start-line="136" selection-start-column="61" selection-end-line="136" selection-end-column="61" />
+              <folding>
+                <element signature="e#27#39#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="crunchBAM.py" pinned="false" current-in-tab="false">
+        <entry file="file://$USER_HOME$/python-hm/crunchBAM.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="45" column="4" selection-start-line="45" selection-start-column="4" selection-end-line="45" selection-end-column="66" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="gobs2Chr.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/gobs2Chr.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="1304" column="0" selection-start-line="1304" selection-start-column="0" selection-end-line="1319" selection-end-column="13" />
+              <folding>
+                <element signature="e#173#185#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+>>>>>>> Stashed changes
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -50,6 +149,27 @@
         <option value="$PROJECT_DIR$/CompareLists.py" />
         <option value="$USER_HOME$/python-hm/analyzeSP.py" />
         <option value="$PROJECT_DIR$/LaSSO_header_generator.py" />
+<<<<<<< Updated upstream
+=======
+        <option value="$PROJECT_DIR$/LaSSO_reverse_complement.py" />
+        <option value="$PROJECT_DIR$/LaSSO_alignment_db_cat.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/towerHeight.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeExons.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/CountTowers.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/CountTranscriptsInFa.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/Merge_lists.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/Score_splice_sites.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/SPScoreSpliceSites.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/SPTools.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py" />
+        <option value="$PROJECT_DIR$/gobs2Chr.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/gobs2Chr.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py" />
+        <option value="$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeMature.py" />
+>>>>>>> Stashed changes
       </list>
     </option>
   </component>
@@ -57,10 +177,17 @@
     <order />
   </component>
   <component name="ProjectFrameBounds">
+<<<<<<< Updated upstream
     <option name="x" value="65" />
     <option name="y" value="24" />
     <option name="width" value="1301" />
     <option name="height" value="744" />
+=======
+    <option name="x" value="226" />
+    <option name="y" value="44" />
+    <option name="width" value="1609" />
+    <option name="height" value="1009" />
+>>>>>>> Stashed changes
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
     <OptionsSetting value="true" id="Add" />
@@ -73,7 +200,7 @@
     <ConfirmationsSetting value="0" id="Remove" />
   </component>
   <component name="ProjectView">
-    <navigator currentView="ProjectPane" proportions="" version="1">
+    <navigator proportions="" version="1">
       <flattenPackages />
       <showMembers />
       <showModules />
@@ -84,6 +211,7 @@
       <autoscrollFromSource />
       <sortByType />
     </navigator>
+<<<<<<< Updated upstream
     <panes>
       <pane id="Scratches" />
       <pane id="ProjectPane">
@@ -98,11 +226,18 @@
       </pane>
       <pane id="Scope" />
     </panes>
+=======
+    <panes />
+>>>>>>> Stashed changes
   </component>
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
+<<<<<<< Updated upstream
     <property name="last_opened_file_path" value="$USER_HOME$/python-hm/analyzeRNASeq.py" />
+=======
+    <property name="last_opened_file_path" value="$USER_HOME$/python-hm/crunchBAM.py" />
+>>>>>>> Stashed changes
     <property name="FullScreen" value="false" />
   </component>
   <component name="RunManager">
@@ -244,6 +379,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
+<<<<<<< Updated upstream
     <frame x="65" y="24" width="1301" height="744" extended-state="1" />
     <editor active="false" />
     <layout>
@@ -252,6 +388,15 @@
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.22290546" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+=======
+    <frame x="226" y="44" width="1609" height="1009" extended-state="0" />
+    <editor active="false" />
+    <layout>
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3391494" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21851386" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25233644" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+>>>>>>> Stashed changes
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
@@ -262,6 +407,10 @@
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+<<<<<<< Updated upstream
+=======
+      <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+>>>>>>> Stashed changes
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -291,7 +440,49 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
+<<<<<<< Updated upstream
     <entry file="file://$USER_HOME$/python-hm/gobs.py">
+=======
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_header_generator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="125" column="0" selection-start-line="125" selection-start-column="0" selection-end-line="125" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="25" column="0" selection-start-line="25" selection-start-column="0" selection-end-line="25" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/Merge_lists.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="21" column="15" selection-start-line="21" selection-start-column="15" selection-end-line="21" selection-end-column="15" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/Score_splice_sites.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="99" column="11" selection-start-line="99" selection-start-column="11" selection-end-line="99" selection-end-column="11" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="198" column="77" selection-start-line="198" selection-start-column="77" selection-end-line="198" selection-end-column="77" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py">
+>>>>>>> Stashed changes
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
@@ -299,7 +490,36 @@
         </state>
       </provider>
     </entry>
+<<<<<<< Updated upstream
     <entry file="file://$PROJECT_DIR$/Histogram.py">
+=======
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPTools.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="119" column="0" selection-start-line="119" selection-start-column="0" selection-end-line="119" selection-end-column="0" />
+          <folding>
+            <element signature="e#28#41#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="1022" column="15" selection-start-line="1022" selection-start-column="4" selection-end-line="1022" selection-end-column="15" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_header_generator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="29" column="29" selection-start-line="29" selection-start-column="29" selection-end-line="29" selection-end-column="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py">
+>>>>>>> Stashed changes
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="10" column="0" selection-start-line="10" selection-start-column="0" selection-end-line="13" selection-end-column="10" />
@@ -309,7 +529,11 @@
     <entry file="file://$USER_HOME$/python-hm/analyzeSP.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
+<<<<<<< Updated upstream
           <caret line="125" column="0" selection-start-line="125" selection-start-column="0" selection-end-line="125" selection-end-column="31" />
+=======
+          <caret line="13" column="0" selection-start-line="13" selection-start-column="0" selection-end-line="13" selection-end-column="0" />
+>>>>>>> Stashed changes
         </state>
       </provider>
     </entry>
@@ -418,6 +642,7 @@
         </state>
       </provider>
     </entry>
+<<<<<<< Updated upstream
     <entry file="file://$USER_HOME$/python-hm/read_phasing.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.045454547">
@@ -426,6 +651,9 @@
       </provider>
     </entry>
     <entry file="file://$USER_HOME$/python-hm/calc_H99_intron_features.py">
+=======
+    <entry file="file://$USER_HOME$/python-hm/gobs.py">
+>>>>>>> Stashed changes
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.045454547">
           <caret line="1" column="10" selection-start-line="1" selection-start-column="9" selection-end-line="1" selection-end-column="10" />
@@ -442,13 +670,100 @@
     </entry>
     <entry file="file://$USER_HOME$/python-hm/analyzeSP.py">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
         <state vertical-scroll-proportion="0.33333334">
           <caret line="50" column="33" selection-start-line="50" selection-start-column="30" selection-end-line="50" selection-end-column="33" />
+=======
+        <state vertical-scroll-proportion="0.0">
+          <caret line="78" column="34" selection-start-line="78" selection-start-column="33" selection-end-line="78" selection-end-column="34" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$APPLICATION_HOME_DIR$/helpers/pydev/pydevd.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.33188722">
+          <caret line="1777" column="0" selection-start-line="1777" selection-start-column="0" selection-end-line="1777" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/CountTranscriptsInFa.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.71097046">
+          <caret line="28" column="0" selection-start-line="28" selection-start-column="0" selection-end-line="28" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_alignment_db_cat.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="25" column="0" selection-start-line="25" selection-start-column="0" selection-end-line="25" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/LaSSO_header_generator.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="125" column="0" selection-start-line="125" selection-start-column="0" selection-end-line="125" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/Merge_lists.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="40" column="5" selection-start-line="40" selection-start-column="5" selection-end-line="40" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeExons.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="81" column="23" selection-start-line="81" selection-start-column="23" selection-end-line="81" selection-end-column="23" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/Score_splice_sites.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="137" column="109" selection-start-line="137" selection-start-column="109" selection-end-line="137" selection-end-column="109" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPScoreSpliceSites.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-0.15517241">
+          <caret line="27" column="53" selection-start-line="27" selection-start-column="53" selection-end-line="27" selection-end-column="53" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/python-hm/gobs2.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="-32.90345">
+          <caret line="5" column="33" selection-start-line="5" selection-start-column="33" selection-end-line="5" selection-end-column="33" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/gobs2Chr.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="1304" column="0" selection-start-line="1304" selection-start-column="0" selection-end-line="1319" selection-end-column="13" />
+          <folding>
+            <element signature="e#173#185#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/python-hm/crunchBAM.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="45" column="4" selection-start-line="45" selection-start-column="4" selection-end-line="45" selection-end-column="66" />
+          <folding />
+>>>>>>> Stashed changes
         </state>
       </provider>
     </entry>
     <entry file="file://$USER_HOME$/python-hm/analyzeRNASeq.py">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
         <state vertical-scroll-proportion="0.33333334">
           <caret line="18" column="17" selection-start-line="18" selection-start-column="16" selection-end-line="18" selection-end-column="17" />
         </state>
@@ -462,5 +777,60 @@
         </state>
       </provider>
     </entry>
+=======
+        <state vertical-scroll-proportion="0.0">
+          <caret line="217" column="18" selection-start-line="217" selection-start-column="18" selection-end-line="217" selection-end-column="18" />
+          <folding>
+            <element signature="e#28#41#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/gobsChr.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="1154" column="13" selection-start-line="1154" selection-start-column="13" selection-end-line="1154" selection-end-column="13" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPNormalizeAndPlot.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="99" column="23" selection-start-line="99" selection-start-column="23" selection-end-line="99" selection-end-column="23" />
+          <folding>
+            <element signature="e#713#726#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/NormalizeToMature.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.51903117">
+          <caret line="36" column="65" selection-start-line="36" selection-start-column="65" selection-end-line="36" selection-end-column="65" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/analyzeSP.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="173" column="44" selection-start-line="170" selection-start-column="0" selection-end-line="173" selection-end-column="44" />
+          <folding>
+            <element signature="e#0#12#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/SP_ANALYSIS/SPanalyzeMature.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.87205386">
+          <caret line="136" column="61" selection-start-line="136" selection-start-column="61" selection-end-line="136" selection-end-column="61" />
+          <folding>
+            <element signature="e#27#39#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+>>>>>>> Stashed changes
   </component>
 </project>
