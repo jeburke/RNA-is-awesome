@@ -37,7 +37,7 @@ def scatter_plot(x,y1,y2,label1, label2, title):
     ax1 = fig.add_subplot(111)
     ax1.scatter(x, y1, c='royalblue', label=label1, alpha = 0.5, edgecolor='darkslateblue')
     ax1.scatter(x, y2, c='coral', alpha=0.5, label=label2, edgecolor='coral')
-    ax1.set_xlabel("Splice site scores")
+    ax1.set_xlabel("Feature Score")
     ax1.set_ylabel("Feature reads/SP total")
     ax1.legend()
     ax1.set_title(title)
@@ -48,7 +48,8 @@ def get_scores(merged_table):
     ThreeP_scores = []
     j = 0
     for name in merged_table.columns:
-        if name.split("_")[-1] =="Score":
+        #print name
+        if name.split(" ")[-1] =="Score":
             if j == 0:
                 for score in merged_table[name]:
                     FiveP_scores.append(score)
@@ -75,12 +76,26 @@ intron_ThreeP_scores = get_scores(intron_merged_df)[1]
 introns1 = get_points(intron_merged_df, 0)
 introns2 = get_points(intron_merged_df, 1)
 
-print len(exon_FiveP_scores)
-print len(exons1)
-print len(intron_FiveP_scores)
-print len(introns1)
+#print len(exon_FiveP_scores)
+#print len(exons1)
+
+lengths_ex= []
+for name in exon_merged_df.columns:
+    if name == "Intron Length":
+        for entry in exon_merged_df[name]:
+               lengths_ex.append(entry)
+#print len(lengths_ex)
+
+lengths_int=[]
+for name in intron_merged_df.columns:
+    if name == "Intron Length":
+        for entry in intron_merged_df[name]:
+               lengths_int.append(entry)
+#print len(lengths_int)
 
 scatter_plot(exon_FiveP_scores, exons1, exons2, "Replicate 1", "Replicate 2", "5'ss scores vs. normalized 5' exon reads")
 scatter_plot(intron_FiveP_scores, introns1, introns2, "Replicate 2", "Replicate 2", "5'ss scores vs. normalized intron reads")
+scatter_plot(lengths_ex, exons1, exons2, "Replicate 1", "Replicate 2", "Intron lengths vs. normalized 5' exon reads")
 scatter_plot(exon_ThreeP_scores, exons1, exons2, "Replicate 1", "Replicate 2", "3'ss scores vs. normalized 5' exon reads")
 scatter_plot(intron_ThreeP_scores, introns1, introns2, "Replicate 1", "Replicate 2", "3'ss scores vs. normalized intron reads")
+scatter_plot(lengths_int, introns1, introns2, "Replicate 1", "Replicate 2", "Intron lengths vs. normalized intron reads")
