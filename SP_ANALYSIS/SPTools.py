@@ -221,9 +221,25 @@ def get_ratios(normalizedResults, samplename, count_type, log=False):
         values = log_list
     return values
 
+<<<<<<< HEAD
 ###################################################################
 ## Plot ratios (usually log) of replicates for normalized counts ##
 ###################################################################
+=======
+#################################################################
+## Take log10 of data to make plots prettier                   ##
+#################################################################
+
+def log_ratios(ratio_list):
+    log_list = []
+    for y in ratio_list:
+        if float(y) != 0:
+            y = float(y)
+            log_list.append(math.log10(y))
+        elif float(y) == 0:
+            log_list.append("NaN")
+    return log_list
+>>>>>>> 15dca1ca2347236931a02ba553f02a091406ddca
 
 def scatter_plot(xvalues1, yvalues1, xvalues2, yvalues2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered'):
     fig1 = plt.figure()

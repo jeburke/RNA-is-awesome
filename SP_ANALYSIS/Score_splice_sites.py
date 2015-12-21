@@ -28,9 +28,6 @@ for cnag in gene_list_as_dict:
     introns = gene.introns
     if gene.strand == "-":
         introns = mirrored(introns)
-#    print cnag
-#    print gene.strand
-#    print introns
     for intron in introns:
         if gene.strand == "-":
             seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
@@ -48,12 +45,12 @@ for cnag in gene_list_as_dict:
 
         if gene.strand == "-":
             seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[1] - 2, intron[1] + 6, gene.strand, genome)
-            print gene.strand
-            print seq
+            #print gene.strand
+            #print seq
         else:
             seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[1] - 7, intron[1] + 1, gene.strand, genome)
-            print gene.strand
-            print seq
+            #print gene.strand
+            #print seq
         for b, base in enumerate(seq):
             if base == "A":
                 pos_matrix_3prime[0,b] = pos_matrix_3prime[0,b]+1
@@ -80,7 +77,7 @@ print pos_matrix_3prime
 
 #Compare each splice site and output scores into a spreadsheet
 fout = open("Splice_site_strengths.csv", "w")
-header_list = ["Transcript","Intron", "5' Splice Site Score", "3' Splice Site Score", "\n"]
+header_list = ["Transcript","Intron", "5' Splice Site Score", "3' Splice Site Score", "Intron Length", "\n"]
 header = "\t".join(header_list)
 fout.write(header)
 
@@ -108,8 +105,10 @@ for cnag in gene_list_as_dict:
         gene_matrix_3prime = np.zeros([4,8])
         if gene.strand == "-":
             seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
+            intron_seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[1], intron[0], gene.strand, genome)
         else:
             seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
+            intron_seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0], intron[1], gene.strand, genome)
         for b, base in enumerate(seq):
             if base == "A":
                 gene_matrix_3prime[0,b] = gene_matrix_3prime[0,b]+1
@@ -132,9 +131,11 @@ for cnag in gene_list_as_dict:
                 b += 1
             a += 1
 
+        intron_length = len(intron_seq)
+
 #        format_transcript_list = [cnag, "T0-", str(intron_num)]
 #        format_transcript = "".join(format_transcript_list)
-        lineout_list = [cnag+"T0", str(intron_num), str(score_5prime), str(score_3prime), "\n"]
+        lineout_list = [cnag+"T0", str(intron_num), str(score_5prime), str(score_3prime), str(intron_length), "\n"]
         lineout = "\t".join(lineout_list)
         fout.write(lineout)
 
