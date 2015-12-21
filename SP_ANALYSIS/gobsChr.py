@@ -1142,8 +1142,28 @@ def count_reads_per_region((bamfilereader,region_di)):
     print len(read_counter)," regions analyzed"
     return read_counter
 
-
-
+def count_reads_in_all_exons((bamfilereader, exon_di)):
+    read_counter = collections.Counter()
+    read_sum = {}
+    for name, exons in exon_di.iteritems():
+        for num, exon_iv in enumerate(exons[0:-1]):
+            exon_interval_rc = interval_reverse_complement(exon_iv)
+            read_counter[(name,num+1)]=count_reads((bamfilereader, exon_interval_rc))
+    print read_counter
+    print len(read_counter)
+    for name, count in read_counter.iteritems():
+        n = 0
+        names = []
+        names.append(name[0])
+        while n < len(read_counter):
+            if name == names[n-1]:
+                read_sum[name] = read_sum[name] + count
+                n +=1
+            else:
+                read_sum[name] = count
+                n+=1
+    print len(read_sum)
+    return read_sum
 
 
 
