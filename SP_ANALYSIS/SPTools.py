@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 def build_tables(file, header='infer', skiprows=None):
     fin = open(file, "r")
     df = pandas.read_table(fin, header=header, skiprows=skiprows)
-    #print list(df.columns)
     columns_list = []
     for column in df.columns:
         if header != 'infer':
@@ -24,17 +23,13 @@ def build_tables(file, header='infer', skiprows=None):
             else:
                 columns_list.append((column[0].split("_")[0], column[1]))
         else:
-            #print column
             if column == "Unnamed: 0":
                 columns_list.append(("Transcript","Transcript"))
             elif column == "Transcript":
                 columns_list.append(("Transcript","Transcript"))
             else:
                 columns_list.append((column.split("_")[0],"Total"))
-    #if header != 'infer':
     df.columns = pandas.MultiIndex.from_tuples(columns_list)
-    #else:
-    #    df.columns = columns_list
     df = df.fillna(0)
     return df
 
@@ -84,7 +79,7 @@ def build_intron_tables(file):
 #################################################################
 ## Normalize counts in A samples to counts in B samples. Also  ##
 ## divides by transcript length. c1-c4 are read counts for     ##
-## internal control RNA.                                       ##
+## internal control RNA. Arguments are output from build_tables##
 #################################################################
 
 def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
@@ -133,7 +128,7 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
 #################################################################
 ## Normalize counts in B samples to counts in W samples. Also  ##
 ## divides by transcript length. c1-c4 are read counts for     ##
-## internal control RNA.                                       ##
+## internal control RNA. Arguments are output from build_tables##
 #################################################################
 
 def normalize_to_mature(total_counts, lengths, config, cutoff=0):
@@ -155,8 +150,6 @@ def normalize_to_mature(total_counts, lengths, config, cutoff=0):
     names = []
     for name, count_type in merged.columns:
         names.append(name)
-        #if name.strip() == "Transcript":
-        #    print "Reading table"
         for config_name, sample_type in df3.columns:
             if name == config_name+"-B":
                 print "Reading sample " +name
@@ -174,11 +167,13 @@ def normalize_to_mature(total_counts, lengths, config, cutoff=0):
     return merged
 
 
-##################################################################
-## Filter transcripts based on an input table. In this case I'm ##
-## giving it a list of RNAi targets. Can be anything, 1 column  ##
-## format with CNAG IDs                                         ##
-##################################################################
+####################################################################
+## Filter transcripts based on an input table. In this case I'm   ##
+## giving it a list of RNAi targets. Can be anything, 1 column    ##
+## format with CNAG IDs. mergedtable is from one of the normalize ##
+## functions. list_file is the name of a files containing the list##
+## of CNAGs you want to filter by.                                ##
+####################################################################
 
 def filter_transcripts_by_cnag(mergedtable, list_file):
     geneID = []
@@ -221,25 +216,10 @@ def get_ratios(normalizedResults, samplename, count_type, log=False):
         values = log_list
     return values
 
-<<<<<<< HEAD
 ###################################################################
 ## Plot ratios (usually log) of replicates for normalized counts ##
 ###################################################################
-=======
-#################################################################
-## Take log10 of data to make plots prettier                   ##
-#################################################################
 
-def log_ratios(ratio_list):
-    log_list = []
-    for y in ratio_list:
-        if float(y) != 0:
-            y = float(y)
-            log_list.append(math.log10(y))
-        elif float(y) == 0:
-            log_list.append("NaN")
-    return log_list
->>>>>>> 15dca1ca2347236931a02ba553f02a091406ddca
 
 def scatter_plot(xvalues1, yvalues1, xvalues2, yvalues2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered'):
     fig1 = plt.figure()
