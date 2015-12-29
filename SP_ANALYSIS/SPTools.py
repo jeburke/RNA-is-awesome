@@ -12,7 +12,8 @@ import random
 ## for each type of read (exon, intron or total)               ##
 #################################################################
 
-def build_tables(file, header='infer', skiprows=None):
+def build_tables(file, header='infer', skiprows=None, low_memory=False):
+    #For junction reads and cleavages use header=[0,1] and skiprows=[2]. For all other tables, use default values.
     fin = open(file, "r")
     df = pandas.read_table(fin, header=header, skiprows=skiprows)
     columns_list = []
@@ -136,7 +137,7 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
 ## internal control RNA. Arguments are output from build_tables##
 #################################################################
 
-def normalize_to_mature(total_counts, lengths, config, cutoff=0):
+def normalize_B_to_mature(total_counts, lengths, config, cutoff=0):
     df1 = total_counts
     df2 = lengths
     df3 = config
@@ -146,12 +147,10 @@ def normalize_to_mature(total_counts, lengths, config, cutoff=0):
     configNames = []
     controlValues = []
     for name in df3.columns:
-        print name
         configNames.append(name)
         s = pandas.Series(df3[name])
         l = s.tolist()
         controlValues.append(l)
-    print controlValues
     names = []
     for name, count_type in merged.columns:
         names.append(name)
@@ -194,7 +193,18 @@ def filter_transcripts_by_cnag(mergedtable, list_file):
             geneID.append(gene+"T3")
             geneID.append(gene+"T4")
             geneID.append(gene+"T5")
-    RNAi_df = df[(df.index.isin(geneID))]
+    RNAi_df = pandas.DataFrame(columns=df.columns)
+    print len(df.index)
+    for transcript in df.iterrows():
+        if transcript[0][0] in geneID:
+            print transcript[0][0]
+            print transcript[0]
+            print df[(transcript[0][0],str(transcript[0][1]))]
+            CNAG = transcript[0][0]
+            exon = transcript[0][1]
+            print df[(CNAG,exon)]
+            RNAi_df.append(df[CNAG][exon])
+    #RNAi_df = df[(df.index.isin(geneID))]
     print len(RNAi_df)
     return RNAi_df
 
