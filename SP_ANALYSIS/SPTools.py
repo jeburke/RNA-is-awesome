@@ -126,6 +126,7 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
     else:
         merged = merged.set_index(("Transcript","Transcript"))
     merged = merged.fillna(0)
+    print "5prime Normalized; 3prime Normalized"
     print len(merged)
     return merged
 
@@ -167,6 +168,7 @@ def normalize_B_to_mature(total_counts, lengths, config, cutoff=0):
                 if cutoff > 0:
                     merged = merged[merged[(name.split("-")[0]+"-B","Total")] > cutoff]
     merged = merged.fillna(0)
+    print "Normalized to mature"
     print len(merged)
     return merged
 
@@ -195,16 +197,15 @@ def filter_transcripts_by_cnag(mergedtable, list_file):
             geneID.append(gene+"T5")
     RNAi_df = pandas.DataFrame(columns=df.columns)
     print len(df.index)
-    for transcript in df.iterrows():
-        if transcript[0][0] in geneID:
-            print transcript[0][0]
-            print transcript[0]
-            print df[(transcript[0][0],str(transcript[0][1]))]
-            CNAG = transcript[0][0]
-            exon = transcript[0][1]
-            print df[(CNAG,exon)]
-            RNAi_df.append(df[CNAG][exon])
-    #RNAi_df = df[(df.index.isin(geneID))]
+    if type(df.index[0]) == str:
+        RNAi_df = df[(df.index.isin(geneID))]
+    else:
+        index_list = []
+        for transcript in df.iterrows():
+            if transcript[0][0] in geneID:
+                RNAi_df = RNAi_df.append(df.loc[transcript[0]])
+                index_list.append(transcript[0])
+                RNAi_df.index = pandas.MultiIndex.from_tuples(index_list)
     print len(RNAi_df)
     return RNAi_df
 
@@ -212,7 +213,7 @@ def filter_transcripts_by_cnag(mergedtable, list_file):
 ## Convert output from normalize_counts to lists for plotting  ##
 #################################################################
 
-def get_ratios(normalizedResults, samplename, count_type, log=False):
+def get_ratios(normalizedResults, samplename, count_type, log=False, base=10):
     values = []
     for name1, name2 in normalizedResults.columns:
         if name2 == count_type:
@@ -229,7 +230,7 @@ def get_ratios(normalizedResults, samplename, count_type, log=False):
             elif y == 0:
                 log_list.append(np.NaN)
             else:
-                log_list.append(math.log10(y))
+                log_list.append(math.log(y, base))
         values = log_list
     return values
 
@@ -257,13 +258,20 @@ def scatter_plot(xvalues1, yvalues1, xvalues2, yvalues2, plot_title='3p ends/Tot
     ax1.plot([xmin, xmax], [xmin,xmax], ls="--", c=".3", lw=1.5)
     plt.show()
 
-def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered', xlabel='Replicate 1 (log10)', ylabel='Replicate 2 (log10)'):
-    xvalues1 = get_ratios(DataFrame1, SampleTuple1[0], SampleTuple1[1], log=True)
+#######################################################################################################################
+## Scatter plot of normalized counts (log10 is the default).                                                         ##
+## SampleTuple1 and 2 are tuples that contain the sample name and read type - e.g. ("CJB66D","Normalized to mature") ##
+## DataFrames are from normalize_B_to_mature or normalize_AtoB.                                                      ##
+## base is the base for log scale (if you want it to be 2, set base=2)                                               ##
+#######################################################################################################################
+
+def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered', xlabel='Replicate 1 (log10)', ylabel='Replicate 2 (log10)', base=10):
+    xvalues1 = get_ratios(DataFrame1, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
     print SampleTuple1[0]
     print SampleTuple1[1]
-    yvalues1 = get_ratios(DataFrame1, SampleTuple2[0], SampleTuple2[1], log=True)
-    xvalues2 = get_ratios(DataFrame2, SampleTuple1[0], SampleTuple1[1], log=True)
-    yvalues2 = get_ratios(DataFrame2, SampleTuple2[0], SampleTuple2[1], log=True)
+    yvalues1 = get_ratios(DataFrame1, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
+    xvalues2 = get_ratios(DataFrame2, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
+    yvalues2 = get_ratios(DataFrame2, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
     fig1 = plt.figure()
     ax1 = fig1.add_subplot(111)
     ax1.scatter(xvalues1, yvalues1, c='royalblue', label=legend1, alpha = 0.5, edgecolor='darkslateblue')
@@ -281,22 +289,42 @@ def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title
     ax1.set_title(plot_title)
     ax1.plot([xmin, xmax], [xmin,xmax], ls="--", c=".3", lw=1.5)
     plt.show()
-    
-def bar_chart_transcripts(df, read_type, sample1, sample2, CNAG_list1, CNAG_list2, plot_title="Stuff", ylabel="Stuff"):
-    CNAG_list = CNAG_list1 + CNAG_list2
+
+#######################################################################################################################
+## Bar chart of averaged replicates of normalized counts (error bars are the range).                                 ##
+## df is DataFrame from normalize_B_to_mature or normalize_AtoB                                                      ##
+## sample1 and 2 are sample names (e.g. CJB66D). These should be in level0 of your DataFrame Columns                 ##
+## CNAG_lists are the lists of transcripts you want to plot. 1 and 2 will be different colors. You only need to give ##
+## CNAG_list1                                                                                                        ##
+#######################################################################################################################
+
+def bar_chart(df, read_type, sample1, sample2, CNAG_list1, CNAG_list2=None, plot_title="Stuff", ylabel="Stuff"):
+    if CNAG_list2 is not None:
+        CNAG_list = CNAG_list1 + CNAG_list2
+    else:
+        CNAG_list = CNAG_list1
     gene_list = []
     values1 = []
     values2 = []
-    for name1, name2 in df:
-        if name1 == sample1 and name2 == read_type:
-            for gene in CNAG_list:
-                if gene in df.index:
-                    values1.append(df[(name1,name2)][gene])
-                    gene_list.append(gene)
-        elif name1 == sample2 and name2 == read_type:
-            for gene in CNAG_list:
-                if gene in df.index:
-                    values2.append(df[(name1,name2)][gene])
+    #Check if the dataframe index has only transcript names or both transcripts and exons
+    if type(df.index[0]) == str:
+        for name1, name2 in df:
+            if name1 == sample1 and name2 == read_type:
+                for gene in CNAG_list:
+                    if gene in df.index:
+                        values1.append(df[(name1,name2)][gene])
+                        gene_list.append(gene)
+            elif name1 == sample2 and name2 == read_type:
+                for gene in CNAG_list:
+                    if gene in df.index:
+                        values2.append(df[(name1,name2)][gene])
+    else:
+        for gene in CNAG_list:
+            for transcript in df.iterrows():
+                if transcript[0][0] == gene:
+                    values1.append(df[(sample1,read_type)][(transcript[0][0], transcript[0][1])])
+                    values2.append(df[(sample2,read_type)][(transcript[0][0], transcript[0][1])])
+                    gene_list.append(str(transcript[0][0])+"-"+str(transcript[0][1]))
     n=0
     avg_values = []
     errors = []
@@ -315,41 +343,26 @@ def bar_chart_transcripts(df, read_type, sample1, sample2, CNAG_list1, CNAG_list
     plt.xlabel('Transcript')
     plt.ylabel(ylabel)
     plt.title(plot_title)
-    for child in ax1.get_children()[4:4+len(CNAG_list1)]:
+    for child in ax1.get_children()[1:1+len(CNAG_list1)]:
         child.set_color('coral')
     plt.show()
 
-def bar_chart_introns(df, read_type, sample1, sample2, CNAG_list1, CNAG_list2, plot_title="Stuff", ylabel="Stuff"):
-    CNAG_list = CNAG_list1 + CNAG_list2
-    gene_list = []
-    values1 = []
-    values2 = []
-    for name1, name2 in df:
-        if name1 == sample1 and name2 == read_type:
-            for gene in CNAG_list:
-                for exon in df.iterrows():
-                    print df.index[0][0]
-                    if gene == df.index[0][0]:
-                        values1.append(df[(name1,name2)][(df.index[0][0], df.index[0][1])])
-                        gene_list.append(gene)
-                        print gene
-        elif name1 == sample2 and name2 == read_type:
-            for gene in CNAG_list:
-                if gene in df.index:
-                    values2.append(df[(name1,name2)][gene])
-    
+
+#############################################################################
+## Get a random set of transcripts from a file with a list of transcripts. ##
+## Pretty self explanatory                                                 ##
+#############################################################################
+
 def random_transcripts_from_list(file_with_list, number_of_transcripts):
     gene_list = []
     fin = open(file_with_list, "r")
     for line in fin:
         if line.startswith("CNAG"):
             gene = line.split("\t")[0].strip()
-            #print gene
             if gene[-2:-1] == "T":
                 gene_list.append(gene)
             else:
                 gene_list.append(gene+"T0")
-    random_list = []
     random_list = random.sample(gene_list, number_of_transcripts)
     return random_list
 
