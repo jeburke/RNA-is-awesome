@@ -85,7 +85,7 @@ def build_intron_tables(file):
 ## internal control RNA. Arguments are output from build_tables##
 #################################################################
 
-def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
+def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0, untagged=None):
     df1 = feature_counts
     df2 = total_counts
     df3 = lengths
@@ -116,11 +116,15 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
             print "Control value 2 = " +str(c2)
             c3 = controlValues[n][2]
             print "Control value 3 = " +str(c3)
-            merged[(name.split("-")[0],"5prime Normalized")] = pandas.Series((((merged[(name,"5prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
-            merged[(name.split("-")[0],"3prime Normalized")] = pandas.Series((((merged[(name,"3prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
+            if untagged is None:
+                merged[(name.split("-")[0],"5prime Normalized")] = pandas.Series((((merged[(name,"5prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
+                merged[(name.split("-")[0],"3prime Normalized")] = pandas.Series((((merged[(name,"3prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
+            else:
+                merged[(name.split("-")[0],"5prime Normalized")] = pandas.Series((((merged[(name,"5prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2)))/(merged[(untagged+"-W","Total")]/df4[(untagged, "Total")][2]), index = merged.index)
+                merged[(name.split("-")[0],"3prime Normalized")] = pandas.Series((((merged[(name,"3prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2)))/(merged[(untagged+"-W","Total")]/df4[(untagged, "Total")][2]), index = merged.index)
             if cutoff > 0:
                 merged = merged[merged[(name.split("-")[0]+"-B","Total")] > cutoff]
-            n += 1
+            n+=1
     if merged.columns[1] == ("Exon","Exon"):
         merged.set_index([merged.columns[0], merged.columns[1]], inplace=True)
     else:
@@ -128,6 +132,10 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
     merged = merged.fillna(0)
     print "5prime Normalized; 3prime Normalized"
     print len(merged)
+    set_merged_index = set()
+    for name1, name2 in merged.iterrows():
+        set_merged_index.add(name1[0])
+    print len(set_merged_index)
     return merged
 
 
@@ -138,7 +146,7 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
 ## internal control RNA. Arguments are output from build_tables##
 #################################################################
 
-def normalize_B_to_mature(total_counts, lengths, config, cutoff=0):
+def normalize_B_to_mature(total_counts, lengths, config, cutoff=0, untagged=None):
     df1 = total_counts
     df2 = lengths
     df3 = config
@@ -156,7 +164,7 @@ def normalize_B_to_mature(total_counts, lengths, config, cutoff=0):
     for name, count_type in merged.columns:
         names.append(name)
         for config_name, sample_type in df3.columns:
-            if name == config_name+"-B":
+            if name == config_name+"-B" and untagged==None:
                 print "Reading sample " +name
                 c1 = df3[(config_name, sample_type)][0]
                 print "Control value 1 = " +str(c1)
@@ -167,6 +175,15 @@ def normalize_B_to_mature(total_counts, lengths, config, cutoff=0):
                 merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3)), index = merged.index)
                 if cutoff > 0:
                     merged = merged[merged[(name.split("-")[0]+"-B","Total")] > cutoff]
+            elif name ==config_name+"-B" and untagged != None:
+                print "Reading sample " +name
+                c1 = df3[(config_name, sample_type)][0]
+                print "Control value 1 = " +str(c1)
+                c2 = df3[(config_name, sample_type)][1]
+                print "Control value 2 = " +str(c2)
+                c3 = df3[(config_name, sample_type)][2]
+                print "Control value 3 = " +str(c3)
+                merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3))/(merged[(untagged+"-W","Total")]/df3[(untagged, sample_type)][2]), index = merged.index)
     merged = merged.fillna(0)
     print "Normalized to mature"
     print len(merged)
@@ -265,7 +282,7 @@ def scatter_plot(xvalues1, yvalues1, xvalues2, yvalues2, plot_title='3p ends/Tot
 ## base is the base for log scale (if you want it to be 2, set base=2)                                               ##
 #######################################################################################################################
 
-def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered', xlabel='Replicate 1 (log10)', ylabel='Replicate 2 (log10)', base=10):
+def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered', xlabel='Replicate 1 (log10)', ylabel='Replicate 2 (log10)', base=10, plot_both=True):
     xvalues1 = get_ratios(DataFrame1, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
     print SampleTuple1[0]
     print SampleTuple1[1]
@@ -274,8 +291,13 @@ def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title
     yvalues2 = get_ratios(DataFrame2, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
     fig1 = plt.figure()
     ax1 = fig1.add_subplot(111)
-    ax1.scatter(xvalues1, yvalues1, c='royalblue', label=legend1, alpha = 0.5, edgecolor='darkslateblue')
-    ax1.scatter(xvalues2, yvalues2, c='coral', alpha=0.5, label=legend2, edgecolor='coral')
+    if plot_both==True:
+        ax1.scatter(xvalues1, yvalues1, c='royalblue', label=legend1, alpha = 0.5, edgecolor='darkslateblue')
+        ax1.scatter(xvalues2, yvalues2, c='coral', alpha=0.5, label=legend2, edgecolor='coral')
+    elif plot_both==1:
+        ax1.scatter(xvalues1, yvalues1, c='0.3', label=legend1, alpha = 1, edgecolor='0.2')
+    elif plot_both==2:
+        ax1.scatter(xvalues2, yvalues2, c='0.3', alpha=1, label=legend2, edgecolor='0.2')
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
     print np.nanmin(xvalues1)
@@ -289,6 +311,7 @@ def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title
     ax1.set_title(plot_title)
     ax1.plot([xmin, xmax], [xmin,xmax], ls="--", c=".3", lw=1.5)
     plt.show()
+    return fig1
 
 #######################################################################################################################
 ## Bar chart of averaged replicates of normalized counts (error bars are the range).                                 ##
@@ -343,9 +366,11 @@ def bar_chart(df, read_type, sample1, sample2, CNAG_list1, CNAG_list2=None, plot
     plt.xlabel('Transcript')
     plt.ylabel(ylabel)
     plt.title(plot_title)
-    for child in ax1.get_children()[1:1+len(CNAG_list1)]:
+    print ax1.get_children()
+    for child in ax1.get_children()[4:4+len(CNAG_list1)]:
         child.set_color('coral')
     plt.show()
+    return fig1
 
 
 #############################################################################
