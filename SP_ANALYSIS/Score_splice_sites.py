@@ -7,7 +7,7 @@ This will generate an output spreadsheet with relative splice-site strength for 
 import sys
 import math
 import numpy as np
-sys.path.insert(0, '/home/chomer/Code_Base/Gwo1_targets/')
+sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/')
 import GeneUtility
 
 def mirrored(listtree):
@@ -30,9 +30,9 @@ for cnag in gene_list_as_dict:
         introns = mirrored(introns)
     for intron in introns:
         if gene.strand == "-":
-            seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
+            seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
         else:
-            seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
+            seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
         for a, base in enumerate(seq):
              if base == "A":
                  pos_matrix_5prime[0,a] = pos_matrix_5prime[0,a]+1
@@ -44,11 +44,11 @@ for cnag in gene_list_as_dict:
                  pos_matrix_5prime[3,a] = pos_matrix_5prime[3,a]+1
 
         if gene.strand == "-":
-            seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[1] - 2, intron[1] + 6, gene.strand, genome)
+            seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1] - 2, intron[1] + 6, gene.strand, genome)
             #print gene.strand
             #print seq
         else:
-            seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[1] - 7, intron[1] + 1, gene.strand, genome)
+            seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1] - 7, intron[1] + 1, gene.strand, genome)
             #print gene.strand
             #print seq
         for b, base in enumerate(seq):
@@ -89,9 +89,9 @@ for cnag in gene_list_as_dict:
     for intron_num, intron in enumerate(introns):
         gene_matrix_5prime = np.zeros([4,8])
         if gene.strand == "-":
-            seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
+            seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
         else:
-            seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
+            seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
         for a, base in enumerate(seq):
              if base == "A":
                  gene_matrix_5prime[0,a] = gene_matrix_5prime[0,a]+1
@@ -104,11 +104,11 @@ for cnag in gene_list_as_dict:
 
         gene_matrix_3prime = np.zeros([4,8])
         if gene.strand == "-":
-            seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
-            intron_seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[1], intron[0], gene.strand, genome)
+            seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
+            intron_seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1], intron[0], gene.strand, genome)
         else:
-            seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
-            intron_seq = GeneUtility.SequenceByGenLoc("Supercontig_2.{0}".format(gene.chromosome), intron[0], intron[1], gene.strand, genome)
+            seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
+            intron_seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0], intron[1], gene.strand, genome)
         for b, base in enumerate(seq):
             if base == "A":
                 gene_matrix_3prime[0,b] = gene_matrix_3prime[0,b]+1

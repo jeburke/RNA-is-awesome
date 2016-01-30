@@ -5,6 +5,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+from beeswarm import *
 
 #################################################################
 ## Build dataframes from tables written by analyzeSp.py. Reads ##
@@ -12,28 +13,69 @@ import random
 ## for each type of read (exon, intron or total)               ##
 #################################################################
 
-def build_tables(file, header='infer', skiprows=None, low_memory=False):
+def build_tables(file1, file2=None, header='infer', skiprows=None, low_memory=False, multiIndex=False):
     #For junction reads and cleavages use header=[0,1] and skiprows=[2]. For all other tables, use default values.
-    fin = open(file, "r")
-    df = pandas.read_table(fin, header=header, skiprows=skiprows)
+    if file2==None:
+        fin = open(file1, "r")
+        df = pandas.read_table(fin, header=header, skiprows=skiprows)
+        index_list = []
+        if multiIndex is True:
+            for row in df.iterrows():
+                index_list.append((row[1][0],row[1][1]))
+            df.index = pandas.MultiIndex.from_tuples(index_list)
+        elif multiIndex is False:
+            for row in df.iterrows():
+                index_list.append(row[1][0])
+            df.index = index_list
+    else:
+        fin = open(file1, "r")
+        fin2 = open(file2, "r")
+        df1 = pandas.read_table(fin, header=header, skiprows=skiprows)
+        df2 = pandas.read_table(fin2, header=header, skiprows=skiprows)
+        index_list1 = []
+        index_list2 = []
+        if header != 'infer':
+            for row in df1.iterrows():
+                index_list1.append((row[1][0],row[1][1]))
+            for row in df2.iterrows():
+                index_list2.append((row[1][0],row[1][1]))
+            df1.index = pandas.MultiIndex.from_tuples(index_list1)
+            df2.index = pandas.MultiIndex.from_tuples(index_list2)
+        else:
+            for row in df1.iterrows():
+                index_list1.append(row[1][0])
+            df1.index = index_list1
+            for row in df2.iterrows():
+                index_list2.append(row[1][0])
+            df2.index = index_list1
+        df1_sorted = df1.sort()
+        df2_sorted = df2.sort()
+        df = pandas.merge(df1_sorted, df2_sorted, left_index=True, right_index=True, copy=False, sort=True)
     columns_list = []
+    n = 0
     for column in df.columns:
         if header != 'infer':
-            if column[0] == "Unnamed: 0_level_0":
-                columns_list.append(("Transcript","Transcript"))
-            elif column[0] == "Unnamed: 1_level_0":
-                columns_list.append(("Exon","Exon"))
+            #print column
+            if column[0].startswith("Unnamed: 0"):
+                columns_list.append(("Transcript"+str(n),"Transcript"+str(n)))
+                n += 1
+            elif column[0].startswith("Unnamed: 1"):
+                columns_list.append(("Exon"+str(n),"Exon"+str(n)))
+                n += 1
             else:
                 columns_list.append((column[0].split("_")[0], column[1]))
         else:
-            if column == "Unnamed: 0":
-                columns_list.append(("Transcript","Transcript"))
+            if column.startswith("Unnamed: 0"):
+                columns_list.append(("Transcript"+str(n),"Transcript"+str(n)))
+                n += 1
             elif column == "Transcript":
-                columns_list.append(("Transcript","Transcript"))
+                columns_list.append(("Transcript"+str(n),"Transcript"+str(n)))
+                n += 1
             else:
                 columns_list.append((column.split("_")[0],"Total"))
     df.columns = pandas.MultiIndex.from_tuples(columns_list)
-    df = df.fillna(0)
+    df = df.sort()
+    #df = df.fillna(0)
     return df
 
 ##################################################################
@@ -85,14 +127,14 @@ def build_intron_tables(file):
 ## internal control RNA. Arguments are output from build_tables##
 #################################################################
 
-def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0, untagged=None):
+def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
     df1 = feature_counts
     df2 = total_counts
     df3 = lengths
     df4 = config
-    df1_indexed = df1.set_index(df1[("Transcript","Transcript")])
-    df2_indexed = df2.set_index(df2[("Transcript","Transcript")])
-    df3_indexed = df3.set_index(df3[("Transcript","Transcript")])
+    df1_indexed = df1.set_index(df1[("Transcript0","Transcript0")])
+    df2_indexed = df2.set_index(df2[("Transcript0","Transcript0")])
+    df3_indexed = df3.set_index(df3[("Transcript0","Transcript0")])
     merged = pandas.merge(df1_indexed, df2_indexed, left_index=True, right_index=True, how = 'left')
     merged = pandas.merge(merged, df3_indexed, left_index=True, right_index=True, how = 'left')
     configNames = []
@@ -106,7 +148,7 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0, unta
     n = 0
     for name, read_type in merged.columns:
         names.append(name)
-        if name.strip() == "Transcript":
+        if name.startswith("Transcript"):
             print "Reading table"
         elif n < len(configNames) and name == configNames[n][0]+"-A":
             print "Reading sample " +name
@@ -116,21 +158,68 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0, unta
             print "Control value 2 = " +str(c2)
             c3 = controlValues[n][2]
             print "Control value 3 = " +str(c3)
-            if untagged is None:
-                merged[(name.split("-")[0],"5prime Normalized")] = pandas.Series((((merged[(name,"5prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
-                merged[(name.split("-")[0],"3prime Normalized")] = pandas.Series((((merged[(name,"3prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
-            else:
-                merged[(name.split("-")[0],"5prime Normalized")] = pandas.Series((((merged[(name,"5prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2)))/(merged[(untagged+"-W","Total")]/df4[(untagged, "Total")][2]), index = merged.index)
-                merged[(name.split("-")[0],"3prime Normalized")] = pandas.Series((((merged[(name,"3prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2)))/(merged[(untagged+"-W","Total")]/df4[(untagged, "Total")][2]), index = merged.index)
-            if cutoff > 0:
-                merged = merged[merged[(name.split("-")[0]+"-B","Total")] > cutoff]
+            merged[(name.split("-")[0],"5prime Normalized")] = pandas.Series((((merged[(name,"5prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
+            merged[(name.split("-")[0],"3prime Normalized")] = pandas.Series((((merged[(name,"3prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
+
             n+=1
-    if merged.columns[1] == ("Exon","Exon"):
-        merged.set_index([merged.columns[0], merged.columns[1]], inplace=True)
-    else:
-        merged = merged.set_index(("Transcript","Transcript"))
+    
+    if cutoff > 0:
+        merged = merged[merged[(merged.columns[2][0].split("-")[0]+"-B","Total")] > cutoff]
     merged = merged.fillna(0)
     print "5prime Normalized; 3prime Normalized"
+    print len(merged)
+    set_merged_index = set()
+    for name1, name2 in merged.iterrows():
+        set_merged_index.add(name1[0])
+    print len(set_merged_index)
+    return merged
+
+#################################################################
+## Normalize counts in A samples to counts in B samples. Also  ##
+## divides by transcript length. c1-c4 are read counts for     ##
+## internal control RNA. Arguments are output from build_tables##
+#################################################################
+
+def normalize_JunctiontoTotal(feature_counts, total_counts, lengths, config, cutoff=0):
+    df1 = feature_counts
+    df2 = total_counts
+    df3 = lengths
+    df4 = config
+    df1_indexed = df1.set_index(df1[("Transcript0","Transcript0")])
+    df2_indexed = df2.set_index(df2[("Transcript0","Transcript0")])
+    df3_indexed = df3.set_index(df3[("Transcript0","Transcript0")])
+    merged = pandas.merge(df1_indexed, df2_indexed, left_index=True, right_index=True, how = 'left')
+    merged = pandas.merge(merged, df3_indexed, left_index=True, right_index=True, how = 'left')
+    configNames = []
+    controlValues = []
+    for name in df4.columns:
+        configNames.append(name)
+        s = pandas.Series(df4[name])
+        l = s.tolist()
+        controlValues.append(l)
+    names = []
+    n = 0
+    for name, read_type in merged.columns:
+        names.append(name)
+        if name.startswith("Transcript"):
+            print "Reading table"
+        elif n < len(configNames) and name == configNames[n][0]+"-B":
+            print "Reading sample " +name
+            c1 = controlValues[n][0]
+            print "Control value 1 = " +str(c1)
+            c2 = controlValues[n][1]
+            print "Control value 2 = " +str(c2)
+            c3 = controlValues[n][2]
+            print "Control value 3 = " +str(c3)
+            merged[(name.split("-")[0],"5prime junction")] = pandas.Series((((merged[(name,"5p junct cnts")])/c1)/((merged[(name,"Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
+            merged[(name.split("-")[0],"3prime junction")] = pandas.Series((((merged[(name,"3p junct cnts")])/c1)/((merged[(name,"Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
+
+            n+=1
+    
+    if cutoff > 0:
+        merged = merged[merged[(merged.columns[2][0].split("-")[0]+"-B","Total")] > cutoff]
+    merged = merged.fillna(0)
+    print "5prime junction; 3prime junction"
     print len(merged)
     set_merged_index = set()
     for name1, name2 in merged.iterrows():
@@ -150,8 +239,9 @@ def normalize_B_to_mature(total_counts, lengths, config, cutoff=0, untagged=None
     df1 = total_counts
     df2 = lengths
     df3 = config
-    df1_indexed = df1.set_index(df1[("Transcript","Transcript")])
-    df2_indexed = df2.set_index(df2[("Transcript","Transcript")])
+    df1_indexed = df1.set_index(df1[("Transcript0","Transcript0")])
+    df2_indexed = df2.set_index(df2[("Transcript0","Transcript0")])
+    df3 = df3.reset_index()
     merged = pandas.merge(df1_indexed,df2_indexed, left_index=True, right_index=True, how = 'left')
     configNames = []
     controlValues = []
@@ -160,30 +250,34 @@ def normalize_B_to_mature(total_counts, lengths, config, cutoff=0, untagged=None
         s = pandas.Series(df3[name])
         l = s.tolist()
         controlValues.append(l)
+  
     names = []
-    for name, count_type in merged.columns:
+    n = 1
+    for name, read_type in merged.columns:
         names.append(name)
-        for config_name, sample_type in df3.columns:
-            if name == config_name+"-B" and untagged==None:
-                print "Reading sample " +name
-                c1 = df3[(config_name, sample_type)][0]
-                print "Control value 1 = " +str(c1)
-                c2 = df3[(config_name, sample_type)][1]
-                print "Control value 2 = " +str(c2)
-                c3 = df3[(config_name, sample_type)][2]
-                print "Control value 3 = " +str(c3)
+        if name.startswith("Transcript"):
+            print "Reading table"
+        elif n <= len(configNames)+2 and name == configNames[n][0]+"-B":
+            print "Reading sample " +name
+            c1 = controlValues[n][0]
+            print "Control value 1 = " +str(c1)
+            c2 = controlValues[n][1]
+            print "Control value 2 = " +str(c2)
+            c3 = controlValues[n][2]
+            print "Control value 3 = " +str(c3)
+            
+            if untagged == None:
                 merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3)), index = merged.index)
-                if cutoff > 0:
-                    merged = merged[merged[(name.split("-")[0]+"-B","Total")] > cutoff]
-            elif name ==config_name+"-B" and untagged != None:
-                print "Reading sample " +name
-                c1 = df3[(config_name, sample_type)][0]
-                print "Control value 1 = " +str(c1)
-                c2 = df3[(config_name, sample_type)][1]
-                print "Control value 2 = " +str(c2)
-                c3 = df3[(config_name, sample_type)][2]
-                print "Control value 3 = " +str(c3)
-                merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3))/(merged[(untagged+"-W","Total")]/df3[(untagged, sample_type)][2]), index = merged.index)
+            
+            elif untagged != None:
+                #merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3))/(merged[(untagged+"-W","Total")]/df3.at[2, untagged]), index = merged.index)
+                #merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3))/(merged[(untagged+"-B","Total")]/merged[(untagged+"-W","Total")]), index = merged.index)
+                merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3))/(merged[(untagged+"-B","Total")]/df3.at[2, untagged]), index = merged.index)
+               
+            n += 1
+
+    if cutoff > 0:
+        merged = merged[merged[(merged.columns[1][0].split("-")[0]+"-B","Total")] > cutoff]
     merged = merged.fillna(0)
     print "Normalized to mature"
     print len(merged)
@@ -289,6 +383,8 @@ def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title
     yvalues1 = get_ratios(DataFrame1, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
     xvalues2 = get_ratios(DataFrame2, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
     yvalues2 = get_ratios(DataFrame2, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
+    print len(xvalues1)
+    print len(xvalues2)
     fig1 = plt.figure()
     ax1 = fig1.add_subplot(111)
     if plot_both==True:
@@ -312,6 +408,53 @@ def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title
     ax1.plot([xmin, xmax], [xmin,xmax], ls="--", c=".3", lw=1.5)
     plt.show()
     return fig1
+
+def scatter_plot3(DataFrame_x, SampleList_x, DataFrame_y, SampleList_y, plot_title='Plot', legend1='All', legend2='Filtered', xlabel='Replicate 1 (log10)', ylabel='Replicate 2 (log10)', base=10):
+    a=0
+    xvalues = []
+    while a < len(SampleList_x):
+        xvalues.append(get_ratios(DataFrame_x, SampleList_x[a][0], SampleList_x[a][1], log=True, base=base))
+        a += 1
+    b=0
+    yvalues = []
+    while b < len(SampleList_y):
+        yvalues.append(get_ratios(DataFrame_y, SampleList_y[b][0], SampleList_y[b][1], log=True, base=base))
+        b += 1
+    print len(xvalues)
+    print len(yvalues)
+    fig1 = plt.figure()
+    ax1 = fig1.add_subplot(111)
+    n = 0
+    color_list = ["royalblue","coral","lightsteelblue"]
+    while n < len(yvalues):
+        if len(xvalues) == len(yvalues):   
+            print len(xvalues[n])
+            print len(yvalues[n])
+            ax1.scatter(xvalues[n], yvalues[n], c=color_list[n], label=legend1, alpha = 0.5, edgecolor=color_list[n])
+            n += 1
+        elif len(xvalues) == 1:
+            print len(xvalues[0])
+            print len(yvalues[n])
+            ax1.scatter(xvalues[0], yvalues[n], c=color_list[n], label=legend1, alpha = 0.5, edgecolor=color_list[n])
+            n += 1
+        else:
+            print "X and Y variables do not match"
+            break
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel)
+    #print np.nanmin(xvalues[1])
+    #print np.nanmax(xvalues[1])
+    #xmax = np.nanmax(xvalues[1])+0.5
+    #xmin = np.nanmin(xvalues[1])-0.5
+    #ax1.set_ylim([xmin,xmax])
+    #ax1.set_xlim([xmin,xmax])
+    #ymax = ax1.get_ylim()
+    ax1.legend(loc=4)
+    ax1.set_title(plot_title)
+    ax1.plot([xmin, xmax], [xmin,xmax], ls="--", c=".3", lw=1.5)
+    plt.show()
+    return fig1
+
 
 #######################################################################################################################
 ## Bar chart of averaged replicates of normalized counts (error bars are the range).                                 ##
@@ -391,4 +534,24 @@ def random_transcripts_from_list(file_with_list, number_of_transcripts):
     random_list = random.sample(gene_list, number_of_transcripts)
     return random_list
 
-    
+def beeswarm_plot(DataFrame_list, SampleTuple_list, DataFrame2=None, base=10, color_list="blue", select_random=False):
+    print SampleTuple_list
+    print len(SampleTuple_list)
+    values_list = []
+    name_list = []
+    median_list = []
+    a=0
+    while a < len(DataFrame_list):
+        n=0
+        while n < len(SampleTuple_list):
+            print SampleTuple_list[n]
+            values = get_ratios(DataFrame_list[a], SampleTuple_list[n][0], SampleTuple_list[n][1], log=True, base=base)
+            median_list.append(np.median(np.array(values)))
+            if select_random != False:
+                values = random.sample(values, select_random)
+            values_list.append(values)
+            name_list.append(SampleTuple_list[n][0])
+            n += 1
+        a += 1
+    print median_list
+    bs, ax = beeswarm(values_list, method="swarm", labels=name_list, col=color_list)

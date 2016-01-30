@@ -33,6 +33,51 @@ class CommonEquality(object):
     
     def __ne__(self,other):
         return not self.__eq__(other)
+
+def BuildGenome():
+    fin = open("/home/jordan/GENOMES/cryptococcus_neoformans_var._grubii_h99__cna3__3_chr.fasta", "r")
+    genome = {}
+    chromosome = []
+    firstline = fin.readline()
+    data = firstline[1:].split(" ")
+    chrom_name = data[0]
+    for line in fin: 
+        if line[0] == ">":
+            data = line[1:].split(" ")
+            chromosome = "".join(chromosome)
+            genome[chrom_name] = chromosome
+            chrom_name = data[0]
+            chromosome = []
+        else: 
+            chromosome.append(line.rstrip())
+    chromosome = "".join(chromosome)
+    genome[chrom_name] = chromosome
+    return genome
+
+def SequenceByGenLoc(chrom, start, end, strand, genome):
+    start = int(start)
+    end = int(end)
+    if strand == "+":
+        outputsequence = genome[chrom][start:end]
+    else:
+        outputsequence = ReverseComplement(genome[chrom][start:end])
+    return outputsequence
+
+def ReverseComplement(seq):
+    seq = seq.upper()
+    reversecomplement = ""
+    for base in seq:
+        if base == "A":
+            reversecomplement = "T"+reversecomplement
+        elif base == "T":
+            reversecomplement = "A"+reversecomplement
+        elif base == "G":
+            reversecomplement = "C"+reversecomplement
+        elif base == "C":
+            reversecomplement = "G"+reversecomplement
+    return reversecomplement
+
+
     
 class GeneAnnotationDict(CommonEquality):
     '''Dictionary of Gene Annotations so we can look up annotations by CNAG'''
@@ -55,8 +100,8 @@ class GeneAnnotationDict(CommonEquality):
         f.close()
                 
     def PopulateGeneAnnotation_new(self):
-        filename1 = "/home/chomer/Code_Base/PrimerDesigner/CNA2_FINAL_CALLGENES_2.gff3"
-        filename2 = "/home/chomer/Code_Base/PrimerDesigner/CNA2_MISC_RNA_1.gff3"
+        filename1 = "/home/jordan/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3"
+        #filename2 = "/home/chomer/Code_Base/PrimerDesigner/CNA2_MISC_RNA_1.gff3"
         with open(filename1, "r") as f:
             for line in f:
                 data = line.split("\t")
@@ -112,7 +157,7 @@ class IntergenicDict(CommonEquality):
             strand = genedict.FindGeneStrand(CNAG)
             intergenic = genedict.FindIntergenicRegion(CNAG, strand)
             self.IntergenicsByCNAG[CNAG]=intergenic
-            length = int(intergenic.start) - int(intergenic.end)
+            length = int(intergenic.end) - int(intergenic.start)
             intergenic_sizes.append(abs(length))
         print "Average size of intergenics in crypto = {0}".format(sum(intergenic_sizes)/float(len(intergenic_sizes)))
         
@@ -282,6 +327,9 @@ class MiscDict(CommonEquality):
         '''returns the dictionary'''
         return self.MiscsByCNAG
     
+    def FindMiscByCNAG(self,CNAG):
+        return self.MiscsByCNAG[CNAG]
+    
     def GetMiscs(self):
         '''returns the list of gene objects found in the dictionary'''
         #print "number = {0}".format(len(self.MiscsByCNAG.values()))
@@ -327,33 +375,103 @@ class GeneDict(CommonEquality):
                 
     def PopulateFromFile_new(self):
         '''designed to work with Guillem's new annotations'''
-        filename = "/home/chomer/Code_Base/PrimerDesigner/CNA2_FINAL_CALLGENES_2.gff3"
+        filename = "/home/jordan/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3"
         start = sys.maxint
         end = 0
         CNAG = ""
         strand = ""
         chrom = ""
+        exons_list = [[],[],[],[],[]]
+        alt_splicing = False
+        txn_start = None
+        txn_end = None
         with open(filename, "r") as f:
             for x, line in enumerate(f):
                 data = line.split("\t")
                 if len(data) > 1:
                     if data[2] == "gene":
                         if x != 0:
-                            genetemp = Gene(CNAG, start, end, strand, chrom)
+                            introns = []
+                            new_exons = []
+                            three_prime_utrs = []
+                            five_prime_utrs = []
+                            for exons in exons_list:
+                                exons.sort(key = lambda line: [float(line[0])])
+                                if exons != []:
+                                    five_prime_utr = [txn_start, exons[0][0]]
+                                    three_prime_utr = [exons[-1][1], txn_end]
+                                    if strand == "-":
+                                        temp = five_prime_utr
+                                        five_prime_utr = three_prime_utr
+                                        three_prime_utr = temp
+                                    if five_prime_utr not in five_prime_utrs:
+                                        five_prime_utrs.append(five_prime_utr)
+                                    if three_prime_utr not in three_prime_utrs:
+                                        three_prime_utrs.append(three_prime_utr)
+                                for k, exon in enumerate(exons):
+                                    if k != 0:
+                                        intron_end = exon[0]
+                                        if [intron_start, intron_end] not in introns:
+                                            introns.append([intron_start, intron_end])
+                                    if exon not in new_exons:
+                                        new_exons.append(exon)
+                                    intron_start = exon[1]
+                            new_exons.sort(key = lambda line: [float(line[0])])
+                            genetemp = Gene(CNAG, txn_start, txn_end, strand, chrom, new_exons, introns, alt_splicing, five_prime_utrs, three_prime_utrs)
                             self.GenesByCNAG[CNAG] = genetemp
+                            exons_list = [[],[],[],[],[]]
+                            alt_splicing = False
+                            txn_start = None
+                            txn_end = None
                         start = sys.maxint
                         end = 0
                         CNAG = data[8].split(";")[0].split("=")[1]
                         strand = str(data[6])
-                        chrom = data[0].split("_")[1][3:]
+                        chrom = data[0][3:]
                     elif data[2] == "CDS":
-                        ex_start = int(data[3])
-                        ex_end = int(data[4])
-                        if ex_start < start:
-                            start = ex_start
-                        if ex_end > end:
-                            end = ex_end
-        genetemp = Gene(CNAG, start, end, strand, chrom)
+                        for j in range(0,5):
+                            if data[8].split(";")[-1].split("=")[-1][10:12] == "T{0}".format(j):
+                                if j > 1:
+                                    alt_splicing = True 
+                                exon_start = int(data[3])
+                                exon_end = int(data[4])
+                                exons_list[j].append([exon_start, exon_end])
+                    elif data[2] == "exon":
+                        current_start = int(data[3])
+                        current_end = int(data[4])
+                        if txn_start != None:
+                            if current_start < txn_start:
+                                txn_start = current_start
+                        else:
+                            txn_start = current_start
+                        if txn_end != None:
+                            if current_end > txn_end:
+                                txn_end = current_end
+                        else:
+                            txn_end = current_end
+        introns = []
+        new_exons = []
+        for exons in exons_list:
+            exons.sort(key = lambda line: [float(line[0])])
+            if exons != []:
+                five_prime_utr = [txn_start, exons[0][0]]
+                three_prime_utr = [exons[-1][1], txn_end]
+                if strand == "-":
+                    temp = five_prime_utr
+                    five_prime_utr = three_prime_utr
+                    three_prime_utr = temp
+                five_prime_utrs.append(five_prime_utr)
+                three_prime_utrs.append(three_prime_utr)
+            for k, exon in enumerate(exons):
+                if k != 0:
+                    intron_end = exon[0]
+                    if [intron_start, intron_end] not in introns:
+                        introns.append([intron_start, intron_end])
+                if exon not in new_exons:
+                    new_exons.append(exon)
+                intron_start = exon[1]
+        new_exons.sort(key = lambda line: [float(line[0])])
+        genetemp = Gene(CNAG, txn_start, txn_end, strand, chrom, new_exons, introns, alt_splicing,five_prime_utrs, three_prime_utrs )
         self.GenesByCNAG[CNAG] = genetemp
         f.close()
         
@@ -380,7 +498,8 @@ class GeneDict(CommonEquality):
         try:
             return GeneWithCorrectStartAndChromosome[0]
         except IndexError:
-            print "There is no gene starting at %s on chromosome %s" % (start, chromosome)
+            pass
+#            print "There is no gene starting at %s on chromosome %s" % (start, chromosome)
     
     def FilterByChromosome(self,chromosome):
         def HasCorrectChromosome(gene):
@@ -464,17 +583,24 @@ class GeneDict(CommonEquality):
             raise Exception("strand must be defined as '+' or '-' with the quotes")
         intergenic = Intergenic(CNAG, StartIntergenic, EndIntergenic, strand, Chromosome)
         return (intergenic)
-         
+        
+    def Update(self, other_dict):
+        self.GenesByCNAG.update(other_dict)
 
 class Gene(CommonEquality):
     """Represents genes by cnag and their corresponding position in crypto genome"""
-    def __init__(self, CNAG, start, end, strand, chromosome):
+    def __init__(self, CNAG, start, end, strand, chromosome, exons, introns, alt_splicing, five_prime_utrs, three_prime_utrs):
         '''sets default values which don't make logical sense so I can tell if error happened'''
         self.CNAG = CNAG
         self.start = start
         self.end = end
         self.strand = strand
         self.chromosome = chromosome
+        self.exons = exons
+        self.introns = introns
+        self.alt_splicing = alt_splicing
+        self.five_prime_utrs = five_prime_utrs
+        self.three_prime_utrs = three_prime_utrs
     
     def __str__(self):
         '''for printing object as string'''
@@ -482,12 +608,41 @@ class Gene(CommonEquality):
     
     def __len__(self):
         return abs(self.end-self.start)+1
+    
+    def IsInGene(self, peak):
+        return int(self.start) < int(peak.abs_summit_position) and int(self.end) > int(peak.abs_summit_position) and self.chromosome == peak.chromosome
+        
+    def getIntrons(self):
+        '''code to get intron number and intron sizes'''
+        introns = self.introns
+        num_introns = len(introns)
+        lengths = []
+        for intron in introns:
+            length = intron[1]-intron[0]
+            lengths.append(length)
+        return num_introns, lengths
+
+    def getExons(self):
+        '''code to get exon number and exon sizes'''
+        exons = self.exons
+        num_exons = len(exons)
+        lengths = []
+        for exon in exons:
+            length = exon[1]-exon[0]
+            lengths.append(length)
+        return num_exons, lengths
+        
+    def getUTRs(self):
+        '''code to get 3' UTR length and 5' UTR length'''
+        return None
  
 class Peak(CommonEquality):
     '''Represents peaks by their name, position in crypto genome, and likelihood scores'''
-    def __init__(self, name, chromosome, length, abs_summit_position, pileup, plogvalue, fold_enrichment, qlogvalue, distance_to_start_codon=None, matched=False):
+    def __init__(self, name, chromosome, start, end, length, abs_summit_position, pileup, plogvalue, fold_enrichment, qlogvalue, distance_to_start_codon=None, matched=False):
         self.name = name
         self.chromosome = chromosome
+        self.start = start
+        self.end = end
         self.length = length
         self.abs_summit_position = abs_summit_position
         self.pileup = pileup
@@ -499,6 +654,9 @@ class Peak(CommonEquality):
         
     def __str__(self):
         return '%s %s %s %s %s %s %s %s' % (self.name, self.chromosome, self.abs_summit_position, self.pileup, self.plogvalue, self.fold_enrichment, self.qlogvalue, self.distance_to_start_codon)
+    
+    def IsInPeak(self, peak):
+        return int(self.start) < int(peak.abs_summit_position) and int(self.end) > int(peak.abs_summit_position) and self.chromosome == peak.chromosome
         
     def FindDistanceToStartCodon(self, intergenic):
         if intergenic.strand == "+":
@@ -540,11 +698,23 @@ class PeaksList2(CommonEquality):
         
     def __iter__(self):
         return iter(self.Peaks2)
+    
+    def PopulateFromFile(self, filename):    
+        with open(filename, 'r') as f:
+            f.next()                                            #to skip first line of file which is a header
+            for line in f:
+                data=line.split('\t')
+                chromname=data[Peak_chromosome_index]
+                chrom=chromname.split('.')
+                peakchromosome=chrom[1]    
+                peaktemp = Peak(data[peak_name_index], peakchromosome, data[1], data[2], data[Peak_length_index], data[Abs_summit_index], data[Pileup_index], data[Log_p_value_index], data[Fold_enrichment_index], data[Log_q_value_index])  
+                self.Peaks2.append(peaktemp)
+
 
 class PeaksList(CommonEquality):
     
     def __init__(self, Peaks=[]):
-     self.Peaks = Peaks
+        self.Peaks = Peaks
 
     def __iter__(self):
         return iter(self.Peaks)
@@ -563,7 +733,7 @@ class PeaksList(CommonEquality):
                 chromname=data[Peak_chromosome_index]
                 chrom=chromname.split('.')
                 peakchromosome=chrom[1]    
-                peaktemp = Peak(data[peak_name_index], peakchromosome, data[Peak_length_index], data[Abs_summit_index], data[Pileup_index], data[Log_p_value_index], data[Fold_enrichment_index], data[Log_q_value_index])  
+                peaktemp = Peak(data[peak_name_index], peakchromosome, data[1], data[2], data[Peak_length_index], data[Abs_summit_index], data[Pileup_index], data[Log_p_value_index], data[Fold_enrichment_index], data[Log_q_value_index])  
                 self.Peaks.append(peaktemp)
 
 class IntergenicsList(CommonEquality):
