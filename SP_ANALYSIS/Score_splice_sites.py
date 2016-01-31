@@ -23,25 +23,29 @@ print genome.keys()
 pos_matrix_5prime = np.zeros([4,8])
 pos_matrix_3prime = np.zeros([4,8])
 
+counter1 = 0
+counter2 = 0
 for cnag in gene_list_as_dict:
+    counter2 += 1
     gene = gene_list_as_dict.FindGeneByCNAG(cnag)
     introns = gene.introns
     if gene.strand == "-":
         introns = mirrored(introns)
     for intron in introns:
+        counter1+=1
         if gene.strand == "-":
             seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
         else:
             seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
         for a, base in enumerate(seq):
-             if base == "A":
-                 pos_matrix_5prime[0,a] = pos_matrix_5prime[0,a]+1
-             if base == "C":
-                 pos_matrix_5prime[1,a] = pos_matrix_5prime[1,a]+1
-             if base == "T":
-                 pos_matrix_5prime[2,a] = pos_matrix_5prime[2,a]+1
-             if base == "G":
-                 pos_matrix_5prime[3,a] = pos_matrix_5prime[3,a]+1
+            if base == "A":
+                pos_matrix_5prime[0,a] = pos_matrix_5prime[0,a]+1
+            if base == "C":
+                pos_matrix_5prime[1,a] = pos_matrix_5prime[1,a]+1
+            if base == "T":
+                pos_matrix_5prime[2,a] = pos_matrix_5prime[2,a]+1
+            if base == "G":
+                pos_matrix_5prime[3,a] = pos_matrix_5prime[3,a]+1
 
         if gene.strand == "-":
             seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1] - 2, intron[1] + 6, gene.strand, genome)
@@ -60,6 +64,8 @@ for cnag in gene_list_as_dict:
                 pos_matrix_3prime[2,b] = pos_matrix_3prime[2,b]+1
             if base == "G":
                 pos_matrix_3prime[3,b] = pos_matrix_3prime[3,b]+1
+print counter1
+print counter2
 
 a = 0
 while a < 4:
@@ -135,7 +141,7 @@ for cnag in gene_list_as_dict:
 
 #        format_transcript_list = [cnag, "T0-", str(intron_num)]
 #        format_transcript = "".join(format_transcript_list)
-        lineout_list = [cnag+"T0", str(intron_num), str(score_5prime), str(score_3prime), str(intron_length), "\n"]
+        lineout_list = [cnag+"T0", str(intron_num+1), str(score_5prime), str(score_3prime), str(intron_length), "\n"]
         lineout = "\t".join(lineout_list)
         fout.write(lineout)
 

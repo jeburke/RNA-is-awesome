@@ -168,10 +168,11 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
     merged = merged.fillna(0)
     print "5prime Normalized; 3prime Normalized"
     print len(merged)
-    set_merged_index = set()
-    for name1, name2 in merged.iterrows():
-        set_merged_index.add(name1[0])
-    print len(set_merged_index)
+    print len(merged.columns)
+    index_list = []
+    for row in merged.iterrows():
+        index_list.append((row[1][0],row[1][1]))
+    merged.index = pandas.MultiIndex.from_tuples(index_list)
     return merged
 
 #################################################################
@@ -213,7 +214,8 @@ def normalize_JunctiontoTotal(feature_counts, total_counts, lengths, config, cut
             print "Control value 3 = " +str(c3)
             merged[(name.split("-")[0],"5prime junction")] = pandas.Series((((merged[(name,"5p junct cnts")])/c1)/((merged[(name,"Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
             merged[(name.split("-")[0],"3prime junction")] = pandas.Series((((merged[(name,"3p junct cnts")])/c1)/((merged[(name,"Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
-
+            #merged[(name.split("-")[0],"5prime junction")] = pandas.Series((merged[(name, "5p junct cnts")])/c1), index = merged.index)
+            #merged[(name.split("-")[0],"3prime junction")] = pandas.Series((merged[(name, "3p junct cnts")])/c1), index = merged.index)
             n+=1
     
     if cutoff > 0:
@@ -320,16 +322,48 @@ def filter_transcripts_by_cnag(mergedtable, list_file):
     print len(RNAi_df)
     return RNAi_df
 
+def merge_tables(dflow, dfhigh, index_list_low=None, index_list_high=None):
+    if index_list_low != None:
+        dflow = dflow.filter(items=index_list_low, axis=1)
+        print dflow.columns
+    if index_list_high != None:
+        dfhigh = dfhigh[index_list_high]
+    merged = pandas.merge(dflow, dfhigh, left_index=True, right_index=True, how = 'left')
+    print len(merged.columns)
+    print merged.columns
+    #if index_list != None:
+    #    merged2 = merged.filter(axis=1, items=index_list)
+    #    print len(merged)
+    #else: merged2 = merged 
+    print len(merged.columns)
+    return merged
+
 #################################################################
 ## Convert output from normalize_counts to lists for plotting  ##
 #################################################################
 
-def get_ratios(normalizedResults, samplename, count_type, log=False, base=10):
+def get_ratios(dataFrame, samplename, count_type, log=False, base=10, T0only=False):
     values = []
-    for name1, name2 in normalizedResults.columns:
+    print len(dataFrame.columns)
+    for name1, name2 in dataFrame.columns:
+        #print name1, name2
         if name2 == count_type:
+            #print name2
             if name1 == samplename:
-                s = pandas.Series(normalizedResults[(name1, name2)])
+                #print name1
+                #print dataFrame
+                s = pandas.Series(dataFrame[(name1,name2)])
+                if T0only == True:
+                    transcript_list = []
+                    for row in dataFrame.iterrows():
+                        if isinstance(row[0], tuple):
+                            if row[0][0].endswith("T0"):
+                                transcript_list.append(row[0][0])
+                        else:
+                            if row[0].endswith("T0"):
+                                transcript_list.append(row[0])
+                    s = s[s.index.get_level_values(0).isin(transcript_list)]
+                #print s
                 values = s.tolist()
             else:
                 continue
@@ -376,36 +410,47 @@ def scatter_plot(xvalues1, yvalues1, xvalues2, yvalues2, plot_title='3p ends/Tot
 ## base is the base for log scale (if you want it to be 2, set base=2)                                               ##
 #######################################################################################################################
 
-def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered', xlabel='Replicate 1 (log10)', ylabel='Replicate 2 (log10)', base=10, plot_both=True):
-    xvalues1 = get_ratios(DataFrame1, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
-    print SampleTuple1[0]
-    print SampleTuple1[1]
-    yvalues1 = get_ratios(DataFrame1, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
-    xvalues2 = get_ratios(DataFrame2, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
-    yvalues2 = get_ratios(DataFrame2, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
-    print len(xvalues1)
-    print len(xvalues2)
+def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered', xlabel='Replicate 1 (log10)', ylabel='Replicate 2 (log10)', base=10, plot_both=True, log_both=True, scaling="auto"):
+    print DataFrame1.columns.lexsort_depth
+    print DataFrame1.index.lexsort_depth
     fig1 = plt.figure()
     ax1 = fig1.add_subplot(111)
-    if plot_both==True:
+    if plot_both==True and log_both==True:
+        xvalues1 = get_ratios(DataFrame1, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
+        yvalues1 = get_ratios(DataFrame1, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
+        xvalues2 = get_ratios(DataFrame2, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
+        yvalues2 = get_ratios(DataFrame2, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
         ax1.scatter(xvalues1, yvalues1, c='royalblue', label=legend1, alpha = 0.5, edgecolor='darkslateblue')
         ax1.scatter(xvalues2, yvalues2, c='coral', alpha=0.5, label=legend2, edgecolor='coral')
-    elif plot_both==1:
+        ax1.legend(loc=4)
+    elif plot_both==1 and log_both==True:
         ax1.scatter(xvalues1, yvalues1, c='0.3', label=legend1, alpha = 1, edgecolor='0.2')
-    elif plot_both==2:
+        ax1.legend(loc=4)
+    elif plot_both==2 and log_both==True:
+        xvalues2 = get_ratios(DataFrame2, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
+        yvalues2 = get_ratios(DataFrame2, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
         ax1.scatter(xvalues2, yvalues2, c='0.3', alpha=1, label=legend2, edgecolor='0.2')
+        ax1.legend(loc=4)
+    elif plot_both==True and log_both==False:
+        xvalues1 = get_ratios(DataFrame1, SampleTuple1[0], SampleTuple1[1], log=False)
+        yvalues1 = get_ratios(DataFrame1, SampleTuple2[0], SampleTuple2[1], log=False)
+        xvalues2 = get_ratios(DataFrame2, SampleTuple1[0], SampleTuple1[1], log=False)
+        yvalues2 = get_ratios(DataFrame2, SampleTuple2[0], SampleTuple2[1], log=False)
+        ax1.scatter(xvalues1, yvalues1, c='royalblue', label=legend1, alpha = 0.5, edgecolor='darkslateblue')
+        ax1.scatter(xvalues2, yvalues2, c='royalblue', alpha=0.5, label=legend2, edgecolor='darkslateblue')
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
-    print np.nanmin(xvalues1)
-    print np.nanmax(xvalues1)
-    xmax = np.nanmax(xvalues1)+0.5
-    xmin = np.nanmin(xvalues1)-0.5
-    ax1.set_ylim([xmin,xmax])
-    ax1.set_xlim([xmin,xmax])
-    ymax = ax1.get_ylim()
-    ax1.legend(loc=4)
+    #print np.nanmin(xvalues1)
+    #print np.nanmax(xvalues1)
+    
     ax1.set_title(plot_title)
-    ax1.plot([xmin, xmax], [xmin,xmax], ls="--", c=".3", lw=1.5)
+    if scaling == "auto":
+        xmax = np.nanmax(xvalues1)+0.5
+        xmin = np.nanmin(xvalues1)-0.5
+        ax1.set_ylim([xmin,xmax])
+        ax1.set_xlim([xmin,xmax])
+        ymax = ax1.get_ylim()
+        ax1.plot([xmin, xmax], [xmin, xmax], ls="--", c=".3", lw=1.5)
     plt.show()
     return fig1
 
@@ -413,12 +458,12 @@ def scatter_plot3(DataFrame_x, SampleList_x, DataFrame_y, SampleList_y, plot_tit
     a=0
     xvalues = []
     while a < len(SampleList_x):
-        xvalues.append(get_ratios(DataFrame_x, SampleList_x[a][0], SampleList_x[a][1], log=True, base=base))
+        xvalues.append(get_ratios(DataFrame_x, SampleList_x[a][0], SampleList_x[a][1], log=True, base=base, T0only=True))
         a += 1
     b=0
     yvalues = []
     while b < len(SampleList_y):
-        yvalues.append(get_ratios(DataFrame_y, SampleList_y[b][0], SampleList_y[b][1], log=True, base=base))
+        yvalues.append(get_ratios(DataFrame_y, SampleList_y[b][0], SampleList_y[b][1], log=True, base=base, T0only=True))
         b += 1
     print len(xvalues)
     print len(yvalues)
