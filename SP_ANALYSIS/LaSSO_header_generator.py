@@ -3,13 +3,13 @@ __author__ = 'jordanburke'
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-import gobsChr
+import gobsMod
 import pandas as pd
 import time
 import sys
 
 t1=time.time()
-basedir="./"
+basedir="/home/jordan/CodeBase/RNA-is-awesome/SP_ANALYSIS/"
 print 'reading configuration file'
 
 #############################################
@@ -31,7 +31,7 @@ for line in config_file:
 
 #Generate Transcript objects
 
-transcripts=gobsChr.transcript_factory(basedir+"conf/H99.config")
+transcripts=gobsMod.transcript_factory(basedir+"conf/H99.config")
 
 #Set up dictionaries and retrieve transcript data
 
@@ -42,7 +42,7 @@ intron_seq_di={}
 
 for transcript, genome in transcripts:
     transcript_coord=transcript.getCoordinates()
-    transcript_iv=gobsChr.HTSeq_iv(transcript_coord)
+    transcript_iv=gobsMod.HTSeq_iv(transcript_coord)
     transcript_feature_di[transcript.getName()]=transcript_iv
     transcript_len_di[transcript.getName()]=transcript_iv.end-transcript_iv.start
     transcript_intron_coords = transcript.getAllIntronCoordinates()
@@ -55,7 +55,7 @@ for transcript, genome in transcripts:
         transcript_intron_coords.sort()
     else:
         transcript_intron_coords.sort(reverse=True)
-    transcript_intron_ivs=[gobsChr.HTSeq_iv(x) for x in transcript_intron_coords]
+    transcript_intron_ivs=[gobsMod.HTSeq_iv(x) for x in transcript_intron_coords]
     flag=False
 
     for interval in transcript_intron_ivs:

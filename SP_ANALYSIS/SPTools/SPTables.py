@@ -8,13 +8,12 @@ import random
 from beeswarm import *
 
 #################################################################
-## Build dataframes from tables written by analyzeSp.py. Reads ##
-## file containing Transcript column and columns with counts   ##
-## for each type of read (exon, intron or total)               ##
+## Build dataframes from tables written by crunchBAM           ##
 #################################################################
 
 def build_tables(file1, file2=None, header='infer', skiprows=None, low_memory=False, multiIndex=False):
-    #For junction reads and cleavages use header=[0,1] and skiprows=[2]. For all other tables, use default values.
+    #For junction reads, cleavages and feayture counts use header=[0,1], skiprows=[2] and multiIndex=True. For all other tables, use default values.
+    
     if file2==None:
         fin = open(file1, "r")
         df = pandas.read_table(fin, header=header, skiprows=skiprows)
@@ -51,11 +50,12 @@ def build_tables(file1, file2=None, header='infer', skiprows=None, low_memory=Fa
         df1_sorted = df1.sort()
         df2_sorted = df2.sort()
         df = pandas.merge(df1_sorted, df2_sorted, left_index=True, right_index=True, copy=False, sort=True)
+    
+    
     columns_list = []
     n = 0
     for column in df.columns:
         if header != 'infer':
-            #print column
             if column[0].startswith("Unnamed: 0"):
                 columns_list.append(("Transcript"+str(n),"Transcript"+str(n)))
                 n += 1
@@ -75,11 +75,10 @@ def build_tables(file1, file2=None, header='infer', skiprows=None, low_memory=Fa
                 columns_list.append((column.split("_")[0],"Total"))
     df.columns = pandas.MultiIndex.from_tuples(columns_list)
     df = df.sort()
-    #df = df.fillna(0)
     return df
 
 ##################################################################
-## Build dataframes from tables written by analyzeSp.py.        ##
+## Build dataframes from tables written by crunchBAM.           ##
 ## This function concatenates the Transcript and Intron columns ##
 ## with a "-" to compare to other lists, such as splice site    ##
 ## scores.                                                      ##
@@ -121,11 +120,11 @@ def build_intron_tables(file):
     df.columns = header[1:len(df.columns)+1]
     return df
 
-#################################################################
-## Normalize counts in A samples to counts in B samples. Also  ##
-## divides by transcript length. c1-c4 are read counts for     ##
-## internal control RNA. Arguments are output from build_tables##
-#################################################################
+####################################################################
+## Normalize counts in A samples to counts in B samples. Also     ##
+## divides by transcript length. c1-c4 are read counts for        ##
+## internal control RNA. Arguments are output from build_tables   ##
+####################################################################
 
 def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
     df1 = feature_counts
@@ -158,20 +157,26 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
             print "Control value 2 = " +str(c2)
             c3 = controlValues[n][2]
             print "Control value 3 = " +str(c3)
+            
+            #Do the math - (5' cleavages/control counts)/(B sample reads/(Length*control counts))
             merged[(name.split("-")[0],"5prime Normalized")] = pandas.Series((((merged[(name,"5prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
             merged[(name.split("-")[0],"3prime Normalized")] = pandas.Series((((merged[(name,"3prime")])/c1)/((merged[(name.strip("-A")+"-B","Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
 
             n+=1
-    
+    #Implement cutoff if indicated
     if cutoff > 0:
         merged = merged[merged[(merged.columns[2][0].split("-")[0]+"-B","Total")] > cutoff]
+    
     merged = merged.fillna(0)
-    print "5prime Normalized; 3prime Normalized"
-    print len(merged)
-    set_merged_index = set()
-    for name1, name2 in merged.iterrows():
-        set_merged_index.add(name1[0])
-    print len(set_merged_index)
+    print "New column names: 5prime Normalized, 3prime Normalized"
+    print str(len(merged))+" rows"
+    print str(len(merged.columns))+"columns"
+    
+    #Set up multiIndex for rows
+    index_list = []
+    for row in merged.iterrows():
+        index_list.append((row[1][0],row[1][1]))
+    merged.index = pandas.MultiIndex.from_tuples(index_list)
     return merged
 
 #################################################################
@@ -213,7 +218,8 @@ def normalize_JunctiontoTotal(feature_counts, total_counts, lengths, config, cut
             print "Control value 3 = " +str(c3)
             merged[(name.split("-")[0],"5prime junction")] = pandas.Series((((merged[(name,"5p junct cnts")])/c1)/((merged[(name,"Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
             merged[(name.split("-")[0],"3prime junction")] = pandas.Series((((merged[(name,"3p junct cnts")])/c1)/((merged[(name,"Total")])/(merged[(name.strip("Length"),"Total")]*c2))), index = merged.index)
-
+            #merged[(name.split("-")[0],"5prime junction")] = pandas.Series((merged[(name, "5p junct cnts")])/c1), index = merged.index)
+            #merged[(name.split("-")[0],"3prime junction")] = pandas.Series((merged[(name, "3p junct cnts")])/c1), index = merged.index)
             n+=1
     
     if cutoff > 0:
@@ -266,20 +272,21 @@ def normalize_B_to_mature(total_counts, lengths, config, cutoff=0, untagged=None
             c3 = controlValues[n][2]
             print "Control value 3 = " +str(c3)
             
+            #For no untagged sample: (B totals/control reads)/(W totals/control reads)
             if untagged == None:
                 merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3)), index = merged.index)
             
+            #For including untagged sample: ((B totals/control reads)/(W totals/control reads))/(B totals untagged/W totals untagged)
             elif untagged != None:
-                #merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3))/(merged[(untagged+"-W","Total")]/df3.at[2, untagged]), index = merged.index)
-                #merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3))/(merged[(untagged+"-B","Total")]/merged[(untagged+"-W","Total")]), index = merged.index)
                 merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3))/(merged[(untagged+"-B","Total")]/df3.at[2, untagged]), index = merged.index)
                
             n += 1
-
+    #Implement cutoff if indicated
     if cutoff > 0:
         merged = merged[merged[(merged.columns[1][0].split("-")[0]+"-B","Total")] > cutoff]
+    
     merged = merged.fillna(0)
-    print "Normalized to mature"
+    print "New column name: Normalized to mature"
     print len(merged)
     return merged
 
@@ -320,238 +327,62 @@ def filter_transcripts_by_cnag(mergedtable, list_file):
     print len(RNAi_df)
     return RNAi_df
 
-#################################################################
-## Convert output from normalize_counts to lists for plotting  ##
-#################################################################
+def merge_tables(dflow, dfhigh, index_list_low=None, index_list_high=None):
+    if index_list_low != None:
+        dflow = dflow.filter(items=index_list_low, axis=1)
+        print dflow.columns
+    if index_list_high != None:
+        dfhigh = dfhigh[index_list_high]
+    merged = pandas.merge(dflow, dfhigh, left_index=True, right_index=True, how = 'left')
+    print len(merged.columns)
+    print merged.columns
+    #if index_list != None:
+    #    merged2 = merged.filter(axis=1, items=index_list)
+    #    print len(merged)
+    #else: merged2 = merged 
+    print len(merged.columns)
+    return merged
 
-def get_ratios(normalizedResults, samplename, count_type, log=False, base=10):
-    values = []
-    for name1, name2 in normalizedResults.columns:
-        if name2 == count_type:
-            if name1 == samplename:
-                s = pandas.Series(normalizedResults[(name1, name2)])
-                values = s.tolist()
-            else:
-                continue
-    if log==True:
-        log_list = []
-        for y in values:
-            if float(y) == float('Inf'):
-                log_list.append(np.NaN)
-            elif y == 0:
-                log_list.append(np.NaN)
-            else:
-                log_list.append(math.log(y, base))
-        values = log_list
-    return values
+############################################################################
+## Metanalysis of introns and exons based on position in gene from 5' end ##
+############################################################################
 
-###################################################################
-## Plot ratios (usually log) of replicates for normalized counts ##
-###################################################################
-
-
-def scatter_plot(xvalues1, yvalues1, xvalues2, yvalues2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered', xlabel='Replicate 1 (log10)', ylabel='Replicate 2 (log10)'):
-    fig1 = plt.figure()
-    ax1 = fig1.add_subplot(111)
-    ax1.scatter(xvalues1, yvalues1, c='royalblue', label=legend1, alpha = 0.5, edgecolor='darkslateblue')
-    ax1.scatter(xvalues2, yvalues2, c='coral', alpha=0.5, label=legend2, edgecolor='coral')
-    ax1.set_xlabel(xlabel)
-    ax1.set_ylabel(ylabel)
-    print np.nanmin(xvalues1)
-    print np.nanmax(xvalues1)
-    xmax = np.nanmax(xvalues1)+0.5
-    xmin = np.nanmin(xvalues1)-0.5
-    ax1.set_ylim([xmin,xmax])
-    ax1.set_xlim([xmin,xmax])
-    ymax = ax1.get_ylim()
-    ax1.legend(loc=4)
-    ax1.set_title(plot_title)
-    ax1.plot([xmin, xmax], [xmin,xmax], ls="--", c=".3", lw=1.5)
-    plt.show()
-
-#######################################################################################################################
-## Scatter plot of normalized counts (log10 is the default).                                                         ##
-## SampleTuple1 and 2 are tuples that contain the sample name and read type - e.g. ("CJB66D","Normalized to mature") ##
-## DataFrames are from normalize_B_to_mature or normalize_AtoB.                                                      ##
-## base is the base for log scale (if you want it to be 2, set base=2)                                               ##
-#######################################################################################################################
-
-def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered', xlabel='Replicate 1 (log10)', ylabel='Replicate 2 (log10)', base=10, plot_both=True):
-    xvalues1 = get_ratios(DataFrame1, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
-    print SampleTuple1[0]
-    print SampleTuple1[1]
-    yvalues1 = get_ratios(DataFrame1, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
-    xvalues2 = get_ratios(DataFrame2, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
-    yvalues2 = get_ratios(DataFrame2, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
-    print len(xvalues1)
-    print len(xvalues2)
-    fig1 = plt.figure()
-    ax1 = fig1.add_subplot(111)
-    if plot_both==True:
-        ax1.scatter(xvalues1, yvalues1, c='royalblue', label=legend1, alpha = 0.5, edgecolor='darkslateblue')
-        ax1.scatter(xvalues2, yvalues2, c='coral', alpha=0.5, label=legend2, edgecolor='coral')
-    elif plot_both==1:
-        ax1.scatter(xvalues1, yvalues1, c='0.3', label=legend1, alpha = 1, edgecolor='0.2')
-    elif plot_both==2:
-        ax1.scatter(xvalues2, yvalues2, c='0.3', alpha=1, label=legend2, edgecolor='0.2')
-    ax1.set_xlabel(xlabel)
-    ax1.set_ylabel(ylabel)
-    print np.nanmin(xvalues1)
-    print np.nanmax(xvalues1)
-    xmax = np.nanmax(xvalues1)+0.5
-    xmin = np.nanmin(xvalues1)-0.5
-    ax1.set_ylim([xmin,xmax])
-    ax1.set_xlim([xmin,xmax])
-    ymax = ax1.get_ylim()
-    ax1.legend(loc=4)
-    ax1.set_title(plot_title)
-    ax1.plot([xmin, xmax], [xmin,xmax], ls="--", c=".3", lw=1.5)
-    plt.show()
-    return fig1
-
-def scatter_plot3(DataFrame_x, SampleList_x, DataFrame_y, SampleList_y, plot_title='Plot', legend1='All', legend2='Filtered', xlabel='Replicate 1 (log10)', ylabel='Replicate 2 (log10)', base=10):
-    a=0
-    xvalues = []
-    while a < len(SampleList_x):
-        xvalues.append(get_ratios(DataFrame_x, SampleList_x[a][0], SampleList_x[a][1], log=True, base=base))
-        a += 1
-    b=0
-    yvalues = []
-    while b < len(SampleList_y):
-        yvalues.append(get_ratios(DataFrame_y, SampleList_y[b][0], SampleList_y[b][1], log=True, base=base))
-        b += 1
-    print len(xvalues)
-    print len(yvalues)
-    fig1 = plt.figure()
-    ax1 = fig1.add_subplot(111)
-    n = 0
-    color_list = ["royalblue","coral","lightsteelblue"]
-    while n < len(yvalues):
-        if len(xvalues) == len(yvalues):   
-            print len(xvalues[n])
-            print len(yvalues[n])
-            ax1.scatter(xvalues[n], yvalues[n], c=color_list[n], label=legend1, alpha = 0.5, edgecolor=color_list[n])
-            n += 1
-        elif len(xvalues) == 1:
-            print len(xvalues[0])
-            print len(yvalues[n])
-            ax1.scatter(xvalues[0], yvalues[n], c=color_list[n], label=legend1, alpha = 0.5, edgecolor=color_list[n])
-            n += 1
-        else:
-            print "X and Y variables do not match"
-            break
-    ax1.set_xlabel(xlabel)
-    ax1.set_ylabel(ylabel)
-    #print np.nanmin(xvalues[1])
-    #print np.nanmax(xvalues[1])
-    #xmax = np.nanmax(xvalues[1])+0.5
-    #xmin = np.nanmin(xvalues[1])-0.5
-    #ax1.set_ylim([xmin,xmax])
-    #ax1.set_xlim([xmin,xmax])
-    #ymax = ax1.get_ylim()
-    ax1.legend(loc=4)
-    ax1.set_title(plot_title)
-    ax1.plot([xmin, xmax], [xmin,xmax], ls="--", c=".3", lw=1.5)
-    plt.show()
-    return fig1
-
-
-#######################################################################################################################
-## Bar chart of averaged replicates of normalized counts (error bars are the range).                                 ##
-## df is DataFrame from normalize_B_to_mature or normalize_AtoB                                                      ##
-## sample1 and 2 are sample names (e.g. CJB66D). These should be in level0 of your DataFrame Columns                 ##
-## CNAG_lists are the lists of transcripts you want to plot. 1 and 2 will be different colors. You only need to give ##
-## CNAG_list1                                                                                                        ##
-#######################################################################################################################
-
-def bar_chart(df, read_type, sample1, sample2, CNAG_list1, CNAG_list2=None, plot_title="Stuff", ylabel="Stuff"):
-    if CNAG_list2 is not None:
-        CNAG_list = CNAG_list1 + CNAG_list2
-    else:
-        CNAG_list = CNAG_list1
-    gene_list = []
-    values1 = []
-    values2 = []
-    #Check if the dataframe index has only transcript names or both transcripts and exons
-    if type(df.index[0]) == str:
-        for name1, name2 in df:
-            if name1 == sample1 and name2 == read_type:
-                for gene in CNAG_list:
-                    if gene in df.index:
-                        values1.append(df[(name1,name2)][gene])
-                        gene_list.append(gene)
-            elif name1 == sample2 and name2 == read_type:
-                for gene in CNAG_list:
-                    if gene in df.index:
-                        values2.append(df[(name1,name2)][gene])
-    else:
-        for gene in CNAG_list:
-            for transcript in df.iterrows():
-                if transcript[0][0] == gene:
-                    values1.append(df[(sample1,read_type)][(transcript[0][0], transcript[0][1])])
-                    values2.append(df[(sample2,read_type)][(transcript[0][0], transcript[0][1])])
-                    gene_list.append(str(transcript[0][0])+"-"+str(transcript[0][1]))
-    n=0
-    avg_values = []
-    errors = []
-    while n < len(values1):
-        avg_values.append((values1[n]+values2[n])/2)
-        errors.append(abs(values1[n]-values2[n])/2)
-        n += 1
-    fig1 = plt.figure()
-    ax1 = fig1.add_subplot(111)
-    n_groups = len(avg_values)
-    index = np.arange(n_groups)
-    bar_width = 0.5
-    error_config = {'ecolor': '0.3'}
-    ax1.bar(index, avg_values, bar_width,alpha=0.9,color='darkslateblue',yerr=errors,error_kw=error_config)
-    plt.xticks(index, gene_list, rotation='vertical')
-    plt.xlabel('Transcript')
-    plt.ylabel(ylabel)
-    plt.title(plot_title)
-    print ax1.get_children()
-    for child in ax1.get_children()[4:4+len(CNAG_list1)]:
-        child.set_color('coral')
-    plt.show()
-    return fig1
-
-
-#############################################################################
-## Get a random set of transcripts from a file with a list of transcripts. ##
-## Pretty self explanatory                                                 ##
-#############################################################################
-
-def random_transcripts_from_list(file_with_list, number_of_transcripts):
-    gene_list = []
-    fin = open(file_with_list, "r")
-    for line in fin:
-        if line.startswith("CNAG"):
-            gene = line.split("\t")[0].strip()
-            if gene[-2:-1] == "T":
-                gene_list.append(gene)
-            else:
-                gene_list.append(gene+"T0")
-    random_list = random.sample(gene_list, number_of_transcripts)
-    return random_list
-
-def beeswarm_plot(DataFrame_list, SampleTuple_list, DataFrame2=None, base=10, color_list="blue", select_random=False):
-    print SampleTuple_list
-    print len(SampleTuple_list)
+def analyze_transcript_position(feature_counts, feature_type, cutoff=0):
+    feature_counts_indexed = feature_counts.set_index(feature_counts[("Transcript0","Transcript0")])
+    intron_count = 1
+    read_dict = {}
+    
+    #Pick every row with intron number
+    while intron_count < 10:
+        read_list = []
+        for row in feature_counts_indexed.iterrows():
+            if  row[1][1] == intron_count:
+                if feature_type == "Exon":
+                    read_list.append(row[1][2])
+                elif feature_type == "Intron":
+                    read_list.append(row[1][3])
+                else: print "Unknown feature type"
+                
+                #Append to dictionary - keys are intron number (or exon) and values are list of read counts
+        print feature_type+" position "+str(intron_count)
+        print "Before cutoff:"+str(len(read_list))+" "+feature_type+"s analyzed"
+        read_list = [math.log(x, 10) for x in read_list if x > cutoff]
+        read_dict[intron_count] = read_list
+        print "After cutoff:"+str(len(read_list))+" "+feature_type+"s analyzed \n"
+        intron_count += 1
+            
+    #Extract keys and lists for use in beeswarm
     values_list = []
     name_list = []
-    median_list = []
-    a=0
-    while a < len(DataFrame_list):
-        n=0
-        while n < len(SampleTuple_list):
-            print SampleTuple_list[n]
-            values = get_ratios(DataFrame_list[a], SampleTuple_list[n][0], SampleTuple_list[n][1], log=True, base=base)
-            median_list.append(np.median(np.array(values)))
-            if select_random != False:
-                values = random.sample(values, select_random)
-            values_list.append(values)
-            name_list.append(SampleTuple_list[n][0])
-            n += 1
-        a += 1
-    print median_list
+    for intron_number, read_list in read_dict.iteritems():
+        name_list.append(intron_number)
+        values_list.append(read_list)
+        
+    color_list = ["red", "orange", "yellow", "green", "teal", "blue", "purple", "indigo", "grey"]
+        
+    
+    #Make beeswarm - x-axis is intron number and y-axis is counts
     bs, ax = beeswarm(values_list, method="swarm", labels=name_list, col=color_list)
+    
+    #Do I need to normalize to total RNA?
+
