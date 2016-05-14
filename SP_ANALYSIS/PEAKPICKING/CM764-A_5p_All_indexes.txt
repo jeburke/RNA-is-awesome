@@ -1,1 +1,1065 @@
 transcript	chromosomepeak type coordinate	peak size
+CNAG_01093T0	chr5	unknown site	1228221	5637	
+CNAG_01093T0	chr5	unknown site	1228228	72214	
+CNAG_02751T0	chr3	known 5' site	844143	317	
+CNAG_02751T0	chr3	known 5' site	844258	251	
+CNAG_02751T0	chr3	known 5' site	844441	524	
+CNAG_02751T0	chr3	known 5' site	844591	96	
+CNAG_02751T0	chr3	known 5' site	844830	156	
+CNAG_02751T0	chr3	known 5' site	844978	150	
+CNAG_02751T0	chr3	known 5' site	845091	370	
+CNAG_02751T0	chr3	known 5' site	845340	452	
+CNAG_02751T0	chr3	known 3' site	844069	92	
+CNAG_02751T0	chr3	known 3' site	844384	80	
+CNAG_02751T0	chr3	known 3' site	844541	65	
+CNAG_02751T0	chr3	known 3' site	844774	48	
+CNAG_02751T0	chr3	known 3' site	844930	58	
+CNAG_02751T0	chr3	known 3' site	845032	184	
+CNAG_02751T0	chr3	known 3' site	845280	38	
+CNAG_02751T0	chr3	unknown site	843985	63	
+CNAG_02751T0	chr3	unknown site	844340	34	
+CNAG_02751T0	chr3	unknown site	844630	37	
+CNAG_02751T0	chr3	unknown site	844704	35	
+CNAG_02751T0	chr3	unknown site	845168	85	
+CNAG_02751T0	chr3	unknown site	845226	31	
+CNAG_02751T0	chr3	unknown site	845543	108	
+CNAG_00453T0	chr1	known 5' site	1174977	436	
+CNAG_00453T0	chr1	known 5' site	1175410	847	
+CNAG_00453T0	chr1	known 5' site	1175560	633	
+CNAG_00453T0	chr1	known 5' site	1175725	738	
+CNAG_00453T0	chr1	known 3' site	1175045	268	
+CNAG_00453T0	chr1	known 3' site	1175617	133	
+CNAG_00453T0	chr1	known 3' site	1175788	81	
+CNAG_00453T0	chr1	unknown site	1175217	74	
+CNAG_00453T0	chr1	unknown site	1175249	72	
+CNAG_00453T0	chr1	unknown site	1175260	47	
+CNAG_00453T0	chr1	unknown site	1175496	109	
+CNAG_00453T0	chr1	unknown site	1175547	78	
+CNAG_00453T0	chr1	unknown site	1175663	135	
+CNAG_00453T0	chr1	unknown site	1175828	121	
+CNAG_00453T0	chr1	unknown site	1175882	139	
+CNAG_00453T0	chr1	unknown site	1175908	103	
+CNAG_00453T0	chr1	unknown site	1176046	67	
+CNAG_06388T0	chr13	known 5' site	360711	1175	
+CNAG_06388T0	chr13	known 5' site	360880	1790	
+CNAG_06388T0	chr13	known 3' site	360628	828	
+CNAG_06388T0	chr13	known 3' site	360802	561	
+CNAG_06388T0	chr13	unknown site	360459	171	
+CNAG_06388T0	chr13	unknown site	360752	288	
+CNAG_04587T1	chr10	known 5' site	951479	87	
+CNAG_04587T1	chr10	known 5' site	953135	245	
+CNAG_04587T1	chr10	known 5' site	954474	577	
+CNAG_04587T1	chr10	known 3' site	951405	64	
+CNAG_04587T1	chr10	known 3' site	953086	83	
+CNAG_04587T1	chr10	known 3' site	953638	364	
+CNAG_04587T1	chr10	unknown site	952542	31	
+CNAG_04587T1	chr10	unknown site	952885	42	
+CNAG_04587T1	chr10	unknown site	953341	68	
+CNAG_04587T1	chr10	unknown site	953449	33	
+CNAG_04587T1	chr10	unknown site	953529	30	
+CNAG_04587T1	chr10	unknown site	953915	37	
+CNAG_04587T1	chr10	unknown site	953960	43	
+CNAG_04587T1	chr10	unknown site	954092	42	
+CNAG_04587T1	chr10	unknown site	954118	42	
+CNAG_04587T1	chr10	unknown site	954193	39	
+CNAG_04587T1	chr10	unknown site	954205	37	
+CNAG_04587T1	chr10	unknown site	954216	41	
+CNAG_04587T1	chr10	unknown site	954270	69	
+CNAG_04587T1	chr10	unknown site	954287	58	
+CNAG_04587T1	chr10	unknown site	954305	34	
+CNAG_04587T1	chr10	unknown site	954329	60	
+CNAG_04587T1	chr10	unknown site	954522	35	
+CNAG_06400T0	chr13	known 5' site	387927	64	
+CNAG_06400T0	chr13	known 5' site	390181	122	
+CNAG_06400T0	chr13	known 5' site	390588	117	
+CNAG_06400T0	chr13	known 5' site	390870	490	
+CNAG_06400T0	chr13	known 5' site	391018	186	
+CNAG_06400T0	chr13	known 5' site	391134	76	
+CNAG_06400T0	chr13	known 3' site	387871	90	
+CNAG_06400T0	chr13	known 3' site	390538	84	
+CNAG_06400T0	chr13	known 3' site	390761	276	
+CNAG_06400T0	chr13	known 3' site	390959	110	
+CNAG_06400T0	chr13	known 3' site	391077	143	
+CNAG_06400T0	chr13	unknown site	387629	36	
+CNAG_06400T0	chr13	unknown site	389872	39	
+CNAG_06400T0	chr13	unknown site	390022	42	
+CNAG_06400T0	chr13	unknown site	390098	27	
+CNAG_06400T0	chr13	unknown site	390456	51	
+CNAG_06400T0	chr13	unknown site	390649	57	
+CNAG_06400T0	chr13	unknown site	390688	30	
+CNAG_06400T0	chr13	unknown site	390837	40	
+CNAG_06400T0	chr13	unknown site	391255	53	
+CNAG_02129T0	chr6	known 5' site	1120471	591	
+CNAG_02129T0	chr6	known 5' site	1120640	131	
+CNAG_02129T0	chr6	known 5' site	1121741	360	
+CNAG_02129T0	chr6	known 5' site	1122241	316	
+CNAG_02129T0	chr6	known 5' site	1122599	145	
+CNAG_02129T0	chr6	known 5' site	1122936	221	
+CNAG_02129T0	chr6	known 5' site	1123159	156	
+CNAG_02129T0	chr6	known 3' site	1120588	101	
+CNAG_02129T0	chr6	known 3' site	1122192	75	
+CNAG_02129T0	chr6	known 3' site	1122542	35	
+CNAG_02129T0	chr6	known 3' site	1122874	46	
+CNAG_02129T0	chr6	known 3' site	1123094	101	
+CNAG_02129T0	chr6	unknown site	1120530	31	
+CNAG_02129T0	chr6	unknown site	1121264	41	
+CNAG_02129T0	chr6	unknown site	1121376	147	
+CNAG_02129T0	chr6	unknown site	1121572	39	
+CNAG_02129T0	chr6	unknown site	1121644	44	
+CNAG_02129T0	chr6	unknown site	1121911	55	
+CNAG_02129T0	chr6	unknown site	1122478	36	
+CNAG_02129T0	chr6	unknown site	1122755	49	
+CNAG_02129T0	chr6	unknown site	1122773	41	
+CNAG_02129T0	chr6	unknown site	1123173	40	
+CNAG_05874T0	chr7	known 5' site	1093398	751	
+CNAG_05874T0	chr7	known 5' site	1093614	330	
+CNAG_05874T0	chr7	known 5' site	1093873	168	
+CNAG_05874T0	chr7	known 5' site	1094487	150	
+CNAG_05874T0	chr7	known 5' site	1094745	149	
+CNAG_05874T0	chr7	known 3' site	1093515	413	
+CNAG_05874T0	chr7	known 3' site	1093693	107	
+CNAG_05874T0	chr7	known 3' site	1093946	41	
+CNAG_05874T0	chr7	known 3' site	1094839	60	
+CNAG_05874T0	chr7	known 3' site	1095307	41	
+CNAG_05874T0	chr7	unknown site	1094010	48	
+CNAG_05874T0	chr7	unknown site	1095367	99	
+CNAG_02986T0	chr3	known 5' site	272942	627	
+CNAG_02986T0	chr3	known 5' site	273070	562	
+CNAG_02986T0	chr3	known 5' site	273229	650	
+CNAG_02986T0	chr3	known 5' site	273446	429	
+CNAG_02986T0	chr3	known 5' site	273617	663	
+CNAG_02986T0	chr3	known 5' site	273722	847	
+CNAG_02986T0	chr3	known 3' site	272885	113	
+CNAG_02986T0	chr3	known 3' site	273000	72	
+CNAG_02986T0	chr3	known 3' site	273155	149	
+CNAG_02986T0	chr3	known 3' site	273380	124	
+CNAG_02986T0	chr3	known 3' site	273542	230	
+CNAG_02986T0	chr3	known 3' site	273669	326	
+CNAG_02986T0	chr3	unknown site	272684	86	
+CNAG_02986T0	chr3	unknown site	272810	219	
+CNAG_02986T0	chr3	unknown site	272968	55	
+CNAG_02986T0	chr3	unknown site	273131	53	
+CNAG_02986T0	chr3	unknown site	273215	60	
+CNAG_02986T0	chr3	unknown site	273322	181	
+CNAG_02986T0	chr3	unknown site	273852	48	
+CNAG_01577T0	chr11	known 5' site	338859	554	
+CNAG_01577T0	chr11	known 5' site	339070	212	
+CNAG_01577T0	chr11	known 5' site	339544	472	
+CNAG_01577T0	chr11	known 5' site	339906	255	
+CNAG_01577T0	chr11	known 5' site	340033	187	
+CNAG_01577T0	chr11	known 5' site	340230	377	
+CNAG_01577T0	chr11	known 5' site	340340	406	
+CNAG_01577T0	chr11	known 3' site	338803	56	
+CNAG_01577T0	chr11	known 3' site	339016	93	
+CNAG_01577T0	chr11	known 3' site	339493	51	
+CNAG_01577T0	chr11	known 3' site	339980	136	
+CNAG_01577T0	chr11	known 3' site	340165	193	
+CNAG_01577T0	chr11	known 3' site	340263	101	
+CNAG_01577T0	chr11	unknown site	338473	94	
+CNAG_01577T0	chr11	unknown site	338587	30	
+CNAG_01577T0	chr11	unknown site	338673	30	
+CNAG_01577T0	chr11	unknown site	339223	45	
+CNAG_01577T0	chr11	unknown site	339322	38	
+CNAG_01577T0	chr11	unknown site	339379	51	
+CNAG_01577T0	chr11	unknown site	339684	39	
+CNAG_01577T0	chr11	unknown site	339695	47	
+CNAG_01577T0	chr11	unknown site	339737	33	
+CNAG_01577T0	chr11	unknown site	339899	29	
+CNAG_01984T0	chr11	known 5' site	1448997	230	
+CNAG_01984T0	chr11	known 5' site	1449140	239	
+CNAG_01984T0	chr11	known 5' site	1449470	242	
+CNAG_01984T0	chr11	known 5' site	1449651	400	
+CNAG_01984T0	chr11	known 5' site	1449875	1292	
+CNAG_01984T0	chr11	known 3' site	1448801	134	
+CNAG_01984T0	chr11	known 3' site	1448945	142	
+CNAG_01984T0	chr11	known 3' site	1449085	148	
+CNAG_01984T0	chr11	known 3' site	1449404	88	
+CNAG_01984T0	chr11	known 3' site	1449741	661	
+CNAG_01984T0	chr11	unknown site	1449317	108	
+CNAG_01984T0	chr11	unknown site	1449616	70	
+CNAG_00407T0	chr1	known 5' site	1071357	227	
+CNAG_00407T0	chr1	known 5' site	1071923	376	
+CNAG_00407T0	chr1	known 5' site	1072075	529	
+CNAG_00407T0	chr1	known 5' site	1072501	193	
+CNAG_00407T0	chr1	known 5' site	1072684	236	
+CNAG_00407T0	chr1	known 5' site	1073145	811	
+CNAG_00407T0	chr1	known 5' site	1073235	612	
+CNAG_00407T0	chr1	known 3' site	1071305	201	
+CNAG_00407T0	chr1	known 3' site	1071874	199	
+CNAG_00407T0	chr1	known 3' site	1072016	135	
+CNAG_00407T0	chr1	known 3' site	1072451	142	
+CNAG_00407T0	chr1	known 3' site	1072638	114	
+CNAG_00407T0	chr1	known 3' site	1073093	84	
+CNAG_00407T0	chr1	known 3' site	1073175	81	
+CNAG_00407T0	chr1	unknown site	1070750	50	
+CNAG_00407T0	chr1	unknown site	1071086	47	
+CNAG_00407T0	chr1	unknown site	1071118	207	
+CNAG_00407T0	chr1	unknown site	1071564	42	
+CNAG_00407T0	chr1	unknown site	1071656	48	
+CNAG_00407T0	chr1	unknown site	1071747	53	
+CNAG_00407T0	chr1	unknown site	1071965	42	
+CNAG_00407T0	chr1	unknown site	1072226	70	
+CNAG_00407T0	chr1	unknown site	1072300	50	
+CNAG_00407T0	chr1	unknown site	1072367	98	
+CNAG_00407T0	chr1	unknown site	1072516	75	
+CNAG_00407T0	chr1	unknown site	1072806	114	
+CNAG_00407T0	chr1	unknown site	1072861	44	
+CNAG_00407T0	chr1	unknown site	1072905	230	
+CNAG_00407T0	chr1	unknown site	1072915	43	
+CNAG_00407T0	chr1	unknown site	1072953	69	
+CNAG_00407T0	chr1	unknown site	1073013	118	
+CNAG_00407T0	chr1	unknown site	1073020	44	
+CNAG_00407T0	chr1	unknown site	1073322	44	
+CNAG_06207T0	chr12	known 5' site	628589	1076	
+CNAG_06207T0	chr12	known 5' site	628741	815	
+CNAG_06207T0	chr12	known 3' site	628650	344	
+CNAG_06207T0	chr12	known 3' site	628801	377	
+CNAG_06207T0	chr12	unknown site	628472	99	
+CNAG_06207T0	chr12	unknown site	628835	88	
+CNAG_06207T0	chr12	unknown site	628898	86	
+CNAG_06207T0	chr12	unknown site	628912	118	
+CNAG_06207T0	chr12	unknown site	628921	79	
+CNAG_06207T0	chr12	unknown site	628994	61	
+CNAG_06207T0	chr12	unknown site	629038	88	
+CNAG_04659T0	chr10	known 5' site	754950	785	
+CNAG_04659T0	chr10	known 5' site	755205	955	
+CNAG_04659T0	chr10	known 5' site	755688	815	
+CNAG_04659T0	chr10	known 5' site	756040	543	
+CNAG_04659T0	chr10	known 5' site	756342	905	
+CNAG_04659T0	chr10	known 5' site	756468	1179	
+CNAG_04659T0	chr10	known 5' site	756636	1267	
+CNAG_04659T0	chr10	known 5' site	756765	1386	
+CNAG_04659T0	chr10	known 3' site	754894	201	
+CNAG_04659T0	chr10	known 3' site	755153	264	
+CNAG_04659T0	chr10	known 3' site	755980	305	
+CNAG_04659T0	chr10	known 3' site	756292	283	
+CNAG_04659T0	chr10	known 3' site	756415	344	
+CNAG_04659T0	chr10	known 3' site	756557	349	
+CNAG_04659T0	chr10	known 3' site	756700	412	
+CNAG_04659T0	chr10	unknown site	754569	107	
+CNAG_04659T0	chr10	unknown site	754671	164	
+CNAG_04659T0	chr10	unknown site	754719	152	
+CNAG_04659T0	chr10	unknown site	754728	135	
+CNAG_04659T0	chr10	unknown site	754826	194	
+CNAG_04659T0	chr10	unknown site	755091	85	
+CNAG_04659T0	chr10	unknown site	755184	100	
+CNAG_04659T0	chr10	unknown site	755362	101	
+CNAG_04659T0	chr10	unknown site	755388	346	
+CNAG_04659T0	chr10	unknown site	755478	90	
+CNAG_04659T0	chr10	unknown site	755539	90	
+CNAG_04659T0	chr10	unknown site	755559	94	
+CNAG_04659T0	chr10	unknown site	755598	142	
+CNAG_04659T0	chr10	unknown site	755787	272	
+CNAG_04659T0	chr10	unknown site	755811	80	
+CNAG_04659T0	chr10	unknown site	755830	245	
+CNAG_04659T0	chr10	unknown site	755866	421	
+CNAG_04659T0	chr10	unknown site	755905	106	
+CNAG_04659T0	chr10	unknown site	755916	71	
+CNAG_04659T0	chr10	unknown site	756172	179	
+CNAG_04659T0	chr10	unknown site	756192	196	
+CNAG_04659T0	chr10	unknown site	756213	186	
+CNAG_04659T0	chr10	unknown site	756236	101	
+CNAG_04659T0	chr10	unknown site	756249	98	
+CNAG_04659T0	chr10	unknown site	756371	88	
+CNAG_04659T0	chr10	unknown site	756478	86	
+CNAG_04659T0	chr10	unknown site	756496	223	
+CNAG_04659T0	chr10	unknown site	756692	75	
+CNAG_04659T0	chr10	unknown site	756822	136	
+CNAG_05251T0	chr4	known 5' site	847241	108	
+CNAG_05251T0	chr4	known 5' site	847410	571	
+CNAG_05251T0	chr4	known 5' site	848286	1067	
+CNAG_05251T0	chr4	known 3' site	847354	93	
+CNAG_05251T0	chr4	known 3' site	847870	430	
+CNAG_05251T0	chr4	unknown site	847338	55	
+CNAG_05251T0	chr4	unknown site	847658	76	
+CNAG_05251T0	chr4	unknown site	848013	62	
+CNAG_05251T0	chr4	unknown site	848075	70	
+CNAG_05251T0	chr4	unknown site	848088	58	
+CNAG_05251T0	chr4	unknown site	848111	216	
+CNAG_05251T0	chr4	unknown site	848136	74	
+CNAG_05251T0	chr4	unknown site	848238	61	
+CNAG_06699T0	chr7	known 5' site	523916	578	
+CNAG_06699T0	chr7	known 5' site	524045	519	
+CNAG_06699T0	chr7	known 5' site	524144	349	
+CNAG_06699T0	chr7	known 5' site	524220	365	
+CNAG_06699T0	chr7	known 5' site	524299	820	
+CNAG_06699T0	chr7	known 5' site	524591	605	
+CNAG_06699T0	chr7	known 5' site	524765	637	
+CNAG_06699T0	chr7	known 5' site	524906	496	
+CNAG_06699T0	chr7	known 5' site	525031	485	
+CNAG_06699T0	chr7	known 5' site	525259	434	
+CNAG_06699T0	chr7	known 5' site	525427	323	
+CNAG_06699T0	chr7	known 3' site	524020	329	
+CNAG_06699T0	chr7	known 3' site	524099	154	
+CNAG_06699T0	chr7	known 3' site	524195	61	
+CNAG_06699T0	chr7	known 3' site	524275	222	
+CNAG_06699T0	chr7	known 3' site	524355	213	
+CNAG_06699T0	chr7	known 3' site	524653	99	
+CNAG_06699T0	chr7	known 3' site	524827	209	
+CNAG_06699T0	chr7	known 3' site	524966	262	
+CNAG_06699T0	chr7	known 3' site	525077	155	
+CNAG_06699T0	chr7	known 3' site	525312	90	
+CNAG_06699T0	chr7	known 3' site	525482	103	
+CNAG_06699T0	chr7	unknown site	523951	79	
+CNAG_06699T0	chr7	unknown site	524388	84	
+CNAG_06699T0	chr7	unknown site	524407	48	
+CNAG_06699T0	chr7	unknown site	524422	44	
+CNAG_06699T0	chr7	unknown site	524500	53	
+CNAG_06699T0	chr7	unknown site	524523	111	
+CNAG_06699T0	chr7	unknown site	524541	62	
+CNAG_06699T0	chr7	unknown site	524563	81	
+CNAG_06699T0	chr7	unknown site	524698	50	
+CNAG_06699T0	chr7	unknown site	524709	168	
+CNAG_06699T0	chr7	unknown site	525108	133	
+CNAG_06699T0	chr7	unknown site	525119	45	
+CNAG_06699T0	chr7	unknown site	525151	62	
+CNAG_06699T0	chr7	unknown site	525207	96	
+CNAG_06699T0	chr7	unknown site	525243	54	
+CNAG_06699T0	chr7	unknown site	525321	49	
+CNAG_06699T0	chr7	unknown site	525340	59	
+CNAG_06699T0	chr7	unknown site	525394	128	
+CNAG_06699T0	chr7	unknown site	525542	111	
+CNAG_06699T0	chr7	unknown site	525624	51	
+CNAG_01558T0	chr11	known 5' site	273929	1320	
+CNAG_01558T0	chr11	known 5' site	274136	706	
+CNAG_01558T0	chr11	known 5' site	274258	935	
+CNAG_01558T0	chr11	known 5' site	274523	401	
+CNAG_01558T0	chr11	known 5' site	274919	1104	
+CNAG_01558T0	chr11	known 3' site	274069	1443	
+CNAG_01558T0	chr11	known 3' site	274190	661	
+CNAG_01558T0	chr11	known 3' site	274317	331	
+CNAG_01558T0	chr11	known 3' site	274599	103	
+CNAG_01558T0	chr11	known 3' site	274983	95	
+CNAG_01558T0	chr11	unknown site	274007	91	
+CNAG_01558T0	chr11	unknown site	274017	87	
+CNAG_01558T0	chr11	unknown site	274025	140	
+CNAG_01558T0	chr11	unknown site	274049	125	
+CNAG_01558T0	chr11	unknown site	274056	161	
+CNAG_01558T0	chr11	unknown site	274085	108	
+CNAG_01558T0	chr11	unknown site	274107	101	
+CNAG_01558T0	chr11	unknown site	274395	311	
+CNAG_01558T0	chr11	unknown site	274462	142	
+CNAG_01558T0	chr11	unknown site	274700	95	
+CNAG_01558T0	chr11	unknown site	274706	76	
+CNAG_01558T0	chr11	unknown site	275040	83	
+CNAG_01558T0	chr11	unknown site	275081	145	
+CNAG_01558T0	chr11	unknown site	275151	92	
+CNAG_01558T0	chr11	unknown site	275214	81	
+CNAG_01558T0	chr11	unknown site	275244	95	
+CNAG_01558T0	chr11	unknown site	275321	109	
+CNAG_01558T0	chr11	unknown site	275398	92	
+CNAG_06164T0	chr12	unknown site	480670	76	
+CNAG_06164T0	chr12	unknown site	483980	43	
+CNAG_06164T0	chr12	unknown site	483994	123	
+CNAG_06164T0	chr12	unknown site	484000	271	
+CNAG_06164T0	chr12	unknown site	484021	146	
+CNAG_06164T0	chr12	unknown site	484056	50	
+CNAG_06164T0	chr12	unknown site	484099	56	
+CNAG_06164T0	chr12	unknown site	484120	43	
+CNAG_06164T0	chr12	unknown site	484136	152	
+CNAG_06164T0	chr12	unknown site	484143	51	
+CNAG_06164T0	chr12	unknown site	484151	166	
+CNAG_06164T0	chr12	unknown site	484162	532	
+CNAG_06164T0	chr12	unknown site	484176	34	
+CNAG_06164T0	chr12	unknown site	484189	178	
+CNAG_06164T0	chr12	unknown site	484259	325	
+CNAG_00162T0	chr1	known 5' site	439994	474	
+CNAG_00162T0	chr1	known 5' site	440456	455	
+CNAG_00162T0	chr1	known 5' site	440869	759	
+CNAG_00162T0	chr1	known 5' site	441006	518	
+CNAG_00162T0	chr1	known 3' site	439944	59	
+CNAG_00162T0	chr1	known 3' site	440405	364	
+CNAG_00162T0	chr1	known 3' site	440818	104	
+CNAG_00162T0	chr1	known 3' site	440949	161	
+CNAG_00162T0	chr1	unknown site	439746	68	
+CNAG_00162T0	chr1	unknown site	439784	65	
+CNAG_00162T0	chr1	unknown site	439824	45	
+CNAG_00162T0	chr1	unknown site	439898	82	
+CNAG_00162T0	chr1	unknown site	439909	62	
+CNAG_00162T0	chr1	unknown site	440036	54	
+CNAG_00162T0	chr1	unknown site	440070	63	
+CNAG_00162T0	chr1	unknown site	440081	52	
+CNAG_00162T0	chr1	unknown site	440205	39	
+CNAG_00162T0	chr1	unknown site	440211	157	
+CNAG_00162T0	chr1	unknown site	440242	101	
+CNAG_00162T0	chr1	unknown site	440306	46	
+CNAG_00162T0	chr1	unknown site	440357	72	
+CNAG_00162T0	chr1	unknown site	440573	105	
+CNAG_00162T0	chr1	unknown site	440581	49	
+CNAG_00162T0	chr1	unknown site	440630	46	
+CNAG_00162T0	chr1	unknown site	440649	62	
+CNAG_00162T0	chr1	unknown site	440830	103	
+CNAG_00162T0	chr1	unknown site	441127	42	
+CNAG_03438T0	chr8	known 5' site	950469	423	
+CNAG_03438T0	chr8	known 5' site	950705	382	
+CNAG_03438T0	chr8	known 5' site	951001	341	
+CNAG_03438T0	chr8	known 5' site	951231	404	
+CNAG_03438T0	chr8	known 5' site	951436	302	
+CNAG_03438T0	chr8	known 3' site	950413	56	
+CNAG_03438T0	chr8	known 3' site	950638	35	
+CNAG_03438T0	chr8	known 3' site	950926	128	
+CNAG_03438T0	chr8	known 3' site	951064	310	
+CNAG_03438T0	chr8	known 3' site	951378	133	
+CNAG_03438T0	chr8	unknown site	949385	34	
+CNAG_03438T0	chr8	unknown site	949524	27	
+CNAG_03438T0	chr8	unknown site	949692	46	
+CNAG_03438T0	chr8	unknown site	949840	23	
+CNAG_03438T0	chr8	unknown site	949935	25	
+CNAG_03438T0	chr8	unknown site	950003	32	
+CNAG_03438T0	chr8	unknown site	950024	30	
+CNAG_03438T0	chr8	unknown site	950134	71	
+CNAG_03438T0	chr8	unknown site	950258	45	
+CNAG_03438T0	chr8	unknown site	950332	66	
+CNAG_03438T0	chr8	unknown site	950350	28	
+CNAG_03438T0	chr8	unknown site	950551	64	
+CNAG_03438T0	chr8	unknown site	950617	24	
+CNAG_03438T0	chr8	unknown site	950777	32	
+CNAG_03438T0	chr8	unknown site	950787	55	
+CNAG_03438T0	chr8	unknown site	950836	36	
+CNAG_03438T0	chr8	unknown site	950895	72	
+CNAG_03438T0	chr8	unknown site	950952	25	
+CNAG_03438T0	chr8	unknown site	951115	23	
+CNAG_03438T0	chr8	unknown site	951162	167	
+CNAG_03438T0	chr8	unknown site	951283	40	
+CNAG_03438T0	chr8	unknown site	951294	80	
+CNAG_03438T0	chr8	unknown site	951319	30	
+CNAG_03438T0	chr8	unknown site	951508	36	
+CNAG_02542T0	chr6	known 5' site	41890	975	
+CNAG_02542T0	chr6	known 5' site	42135	875	
+CNAG_02542T0	chr6	known 5' site	42415	510	
+CNAG_02542T0	chr6	known 3' site	41797	842	
+CNAG_02542T0	chr6	known 3' site	41994	1099	
+CNAG_02542T0	chr6	known 3' site	42314	184	
+CNAG_02542T0	chr6	unknown site	41649	120	
+CNAG_02542T0	chr6	unknown site	41747	77	
+CNAG_02542T0	chr6	unknown site	41777	57	
+CNAG_02542T0	chr6	unknown site	41790	56	
+CNAG_02542T0	chr6	unknown site	41809	80	
+CNAG_02542T0	chr6	unknown site	41914	76	
+CNAG_02542T0	chr6	unknown site	42004	83	
+CNAG_02542T0	chr6	unknown site	42013	90	
+CNAG_02542T0	chr6	unknown site	42024	96	
+CNAG_02542T0	chr6	unknown site	42030	64	
+CNAG_02542T0	chr6	unknown site	42378	56	
+CNAG_02542T0	chr6	unknown site	42727	56	
+CNAG_02542T0	chr6	unknown site	42737	58	
+CNAG_05199T0	chr4	known 5' site	697299	530	
+CNAG_05199T0	chr4	known 5' site	697421	363	
+CNAG_05199T0	chr4	known 5' site	697510	403	
+CNAG_05199T0	chr4	known 5' site	697663	301	
+CNAG_05199T0	chr4	known 5' site	697839	403	
+CNAG_05199T0	chr4	known 5' site	698098	150	
+CNAG_05199T0	chr4	known 5' site	699541	187	
+CNAG_05199T0	chr4	known 3' site	697353	92	
+CNAG_05199T0	chr4	known 3' site	697477	61	
+CNAG_05199T0	chr4	known 3' site	697580	115	
+CNAG_05199T0	chr4	known 3' site	697760	115	
+CNAG_05199T0	chr4	known 3' site	697895	87	
+CNAG_05199T0	chr4	known 3' site	698147	58	
+CNAG_05199T0	chr4	known 3' site	699597	37	
+CNAG_05199T0	chr4	unknown site	697933	49	
+CNAG_05199T0	chr4	unknown site	698035	30	
+CNAG_05199T0	chr4	unknown site	698209	30	
+CNAG_05199T0	chr4	unknown site	698229	28	
+CNAG_05199T0	chr4	unknown site	698279	62	
+CNAG_05199T0	chr4	unknown site	698390	44	
+CNAG_05199T0	chr4	unknown site	698843	29	
+CNAG_05199T0	chr4	unknown site	699776	36	
+CNAG_00848T2	chr1	known 5' site	2245044	298	
+CNAG_00848T2	chr1	known 5' site	2245491	160	
+CNAG_00848T2	chr1	known 5' site	2245788	289	
+CNAG_00848T2	chr1	known 5' site	2246124	171	
+CNAG_00848T2	chr1	known 5' site	2246570	248	
+CNAG_00848T2	chr1	known 5' site	2246934	222	
+CNAG_00848T2	chr1	known 5' site	2247652	246	
+CNAG_00848T2	chr1	known 5' site	2247896	327	
+CNAG_00848T2	chr1	known 3' site	2244975	87	
+CNAG_00848T2	chr1	known 3' site	2245423	33	
+CNAG_00848T2	chr1	known 3' site	2245732	83	
+CNAG_00848T2	chr1	known 3' site	2246060	31	
+CNAG_00848T2	chr1	known 3' site	2246505	116	
+CNAG_00848T2	chr1	known 3' site	2246867	84	
+CNAG_00848T2	chr1	known 3' site	2247578	207	
+CNAG_00848T2	chr1	known 3' site	2247832	236	
+CNAG_00848T2	chr1	unknown site	2244711	22	
+CNAG_00848T2	chr1	unknown site	2244770	22	
+CNAG_00848T2	chr1	unknown site	2244801	19	
+CNAG_00848T2	chr1	unknown site	2244887	42	
+CNAG_00848T2	chr1	unknown site	2245097	21	
+CNAG_00848T2	chr1	unknown site	2245185	36	
+CNAG_00848T2	chr1	unknown site	2245195	35	
+CNAG_00848T2	chr1	unknown site	2245305	37	
+CNAG_00848T2	chr1	unknown site	2245329	32	
+CNAG_00848T2	chr1	unknown site	2245508	36	
+CNAG_00848T2	chr1	unknown site	2245538	20	
+CNAG_00848T2	chr1	unknown site	2245698	54	
+CNAG_00848T2	chr1	unknown site	2245834	25	
+CNAG_00848T2	chr1	unknown site	2245990	19	
+CNAG_00848T2	chr1	unknown site	2246370	19	
+CNAG_00848T2	chr1	unknown site	2246431	24	
+CNAG_00848T2	chr1	unknown site	2246471	29	
+CNAG_00848T2	chr1	unknown site	2246664	38	
+CNAG_00848T2	chr1	unknown site	2246778	46	
+CNAG_00848T2	chr1	unknown site	2247084	26	
+CNAG_00848T2	chr1	unknown site	2247166	41	
+CNAG_00848T2	chr1	unknown site	2247337	35	
+CNAG_00848T2	chr1	unknown site	2247359	18	
+CNAG_00848T2	chr1	unknown site	2247719	18	
+CNAG_00848T2	chr1	unknown site	2247818	22	
+CNAG_00848T2	chr1	unknown site	2247948	20	
+CNAG_00848T0	chr1	known 5' site	2245044	298	
+CNAG_00848T0	chr1	known 5' site	2245491	160	
+CNAG_00848T0	chr1	known 5' site	2245788	289	
+CNAG_00848T0	chr1	known 5' site	2246124	171	
+CNAG_00848T0	chr1	known 5' site	2246570	248	
+CNAG_00848T0	chr1	known 5' site	2246934	222	
+CNAG_00848T0	chr1	known 5' site	2247652	246	
+CNAG_00848T0	chr1	known 5' site	2247896	327	
+CNAG_00848T0	chr1	known 3' site	2244975	87	
+CNAG_00848T0	chr1	known 3' site	2245423	33	
+CNAG_00848T0	chr1	known 3' site	2245732	83	
+CNAG_00848T0	chr1	known 3' site	2246060	31	
+CNAG_00848T0	chr1	known 3' site	2246505	116	
+CNAG_00848T0	chr1	known 3' site	2246867	84	
+CNAG_00848T0	chr1	known 3' site	2247578	207	
+CNAG_00848T0	chr1	known 3' site	2247832	236	
+CNAG_00848T0	chr1	unknown site	2244711	22	
+CNAG_00848T0	chr1	unknown site	2244770	22	
+CNAG_00848T0	chr1	unknown site	2244801	19	
+CNAG_00848T0	chr1	unknown site	2244887	42	
+CNAG_00848T0	chr1	unknown site	2245097	21	
+CNAG_00848T0	chr1	unknown site	2245185	36	
+CNAG_00848T0	chr1	unknown site	2245195	35	
+CNAG_00848T0	chr1	unknown site	2245305	37	
+CNAG_00848T0	chr1	unknown site	2245329	32	
+CNAG_00848T0	chr1	unknown site	2245508	36	
+CNAG_00848T0	chr1	unknown site	2245538	20	
+CNAG_00848T0	chr1	unknown site	2245698	54	
+CNAG_00848T0	chr1	unknown site	2245834	25	
+CNAG_00848T0	chr1	unknown site	2245990	19	
+CNAG_00848T0	chr1	unknown site	2246370	19	
+CNAG_00848T0	chr1	unknown site	2246431	24	
+CNAG_00848T0	chr1	unknown site	2246471	29	
+CNAG_00848T0	chr1	unknown site	2246664	38	
+CNAG_00848T0	chr1	unknown site	2246778	46	
+CNAG_00848T0	chr1	unknown site	2247084	26	
+CNAG_00848T0	chr1	unknown site	2247166	41	
+CNAG_00848T0	chr1	unknown site	2247337	35	
+CNAG_00848T0	chr1	unknown site	2247359	18	
+CNAG_00848T0	chr1	unknown site	2247719	18	
+CNAG_00848T0	chr1	unknown site	2247818	22	
+CNAG_00848T0	chr1	unknown site	2247948	20	
+CNAG_00848T1	chr1	known 5' site	2245044	298	
+CNAG_00848T1	chr1	known 5' site	2245491	160	
+CNAG_00848T1	chr1	known 5' site	2245788	289	
+CNAG_00848T1	chr1	known 5' site	2246124	171	
+CNAG_00848T1	chr1	known 5' site	2246570	248	
+CNAG_00848T1	chr1	known 5' site	2246934	222	
+CNAG_00848T1	chr1	known 5' site	2247652	246	
+CNAG_00848T1	chr1	known 5' site	2247896	327	
+CNAG_00848T1	chr1	known 3' site	2244975	87	
+CNAG_00848T1	chr1	known 3' site	2245423	33	
+CNAG_00848T1	chr1	known 3' site	2245732	83	
+CNAG_00848T1	chr1	known 3' site	2246060	31	
+CNAG_00848T1	chr1	known 3' site	2246505	116	
+CNAG_00848T1	chr1	known 3' site	2246867	84	
+CNAG_00848T1	chr1	known 3' site	2247578	207	
+CNAG_00848T1	chr1	known 3' site	2247832	236	
+CNAG_00848T1	chr1	unknown site	2244711	22	
+CNAG_00848T1	chr1	unknown site	2244770	22	
+CNAG_00848T1	chr1	unknown site	2244801	19	
+CNAG_00848T1	chr1	unknown site	2244887	42	
+CNAG_00848T1	chr1	unknown site	2245097	21	
+CNAG_00848T1	chr1	unknown site	2245185	36	
+CNAG_00848T1	chr1	unknown site	2245195	35	
+CNAG_00848T1	chr1	unknown site	2245305	37	
+CNAG_00848T1	chr1	unknown site	2245329	32	
+CNAG_00848T1	chr1	unknown site	2245508	36	
+CNAG_00848T1	chr1	unknown site	2245538	20	
+CNAG_00848T1	chr1	unknown site	2245698	54	
+CNAG_00848T1	chr1	unknown site	2245834	25	
+CNAG_00848T1	chr1	unknown site	2245990	19	
+CNAG_00848T1	chr1	unknown site	2246370	19	
+CNAG_00848T1	chr1	unknown site	2246431	24	
+CNAG_00848T1	chr1	unknown site	2246471	29	
+CNAG_00848T1	chr1	unknown site	2246664	38	
+CNAG_00848T1	chr1	unknown site	2246778	46	
+CNAG_00848T1	chr1	unknown site	2247084	26	
+CNAG_00848T1	chr1	unknown site	2247166	41	
+CNAG_00848T1	chr1	unknown site	2247337	35	
+CNAG_00848T1	chr1	unknown site	2247359	18	
+CNAG_00848T1	chr1	unknown site	2247719	18	
+CNAG_00848T1	chr1	unknown site	2247818	22	
+CNAG_00848T1	chr1	unknown site	2247948	20	
+CNAG_06125T0	chr12	known 5' site	376142	208	
+CNAG_06125T0	chr12	known 5' site	376456	199	
+CNAG_06125T0	chr12	known 5' site	376782	144	
+CNAG_06125T0	chr12	known 5' site	377038	29	
+CNAG_06125T0	chr12	known 5' site	377551	115	
+CNAG_06125T0	chr12	known 5' site	377731	196	
+CNAG_06125T0	chr12	known 5' site	378133	78	
+CNAG_06125T0	chr12	known 3' site	376082	287	
+CNAG_06125T0	chr12	known 3' site	376403	82	
+CNAG_06125T0	chr12	known 3' site	376732	33	
+CNAG_06125T0	chr12	known 3' site	376985	61	
+CNAG_06125T0	chr12	known 3' site	377498	51	
+CNAG_06125T0	chr12	known 3' site	377682	33	
+CNAG_06125T0	chr12	known 3' site	377765	197	
+CNAG_06125T0	chr12	unknown site	376047	35	
+CNAG_06125T0	chr12	unknown site	376208	17	
+CNAG_06125T0	chr12	unknown site	376221	19	
+CNAG_06125T0	chr12	unknown site	376231	23	
+CNAG_06125T0	chr12	unknown site	376370	18	
+CNAG_06125T0	chr12	unknown site	376486	17	
+CNAG_06125T0	chr12	unknown site	376553	49	
+CNAG_06125T0	chr12	unknown site	376618	25	
+CNAG_06125T0	chr12	unknown site	376628	19	
+CNAG_06125T0	chr12	unknown site	376654	25	
+CNAG_06125T0	chr12	unknown site	376694	20	
+CNAG_06125T0	chr12	unknown site	376793	33	
+CNAG_06125T0	chr12	unknown site	376845	24	
+CNAG_06125T0	chr12	unknown site	376911	110	
+CNAG_06125T0	chr12	unknown site	377102	23	
+CNAG_06125T0	chr12	unknown site	377156	43	
+CNAG_06125T0	chr12	unknown site	377287	17	
+CNAG_06125T0	chr12	unknown site	377294	33	
+CNAG_06125T0	chr12	unknown site	377307	31	
+CNAG_06125T0	chr12	unknown site	377345	23	
+CNAG_06125T0	chr12	unknown site	377354	20	
+CNAG_06125T0	chr12	unknown site	377386	74	
+CNAG_06125T0	chr12	unknown site	377403	21	
+CNAG_06125T0	chr12	unknown site	377410	23	
+CNAG_06125T0	chr12	unknown site	377429	55	
+CNAG_06125T0	chr12	unknown site	377588	19	
+CNAG_06125T0	chr12	unknown site	377623	54	
+CNAG_06125T0	chr12	unknown site	377631	16	
+CNAG_06125T0	chr12	unknown site	377861	74	
+CNAG_06125T0	chr12	unknown site	377907	61	
+CNAG_06125T0	chr12	unknown site	377931	19	
+CNAG_06125T0	chr12	unknown site	377995	124	
+CNAG_07745T0	chr8	known 5' site	1220209	1558	
+CNAG_07745T0	chr8	known 5' site	1220448	688	
+CNAG_07745T0	chr8	known 5' site	1221159	1821	
+CNAG_07745T0	chr8	known 3' site	1220316	648	
+CNAG_07745T0	chr8	known 3' site	1220507	585	
+CNAG_07745T0	chr8	known 3' site	1221218	292	
+CNAG_07745T0	chr8	unknown site	1220029	130	
+CNAG_07745T0	chr8	unknown site	1220241	97	
+CNAG_07745T0	chr8	unknown site	1220427	117	
+CNAG_07745T0	chr8	unknown site	1220551	93	
+CNAG_07745T0	chr8	unknown site	1220701	193	
+CNAG_07745T0	chr8	unknown site	1220807	98	
+CNAG_07745T0	chr8	unknown site	1220840	146	
+CNAG_07745T0	chr8	unknown site	1220892	385	
+CNAG_07745T0	chr8	unknown site	1220948	816	
+CNAG_07745T0	chr8	unknown site	1220954	171	
+CNAG_07745T0	chr8	unknown site	1221023	97	
+CNAG_07745T0	chr8	unknown site	1221244	282	
+CNAG_07745T0	chr8	unknown site	1221284	207	
+CNAG_07745T0	chr8	unknown site	1221317	94	
+CNAG_07745T0	chr8	unknown site	1221401	93	
+CNAG_06770T0	chr2	known 5' site	81879	175	
+CNAG_06770T0	chr2	known 5' site	82010	260	
+CNAG_06770T0	chr2	known 5' site	82152	495	
+CNAG_06770T0	chr2	known 5' site	82405	310	
+CNAG_06770T0	chr2	known 5' site	82569	154	
+CNAG_06770T0	chr2	known 5' site	82710	394	
+CNAG_06770T0	chr2	known 5' site	83034	204	
+CNAG_06770T0	chr2	known 3' site	81950	101	
+CNAG_06770T0	chr2	known 3' site	82072	87	
+CNAG_06770T0	chr2	known 3' site	82205	95	
+CNAG_06770T0	chr2	known 3' site	82458	41	
+CNAG_06770T0	chr2	known 3' site	82621	37	
+CNAG_06770T0	chr2	known 3' site	82760	128	
+CNAG_06770T0	chr2	known 3' site	83373	128	
+CNAG_06770T0	chr2	unknown site	81990	29	
+CNAG_06770T0	chr2	unknown site	82257	59	
+CNAG_06770T0	chr2	unknown site	82268	43	
+CNAG_06770T0	chr2	unknown site	82313	33	
+CNAG_06770T0	chr2	unknown site	82344	32	
+CNAG_06770T0	chr2	unknown site	82497	69	
+CNAG_06770T0	chr2	unknown site	82702	26	
+CNAG_06770T0	chr2	unknown site	82919	37	
+CNAG_06770T0	chr2	unknown site	82955	41	
+CNAG_06770T0	chr2	unknown site	83128	62	
+CNAG_06770T0	chr2	unknown site	83256	362	
+CNAG_06770T0	chr2	unknown site	83318	38	
+CNAG_06770T0	chr2	unknown site	83445	41	
+CNAG_06770T0	chr2	unknown site	83479	31	
+CNAG_06770T0	chr2	unknown site	83543	45	
+CNAG_06770T0	chr2	unknown site	83549	26	
+CNAG_06770T0	chr2	unknown site	83715	45	
+CNAG_05387T0	chr14	known 5' site	173037	311	
+CNAG_05387T0	chr14	known 5' site	173220	289	
+CNAG_05387T0	chr14	known 5' site	173412	449	
+CNAG_05387T0	chr14	known 5' site	173878	164	
+CNAG_05387T0	chr14	known 5' site	174064	355	
+CNAG_05387T0	chr14	known 5' site	174290	346	
+CNAG_05387T0	chr14	known 5' site	174425	238	
+CNAG_05387T0	chr14	known 5' site	174584	345	
+CNAG_05387T0	chr14	known 5' site	174700	416	
+CNAG_05387T0	chr14	known 3' site	172984	41	
+CNAG_05387T0	chr14	known 3' site	173163	71	
+CNAG_05387T0	chr14	known 3' site	173355	114	
+CNAG_05387T0	chr14	known 3' site	173822	135	
+CNAG_05387T0	chr14	known 3' site	174232	43	
+CNAG_05387T0	chr14	known 3' site	174375	58	
+CNAG_05387T0	chr14	known 3' site	174530	29	
+CNAG_05387T0	chr14	known 3' site	174641	155	
+CNAG_05387T0	chr14	unknown site	172612	34	
+CNAG_05387T0	chr14	unknown site	172704	35	
+CNAG_05387T0	chr14	unknown site	172755	53	
+CNAG_05387T0	chr14	unknown site	172846	44	
+CNAG_05387T0	chr14	unknown site	172863	30	
+CNAG_05387T0	chr14	unknown site	172887	41	
+CNAG_05387T0	chr14	unknown site	172931	79	
+CNAG_05387T0	chr14	unknown site	173109	44	
+CNAG_05387T0	chr14	unknown site	173275	46	
+CNAG_05387T0	chr14	unknown site	173315	27	
+CNAG_05387T0	chr14	unknown site	173468	26	
+CNAG_05387T0	chr14	unknown site	173534	29	
+CNAG_05387T0	chr14	unknown site	173617	45	
+CNAG_05387T0	chr14	unknown site	173713	28	
+CNAG_05387T0	chr14	unknown site	173744	54	
+CNAG_05387T0	chr14	unknown site	173887	41	
+CNAG_05387T0	chr14	unknown site	173893	26	
+CNAG_05387T0	chr14	unknown site	173961	29	
+CNAG_05387T0	chr14	unknown site	174126	70	
+CNAG_05387T0	chr14	unknown site	174195	59	
+CNAG_05387T0	chr14	unknown site	174296	34	
+CNAG_05387T0	chr14	unknown site	174494	35	
+CNAG_05387T0	chr14	unknown site	174596	27	
+CNAG_05387T0	chr14	unknown site	174918	49	
+CNAG_05387T0	chr14	unknown site	174924	56	
+CNAG_06923T0	chr3	known 5' site	1527455	543	
+CNAG_06923T0	chr3	known 5' site	1527867	592	
+CNAG_06923T0	chr3	known 5' site	1528748	401	
+CNAG_06923T0	chr3	known 5' site	1529369	780	
+CNAG_06923T0	chr3	known 3' site	1527506	306	
+CNAG_06923T0	chr3	known 3' site	1527919	134	
+CNAG_06923T0	chr3	known 3' site	1528806	117	
+CNAG_06923T0	chr3	known 3' site	1529424	82	
+CNAG_06923T0	chr3	unknown site	1527351	59	
+CNAG_06923T0	chr3	unknown site	1527535	58	
+CNAG_06923T0	chr3	unknown site	1527557	45	
+CNAG_06923T0	chr3	unknown site	1527581	90	
+CNAG_06923T0	chr3	unknown site	1527634	81	
+CNAG_06923T0	chr3	unknown site	1527695	41	
+CNAG_06923T0	chr3	unknown site	1527804	120	
+CNAG_06923T0	chr3	unknown site	1527961	44	
+CNAG_06923T0	chr3	unknown site	1528008	147	
+CNAG_06923T0	chr3	unknown site	1528043	59	
+CNAG_06923T0	chr3	unknown site	1528078	47	
+CNAG_06923T0	chr3	unknown site	1528160	53	
+CNAG_06923T0	chr3	unknown site	1528458	77	
+CNAG_06923T0	chr3	unknown site	1528561	44	
+CNAG_06923T0	chr3	unknown site	1529066	62	
+CNAG_06923T0	chr3	unknown site	1529072	58	
+CNAG_06923T0	chr3	unknown site	1529092	49	
+CNAG_06923T0	chr3	unknown site	1529256	65	
+CNAG_06075T0	chr12	known 5' site	235668	940	
+CNAG_06075T0	chr12	known 5' site	235878	631	
+CNAG_06075T0	chr12	known 5' site	236026	854	
+CNAG_06075T0	chr12	known 5' site	236139	527	
+CNAG_06075T0	chr12	known 3' site	235609	216	
+CNAG_06075T0	chr12	known 3' site	235778	249	
+CNAG_06075T0	chr12	known 3' site	235944	483	
+CNAG_06075T0	chr12	known 3' site	236072	180	
+CNAG_06075T0	chr12	unknown site	235387	184	
+CNAG_06075T0	chr12	unknown site	235393	89	
+CNAG_06075T0	chr12	unknown site	235497	96	
+CNAG_06075T0	chr12	unknown site	235556	60	
+CNAG_06075T0	chr12	unknown site	235716	137	
+CNAG_06075T0	chr12	unknown site	235741	85	
+CNAG_06075T0	chr12	unknown site	235839	87	
+CNAG_06075T0	chr12	unknown site	235892	55	
+CNAG_06075T0	chr12	unknown site	235995	104	
+CNAG_06075T0	chr12	unknown site	236179	54	
+CNAG_01621T0	chr11	known 5' site	448154	875	
+CNAG_01621T0	chr11	known 5' site	448275	535	
+CNAG_01621T0	chr11	known 5' site	448527	1194	
+CNAG_01621T0	chr11	known 5' site	448687	1189	
+CNAG_01621T0	chr11	known 3' site	448217	96	
+CNAG_01621T0	chr11	known 3' site	448328	146	
+CNAG_01621T0	chr11	known 3' site	448595	159	
+CNAG_01621T0	chr11	known 3' site	448755	271	
+CNAG_01621T0	chr11	unknown site	448128	83	
+CNAG_01621T0	chr11	unknown site	448401	107	
+CNAG_01621T0	chr11	unknown site	448613	183	
+CNAG_01621T0	chr11	unknown site	448781	98	
+CNAG_01621T0	chr11	unknown site	448823	77	
+CNAG_01621T0	chr11	unknown site	448835	219	
+CNAG_01621T0	chr11	unknown site	448861	216	
+CNAG_01621T0	chr11	unknown site	448869	312	
+CNAG_01621T0	chr11	unknown site	448910	187	
+CNAG_01621T0	chr11	unknown site	449033	127	
+CNAG_06666T0	chr7	known 5' site	421072	72	
+CNAG_06666T0	chr7	known 5' site	421740	449	
+CNAG_06666T0	chr7	known 5' site	422029	244	
+CNAG_06666T0	chr7	known 5' site	422134	139	
+CNAG_06666T0	chr7	known 5' site	422207	26	
+CNAG_06666T0	chr7	known 5' site	422470	60	
+CNAG_06666T0	chr7	known 5' site	422661	149	
+CNAG_06666T0	chr7	known 5' site	422999	134	
+CNAG_06666T0	chr7	known 5' site	423112	135	
+CNAG_06666T0	chr7	known 5' site	423235	126	
+CNAG_06666T0	chr7	known 5' site	423650	122	
+CNAG_06666T0	chr7	known 5' site	423740	136	
+CNAG_06666T0	chr7	known 5' site	423830	100	
+CNAG_06666T0	chr7	known 5' site	424028	131	
+CNAG_06666T0	chr7	known 5' site	424332	127	
+CNAG_06666T0	chr7	known 5' site	424476	41	
+CNAG_06666T0	chr7	known 5' site	424915	61	
+CNAG_06666T0	chr7	known 3' site	421596	50	
+CNAG_06666T0	chr7	known 3' site	422084	38	
+CNAG_06666T0	chr7	known 3' site	422186	30	
+CNAG_06666T0	chr7	known 3' site	422779	86	
+CNAG_06666T0	chr7	known 3' site	423295	37	
+CNAG_06666T0	chr7	known 3' site	424166	25	
+CNAG_06666T0	chr7	unknown site	421198	26	
+CNAG_06666T0	chr7	unknown site	421855	32	
+CNAG_06666T0	chr7	unknown site	422412	24	
+CNAG_06666T0	chr7	unknown site	422583	31	
+CNAG_06666T0	chr7	unknown site	422855	34	
+CNAG_06666T0	chr7	unknown site	423958	121	
+CNAG_03143T0	chr8	known 5' site	174334	1069	
+CNAG_03143T0	chr8	known 5' site	174468	1233	
+CNAG_03143T0	chr8	known 3' site	174388	271	
+CNAG_03143T0	chr8	known 3' site	174533	151	
+CNAG_03143T0	chr8	unknown site	174293	161	
+CNAG_03143T0	chr8	unknown site	174602	87	
+CNAG_03143T0	chr8	unknown site	174645	83	
+CNAG_03143T0	chr8	unknown site	174717	76	
+CNAG_06298T0	chr13	known 5' site	124159	1148	
+CNAG_06298T0	chr13	known 5' site	124307	2034	
+CNAG_06298T0	chr13	known 3' site	124216	602	
+CNAG_06298T0	chr13	known 3' site	124371	618	
+CNAG_06298T0	chr13	unknown site	124265	217	
+CNAG_06298T0	chr13	unknown site	124423	142	
+CNAG_06298T0	chr13	unknown site	124486	266	
+CNAG_06298T0	chr13	unknown site	124534	176	
+CNAG_01750T0	chr11	known 5' site	788075	1197	
+CNAG_01750T0	chr11	known 5' site	788401	376	
+CNAG_01750T0	chr11	known 5' site	789252	663	
+CNAG_01750T0	chr11	known 5' site	789721	602	
+CNAG_01750T0	chr11	known 5' site	790030	334	
+CNAG_01750T0	chr11	known 3' site	788013	87	
+CNAG_01750T0	chr11	known 3' site	788342	593	
+CNAG_01750T0	chr11	known 3' site	789198	572	
+CNAG_01750T0	chr11	known 3' site	789664	269	
+CNAG_01750T0	chr11	known 3' site	789975	91	
+CNAG_01750T0	chr11	unknown site	787945	69	
+CNAG_01750T0	chr11	unknown site	787953	62	
+CNAG_01750T0	chr11	unknown site	788134	190	
+CNAG_01750T0	chr11	unknown site	788276	156	
+CNAG_01750T0	chr11	unknown site	788637	179	
+CNAG_01750T0	chr11	unknown site	789013	85	
+CNAG_01750T0	chr11	unknown site	789131	145	
+CNAG_01750T0	chr11	unknown site	789141	61	
+CNAG_01750T0	chr11	unknown site	789330	88	
+CNAG_01750T0	chr11	unknown site	789373	117	
+CNAG_01750T0	chr11	unknown site	789421	74	
+CNAG_01750T0	chr11	unknown site	789447	63	
+CNAG_01750T0	chr11	unknown site	789482	208	
+CNAG_01750T0	chr11	unknown site	789514	69	
+CNAG_01750T0	chr11	unknown site	789558	87	
+CNAG_01750T0	chr11	unknown site	789834	78	
+CNAG_01750T0	chr11	unknown site	789881	79	
+CNAG_07746T0	chr8	unknown site	1221159	1821	
+CNAG_07746T0	chr8	unknown site	1221218	292	
+CNAG_07746T0	chr8	unknown site	1221244	282	
+CNAG_07746T0	chr8	unknown site	1221284	207	
+CNAG_07746T0	chr8	unknown site	1221317	94	
+CNAG_07746T0	chr8	unknown site	1221401	93	
+CNAG_04587T0	chr10	known 5' site	951479	87	
+CNAG_04587T0	chr10	known 5' site	953135	245	
+CNAG_04587T0	chr10	known 5' site	954474	577	
+CNAG_04587T0	chr10	known 3' site	951405	64	
+CNAG_04587T0	chr10	known 3' site	953086	83	
+CNAG_04587T0	chr10	known 3' site	953638	364	
+CNAG_04587T0	chr10	unknown site	952542	31	
+CNAG_04587T0	chr10	unknown site	952885	42	
+CNAG_04587T0	chr10	unknown site	953341	68	
+CNAG_04587T0	chr10	unknown site	953449	33	
+CNAG_04587T0	chr10	unknown site	953529	30	
+CNAG_04587T0	chr10	unknown site	953915	37	
+CNAG_04587T0	chr10	unknown site	953960	43	
+CNAG_04587T0	chr10	unknown site	954092	42	
+CNAG_04587T0	chr10	unknown site	954118	42	
+CNAG_04587T0	chr10	unknown site	954193	39	
+CNAG_04587T0	chr10	unknown site	954205	37	
+CNAG_04587T0	chr10	unknown site	954216	41	
+CNAG_04587T0	chr10	unknown site	954270	69	
+CNAG_04587T0	chr10	unknown site	954287	58	
+CNAG_04587T0	chr10	unknown site	954305	34	
+CNAG_04587T0	chr10	unknown site	954329	60	
+CNAG_04587T0	chr10	unknown site	954522	35	
+CNAG_06150T0	chr12	known 5' site	436095	292	
+CNAG_06150T0	chr12	known 5' site	436858	561	
+CNAG_06150T0	chr12	known 5' site	437192	656	
+CNAG_06150T0	chr12	known 5' site	437463	415	
+CNAG_06150T0	chr12	known 5' site	437769	329	
+CNAG_06150T0	chr12	known 5' site	438177	134	
+CNAG_06150T0	chr12	known 3' site	436029	636	
+CNAG_06150T0	chr12	known 3' site	436795	393	
+CNAG_06150T0	chr12	known 3' site	437132	208	
+CNAG_06150T0	chr12	known 3' site	437404	278	
+CNAG_06150T0	chr12	known 3' site	437702	325	
+CNAG_06150T0	chr12	known 3' site	438125	166	
+CNAG_06150T0	chr12	unknown site	435680	46	
+CNAG_06150T0	chr12	unknown site	435745	58	
+CNAG_06150T0	chr12	unknown site	435820	56	
+CNAG_06150T0	chr12	unknown site	435939	45	
+CNAG_06150T0	chr12	unknown site	436203	37	
+CNAG_06150T0	chr12	unknown site	436369	56	
+CNAG_06150T0	chr12	unknown site	436631	37	
+CNAG_06150T0	chr12	unknown site	436923	136	
+CNAG_06150T0	chr12	unknown site	437004	156	
+CNAG_06150T0	chr12	unknown site	437073	52	
+CNAG_06150T0	chr12	unknown site	437082	46	
+CNAG_06150T0	chr12	unknown site	437364	45	
+CNAG_06150T0	chr12	unknown site	437524	47	
+CNAG_06150T0	chr12	unknown site	437617	109	
+CNAG_06150T0	chr12	unknown site	437629	34	
+CNAG_06150T0	chr12	unknown site	437665	39	
+CNAG_06150T0	chr12	unknown site	437914	63	
+CNAG_06150T0	chr12	unknown site	437953	97	
+CNAG_06150T0	chr12	unknown site	438084	37	
+CNAG_01727T0	chr11	known 5' site	729276	480	
+CNAG_01727T0	chr11	known 5' site	729385	623	
+CNAG_01727T0	chr11	known 5' site	729693	296	
+CNAG_01727T0	chr11	known 5' site	730158	318	
+CNAG_01727T0	chr11	known 5' site	731005	613	
+CNAG_01727T0	chr11	known 5' site	731325	1200	
+CNAG_01727T0	chr11	known 3' site	729330	61	
+CNAG_01727T0	chr11	known 3' site	729439	270	
+CNAG_01727T0	chr11	known 3' site	729746	427	
+CNAG_01727T0	chr11	known 3' site	730208	324	
+CNAG_01727T0	chr11	known 3' site	731058	246	
+CNAG_01727T0	chr11	known 3' site	731380	288	
+CNAG_01727T0	chr11	unknown site	729481	136	
+CNAG_01727T0	chr11	unknown site	729557	61	
+CNAG_01727T0	chr11	unknown site	729567	440	
+CNAG_01727T0	chr11	unknown site	729625	80	
+CNAG_01727T0	chr11	unknown site	729928	83	
+CNAG_01727T0	chr11	unknown site	729989	65	
+CNAG_01727T0	chr11	unknown site	730037	119	
+CNAG_01727T0	chr11	unknown site	730769	70	
+CNAG_01727T0	chr11	unknown site	731140	67	
+CNAG_01727T0	chr11	unknown site	731232	68	
+CNAG_01727T0	chr11	unknown site	731275	92	
+CNAG_01727T0	chr11	unknown site	731483	64	
+CNAG_01464T0	chr11	known 5' site	21433	114	
+CNAG_01464T0	chr11	known 5' site	21911	1335	
+CNAG_01464T0	chr11	known 5' site	22083	945	
+CNAG_01464T0	chr11	known 5' site	22372	519	
+CNAG_01464T0	chr11	known 5' site	22733	684	
+CNAG_01464T0	chr11	known 5' site	22948	703	
+CNAG_01464T0	chr11	known 3' site	21308	880	
+CNAG_01464T0	chr11	known 3' site	21859	431	
+CNAG_01464T0	chr11	known 3' site	22025	173	
+CNAG_01464T0	chr11	known 3' site	22313	355	
+CNAG_01464T0	chr11	known 3' site	22680	287	
+CNAG_01464T0	chr11	known 3' site	22897	146	
+CNAG_01464T0	chr11	unknown site	21003	129	
+CNAG_01464T0	chr11	unknown site	21173	133	
+CNAG_01464T0	chr11	unknown site	21228	122	
+CNAG_01464T0	chr11	unknown site	21558	83	
+CNAG_01464T0	chr11	unknown site	21660	200	
+CNAG_01464T0	chr11	unknown site	21745	138	
+CNAG_01464T0	chr11	unknown site	21785	124	
+CNAG_01464T0	chr11	unknown site	21872	120	
+CNAG_01464T0	chr11	unknown site	21993	284	
+CNAG_01464T0	chr11	unknown site	22132	88	
+CNAG_01464T0	chr11	unknown site	22191	135	
+CNAG_01464T0	chr11	unknown site	22332	79	
+CNAG_01464T0	chr11	unknown site	22429	117	
+CNAG_01464T0	chr11	unknown site	22436	87	
+CNAG_01464T0	chr11	unknown site	22595	109	
+CNAG_01464T0	chr11	unknown site	22635	98	
+CNAG_01464T0	chr11	unknown site	22772	143	
+CNAG_01464T0	chr11	unknown site	22813	206	
+CNAG_01464T0	chr11	unknown site	22850	77	
+CNAG_06297T0	chr13	known 5' site	122814	933	
+CNAG_06297T0	chr13	known 5' site	122967	1332	
+CNAG_06297T0	chr13	known 3' site	122757	641	
+CNAG_06297T0	chr13	known 3' site	122905	488	
+CNAG_06297T0	chr13	unknown site	122652	79	
+CNAG_06297T0	chr13	unknown site	122855	80	
+CNAG_06297T0	chr13	unknown site	123035	67	
+CNAG_07347T0	chr1	known 5' site	761521	760	
+CNAG_07347T0	chr1	known 5' site	762530	836	
+CNAG_07347T0	chr1	known 5' site	763015	481	
+CNAG_07347T0	chr1	known 5' site	763263	463	
+CNAG_07347T0	chr1	known 5' site	763683	402	
+CNAG_07347T0	chr1	known 5' site	764172	286	
+CNAG_07347T0	chr1	known 3' site	761458	427	
+CNAG_07347T0	chr1	known 3' site	762477	318	
+CNAG_07347T0	chr1	known 3' site	762960	190	
+CNAG_07347T0	chr1	known 3' site	763209	271	
+CNAG_07347T0	chr1	known 3' site	763630	160	
+CNAG_07347T0	chr1	known 3' site	764121	492	
+CNAG_07347T0	chr1	unknown site	761217	141	
+CNAG_07347T0	chr1	unknown site	761316	72	
+CNAG_07347T0	chr1	unknown site	761385	111	
+CNAG_07347T0	chr1	unknown site	761904	53	
+CNAG_07347T0	chr1	unknown site	762049	78	
+CNAG_07347T0	chr1	unknown site	762109	57	
+CNAG_07347T0	chr1	unknown site	762264	83	
+CNAG_07347T0	chr1	unknown site	762270	77	
+CNAG_07347T0	chr1	unknown site	762301	104	
+CNAG_07347T0	chr1	unknown site	762419	135	
+CNAG_07347T0	chr1	unknown site	762740	56	
+CNAG_07347T0	chr1	unknown site	762771	54	
+CNAG_07347T0	chr1	unknown site	762873	79	
+CNAG_07347T0	chr1	unknown site	763028	56	
+CNAG_07347T0	chr1	unknown site	763065	59	
+CNAG_07347T0	chr1	unknown site	763311	55	
+CNAG_07347T0	chr1	unknown site	763438	53	
+CNAG_07347T0	chr1	unknown site	763520	63	
+CNAG_07347T0	chr1	unknown site	763563	43	
+CNAG_07347T0	chr1	unknown site	763582	49	
+CNAG_07347T0	chr1	unknown site	763810	76	
+CNAG_07347T0	chr1	unknown site	763904	47	
+CNAG_07347T0	chr1	unknown site	763916	58	
+CNAG_07347T0	chr1	unknown site	763988	68	
+CNAG_07347T0	chr1	unknown site	764003	46	
+CNAG_07347T0	chr1	unknown site	764045	122	
+CNAG_07561T0	chr3	known 5' site	1209067	539	
+CNAG_07561T0	chr3	known 5' site	1209253	406	
+CNAG_07561T0	chr3	known 5' site	1209443	219	
+CNAG_07561T0	chr3	known 5' site	1209539	121	
+CNAG_07561T0	chr3	known 5' site	1209917	339	
+CNAG_07561T0	chr3	known 5' site	1210172	290	
+CNAG_07561T0	chr3	known 5' site	1210515	124	
+CNAG_07561T0	chr3	known 5' site	1210958	166	
+CNAG_07561T0	chr3	known 3' site	1209219	59	
+CNAG_07561T0	chr3	known 3' site	1209384	416	
+CNAG_07561T0	chr3	known 3' site	1209495	145	
+CNAG_07561T0	chr3	known 3' site	1209590	103	
+CNAG_07561T0	chr3	known 3' site	1210219	51	
+CNAG_07561T0	chr3	known 3' site	1210566	82	
+CNAG_07561T0	chr3	known 3' site	1211013	35	
+CNAG_07561T0	chr3	unknown site	1209106	73	
+CNAG_07561T0	chr3	unknown site	1209118	47	
+CNAG_07561T0	chr3	unknown site	1209312	70	
+CNAG_07561T0	chr3	unknown site	1209370	36	
+CNAG_07561T0	chr3	unknown site	1209391	66	
+CNAG_07561T0	chr3	unknown site	1209407	31	
+CNAG_07561T0	chr3	unknown site	1209715	48	
+CNAG_07561T0	chr3	unknown site	1210110	30	
+CNAG_07561T0	chr3	unknown site	1210313	39	
+CNAG_07561T0	chr3	unknown site	1210600	31	
+CNAG_07561T0	chr3	unknown site	1210614	29	
+CNAG_07561T0	chr3	unknown site	1210931	36	
+CNAG_07561T0	chr3	unknown site	1211129	46	
+CNAG_03007T0	chr3	known 5' site	225191	1247	
+CNAG_03007T0	chr3	known 5' site	225341	704	
+CNAG_03007T0	chr3	known 5' site	225496	543	
+CNAG_03007T0	chr3	known 5' site	225616	435	
+CNAG_03007T0	chr3	known 5' site	225720	232	
+CNAG_03007T0	chr3	known 3' site	225261	164	
+CNAG_03007T0	chr3	known 3' site	225411	134	
+CNAG_03007T0	chr3	known 3' site	225553	115	
+CNAG_03007T0	chr3	unknown site	224967	66	
+CNAG_03007T0	chr3	unknown site	225244	98	

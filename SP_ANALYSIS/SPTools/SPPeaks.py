@@ -276,11 +276,11 @@ def complement(seq):
 def reverse_complement(s):
         return complement(s[::-1])
     
-def find_new_peak_sequence(fasta_file, gff3_file, index_file1, indexfile2):
-    with open("{0}_sequences.txt".format(index_file.split(".")[0]), "w") as fout:
+def find_new_peak_sequence(fasta_file, gff3_file, index_file1, index_file2):
+    with open("{0}_sequences.txt".format(index_file1.split(".")[0]), "w") as fout:
         line = "transcript\t chromosome\t peak type\t coordinate\t peak height\t sequence\t Looks like\n"
         fout.write(line)
-    
+
     #Read fasta file for chromosome into list
     fasta_dict = {}    
     with open(fasta_file, "r") as fasta:
@@ -295,80 +295,92 @@ def find_new_peak_sequence(fasta_file, gff3_file, index_file1, indexfile2):
     
     #Find positions of new peaks - first file
     index_dict1 = {}
+    i = 0
     with open(index_file1, "r") as indexes:
         for line in indexes:
-            columns = re.split(r'\t', line)
-            CNAG = columns[0].strip()
-            chromosome = columns[1]
-            position = int(columns[3].strip())
+            if i == 0:
+                i += 1
+            else:
+                columns = re.split(r'\t', line)
+                CNAG = columns[0].strip()
+                chromosome = columns[1]
+                position = int(columns[3].strip())
             
-            #Find sequence surrounding peak
-            if transcript_dict[CNAG][2] == "+":
-                sequence = fasta_dict[chromosome][(position-3):(position+7)]
-            elif transcript_dict[CNAG][2] == "-":
-                sequence = fasta_dict[chromosome][(position-6):(position+4)]
-                sequence = reverse_complement(sequence)
+                #Find sequence surrounding peak
+                if transcript_dict[CNAG][2] == "+":
+                    sequence = fasta_dict[chromosome][(position-3):(position+7)]
+                elif transcript_dict[CNAG][2] == "-":
+                    sequence = fasta_dict[chromosome][(position-6):(position+4)]
+                    sequence = reverse_complement(sequence)
                         
-            #Classify sequences as splice sites
-            if sequence[4:6] == "GT":
-                site_class = "5'"
-            elif sequence[2:4] == "AG":
-                site_class = "3'"
-            else:
-                site_class = "unknown"
+                #Classify sequences as splice sites
+                if sequence[4:6] == "GT":
+                    site_class = "5'"
+                elif sequence[2:4] == "AG":
+                    site_class = "3'"
+                else:
+                    site_class = "unknown"
 
-            #Build index dictionary: [transcript, chromosome, peak position, peak height, sequence (-4 to +4)
-            if CNAG in dict:      
-                index_dict1[CNAG].append([CNAG, chromosome, position, columns[4], sequence, site_class])
-            else:
-                index_dict1[CNAG] = []
-                index_dict1[CNAG].append([CNAG, chromosome, position, columns[4], sequence, site_class])
+                #Build index dictionary: [transcript, chromosome, known site?, peak position, peak height, sequence (-4 to +4), classification
+                if CNAG in index_dict1:      
+                    index_dict1[CNAG].append([CNAG, chromosome, columns[2], position, columns[4], sequence, site_class])
+                else:
+                    index_dict1[CNAG] = []
+                    index_dict1[CNAG].append([CNAG, chromosome, columns[2], position, columns[4], sequence, site_class])
     
     #Find positions of new peaks - second file   
     index_dict2 = {}
+    j = 0
     with open(index_file2, "r") as indexes:
         for line in indexes:
-            columns = re.split(r'\t', line)
-            CNAG = columns[0].strip()
-            chromosome = columns[1]
-            position = int(columns[3].strip())
+            if j == 0:
+                j += 1
+            else:
+                columns = re.split(r'\t', line)
+                CNAG = columns[0].strip()
+                chromosome = columns[1]
+                position = int(columns[3].strip())
             
-            #Find sequence surrounding peak
-            if transcript_dict[CNAG][2] == "+":
-                sequence = fasta_dict[chromosome][(position-3):(position+7)]
-            elif transcript_dict[CNAG][2] == "-":
-                sequence = fasta_dict[chromosome][(position-6):(position+4)]
-                sequence = reverse_complement(sequence)
+                #Find sequence surrounding peak
+                if transcript_dict[CNAG][2] == "+":
+                    sequence = fasta_dict[chromosome][(position-3):(position+7)]
+                elif transcript_dict[CNAG][2] == "-":
+                    sequence = fasta_dict[chromosome][(position-6):(position+4)]
+                    sequence = reverse_complement(sequence)
                         
-            #Classify sequences as splice sites
-            if sequence[4:6] == "GT":
-                site_class = "5'"
-            elif sequence[2:4] == "AG":
-                site_class = "3'"
-            else:
-                site_class = "unknown"
+                #Classify sequences as splice sites
+                if sequence[4:6] == "GT":
+                    site_class = "5'"
+                elif sequence[2:4] == "AG":
+                    site_class = "3'"
+                else:
+                    site_class = "unknown"
 
-            #Build index dictionary: [transcript, chromosome, peak position, peak height, sequence (-4 to +4)
-            if CNAG in dict:      
-                index_dict2[CNAG].append([CNAG, chromosome, position, columns[4], sequence, site_class])
-            else:
-                index_dict2[CNAG] = []
-                index_dict2[CNAG].append([CNAG, chromosome, position, columns[4], sequence, site_class])
+                #Build index dictionary: [transcript, chromosome, known site?, peak position, peak height, sequence (-4 to +4), classification
+                if CNAG in index_dict2:      
+                    index_dict2[CNAG].append([CNAG, chromosome, columns[2], position, columns[4], sequence, site_class])
+                else:
+                    index_dict2[CNAG] = []
+                    index_dict2[CNAG].append([CNAG, chromosome, columns[2], position, columns[4], sequence, site_class])
     
     #Select only peaks in both replicates
     merged_dict = {}
     for CNAG, peaks in index_dict1.iteritems():
-        merged_dict[CNAG] = []
-        for peak in peaks:
-            if peak in index_dict2[CNAG]:
-                merged_dict[CNAG].append(peak)
+        if CNAG in index_dict2:
+            merged_dict[CNAG] = []
+            for peak in peaks:
+                for peak2 in index_dict2[CNAG]:
+                    if peak[:3] == peak2[:3]:
+                        merged_dict[CNAG].append(peak)
     
     #Make output file
+    print "Output location: {0}_sequences.txt".format(index_file1.split(".")[0])
     for CNAG, peaks in merged_dict.iteritems():
         with open("{0}_sequences.txt".format(index_file1.split(".")[0]), "a") as fout:
             for peak in peaks:
+                peak = map(str, peak)
                 line = "\t".join(peak)
-                fout.write(line)
+                fout.write(line+"\n")
                 
 ###########################################################################################
 ## Peak picking option #2 - remove known peaks, fit remaining to Poisson distribution    ##
