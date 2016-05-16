@@ -11,6 +11,7 @@ from peakutils.plot import plot as pplot
 from matplotlib import pyplot
 from scipy.optimize import curve_fit
 from scipy.misc import factorial
+from datetime import datetime
 
 ##################################################################################
 ## Determines splice site locations from gff3 file. Needs to have "chr" format  ##
@@ -82,19 +83,34 @@ def build_transcript_dict(gff3_file):
 ############################################################
 
 def build_bedgraph_dict(transcript_dict, bedgraph_file):
+    print datetime.now()
     bedgraph_dict = {}
+    transcript_by_chr = {}
     for CNAG, coords in transcript_dict.iteritems():
+        chromosome = coords[3]
         bedgraph_dict[CNAG] = [[],[]]
+        if chromosome in transcript_by_chr:
+            transcript_by_chr[chromosome].append(CNAG)
+        else:
+            transcript_by_chr[chromosome] = []
+            transcript_by_chr[chromosome].append(CNAG)
     
-        with open(bedgraph_file, "r") as bedgraph:
-            for line in bedgraph:
-                columns = re.split(r'\t', line)
+    with open(bedgraph_file, "r") as bedgraph:
+        for line in bedgraph:
+            columns = re.split(r'\t', line)
+            bed_chr = columns[0].strip()
+            bed_position = int(columns[1])
+            bed_peak = int(columns[3])
+            
+            CNAG_list = transcript_by_chr[bed_chr]
+            for CNAG in CNAG_list:  
                 #Dictionary for bedgraph. Values will be [list of genomic positions][reads starting at that position]
-                if columns[0].strip() == transcript_dict[CNAG][3].strip() and int(columns[1]) > coords[0] and int(columns[1]) < coords[1]:
-                    bedgraph_dict[CNAG][0].append(int(columns[1]))
-                    bedgraph_dict[CNAG][1].append(int(columns[3]))
+                if bed_chr == transcript_dict[CNAG][3].strip() and bed_position > transcript_dict[CNAG][0] and bed_position < transcript_dict[CNAG][1]:
+                    bedgraph_dict[CNAG][0].append(bed_position)
+                    bedgraph_dict[CNAG][1].append(bed_peak)
    
-        with open("{0}_CNAGsort.bedgraph".format(bedgraph_file.split(".")[0]), "a") as fout:
+    with open("{0}_CNAGsort.bedgraph".format(bedgraph_file.split(".")[0]), "a") as fout:
+        for CNAG, values in bedgraph_dict.iteritems():
             fout.write(CNAG+"\n")
             coord_list = map(str, bedgraph_dict[CNAG][0])
             coord_line = "\t".join(coord_list)
@@ -106,6 +122,7 @@ def build_bedgraph_dict(transcript_dict, bedgraph_file):
                     
     bedgraph_dict = collections.OrderedDict(sorted(bedgraph_dict.items()))
 
+    print datetime.now()
     return bedgraph_dict
 
 
