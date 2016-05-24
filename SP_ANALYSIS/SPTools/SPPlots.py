@@ -119,7 +119,7 @@ def scatter_plot(xvalues1, yvalues1, xvalues2, yvalues2, plot_title='3p ends/Tot
 
 def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title='3p ends/Total SP', legend1='All', legend2='Filtered', xlabel='Replicate 1 (log10)', ylabel='Replicate 2 (log10)', base=10, plot_both=True, log_both=True, scaling="auto"):
     print DataFrame1.columns.lexsort_depth
-    print DataFrame1.index.lexsort_depth
+    #print DataFrame1.index.lexsort_depth
     fig1 = plt.figure()
     ax1 = fig1.add_subplot(111)
     if plot_both==True and log_both==True:

@@ -241,7 +241,7 @@ def normalize_JunctiontoTotal(feature_counts, total_counts, lengths, config, cut
 ## internal control RNA. Arguments are output from build_tables##
 #################################################################
 
-def normalize_B_to_mature(total_counts, lengths, config, cutoff=0, untagged=None):
+def normalize_B_to_mature(total_counts, lengths, config, cutoff=0, cutoff_sample=None, untagged=None):
     df1 = total_counts
     df2 = lengths
     df3 = config
@@ -283,7 +283,7 @@ def normalize_B_to_mature(total_counts, lengths, config, cutoff=0, untagged=None
             n += 1
     #Implement cutoff if indicated
     if cutoff > 0:
-        merged = merged[merged[(merged.columns[1][0].split("-")[0]+"-B","Total")] > cutoff]
+        merged = merged[merged[(cutoff_sample+"-B","Total")] > cutoff]
     
     merged = merged.fillna(0)
     print "New column name: Normalized to mature"
