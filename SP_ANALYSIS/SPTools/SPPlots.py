@@ -85,7 +85,71 @@ def count_above_cutoff(dataframe, sample_tuple, cutoff=5):
         print "Number of transcripts with at least "+str(cutoff)+" reads: "+str(counter1)
         print "Number of "+sample_tuple[1]+" transcripts: "+str(counter2)
         print str(float(counter1)/float(counter2)*100.)+"% of transcripts"
-                    
+
+#################################################################################                    
+## Function that determines if values in the 1st sample are higher or lower    ##
+##than values in the 2nd sample (2 fold)                                       ##
+#################################################################################
+
+def compare_samples(df, SampleTuple1, SampleTuple2, fold_change=10):
+    count_type1 = SampleTuple1[1]
+    count_type2 = SampleTuple2[1]
+    samplename1 = SampleTuple1[0]
+    samplename2 = SampleTuple2[0]
+    
+    for name1, name2 in df.columns:
+        if name2 == count_type1 and name1 == samplename1:
+            s = pandas.Series(df[(name1,name2)])
+            dict1 =  s.to_dict()
+        elif name2 == count_type2 and name1 == samplename2:
+            s = pandas.Series(df[(name1,name2)])
+            dict2 = s.to_dict()
+            
+    low_dict = {}
+    low_counter = 0
+    high_dict = {}
+    high_counter = 0
+    for name, value in dict1.iteritems():
+        cutoff_high = float(dict2[name])*fold_change
+        cutoff_low = float(dict2[name])/fold_change
+        if name in dict2:
+            if float(dict1[name]) > cutoff_high and dict2[name]!=0 and dict1[name]!=0:
+                high_dict[name] = []
+                high_dict[name].append(dict1[name])
+                high_dict[name].append(dict2[name])
+                high_dict[name].append(dict1[name]/dict2[name])
+                high_counter += 1
+            elif float(dict1[name]) < cutoff_low and dict2[name]!=0 and dict1[name]!=0:
+                low_dict[name] = []
+                low_dict[name].append(dict1[name])
+                low_dict[name].append(dict2[name])
+                low_dict[name].append(dict1[name]/dict2[name])
+                low_counter += 1
+    
+    with open("{0}_{1}_comparison.tsv".format(SampleTuple1[0],SampleTuple2[0]), "w") as fout:
+        fout.write("Transcript\t Intron\t Reads in "+SampleTuple1[0]+"\t Reads in "+SampleTuple2[0]+"\t Ratio\n")
+        fout.write("Higher in "+SampleTuple1[0]+" than "+SampleTuple2[0]+"\n")
+        for name, value in high_dict.iteritems():
+            line_list = [name[0], str(name[1]), str(value[0]), str(value[1]), str(value[2]), "\n"]
+            line = "\t".join(line_list)
+            fout.write(line)
+        fout.write("Lower in "+SampleTuple1[0]+" than "+SampleTuple2[0]+"\n")
+        for name, value in low_dict.iteritems():
+            line_list = [name[0], str(name[1]), str(value[0]), str(value[1]), str(value[2]), "\n"]
+            line = "\t".join(line_list)
+            fout.write(line)
+    print str(high_counter)+" introns higher in "+SampleTuple1[0]+" than "+SampleTuple2[0]
+    print str(low_counter)+" introns lower in "+SampleTuple1[0]+" than "+SampleTuple2[0]
+    return (high_dict, low_dict)
+
+def compare_dicts(dict1, dict2):
+    both_dict = {}
+    for name, values in dict1.iteritems():
+        if name in dict2:
+            both_dict[name] = values
+    print len(both_dict)
+    return both_dict
+            
 ###################################################################
 ## Plot ratios (usually log) of replicates for normalized counts ##
 ###################################################################
@@ -131,7 +195,8 @@ def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title
         ax1.scatter(xvalues2, yvalues2, c='coral', alpha=0.5, label=legend2, edgecolor='coral')
         ax1.legend(loc=4)
     elif plot_both==1 and log_both==True:
-        ax1.scatter(xvalues1, yvalues1, c='0.3', label=legend1, alpha = 1, edgecolor='0.2')
+        xvalues1 = get_ratios(DataFrame1, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
+        yvalues1 = get_ratios(DataFrame1, SampleTuple2[0], SampleTuple2[1], log=True, base=base)
         ax1.legend(loc=4)
     elif plot_both==2 and log_both==True:
         xvalues2 = get_ratios(DataFrame2, SampleTuple1[0], SampleTuple1[1], log=True, base=base)

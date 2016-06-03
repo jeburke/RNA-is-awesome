@@ -64,7 +64,7 @@ def get_transcript_lengths(isoform_di, prefix):
     with open("{0}_transcript_lengths.txt".format(prefix), "w") as fout:
         fout.write("Transcript\t Length\n")
         for gene_ID, length in length_dict.iteritems():
-            fout.write(gene_ID+"\t"+length+"\n")
+            fout.write(gene_ID+"T0\t"+length+"\n")
             
 def get_intron_lengths(isoform_di, prefix):
     length_dict = {}
@@ -97,7 +97,7 @@ def get_intron_lengths(isoform_di, prefix):
         for gene_ID, lengths in length_dict.iteritems():
             n = 0
             while n < len(lengths):
-                line_list = [gene_ID, str(n+1), str(lengths[n]),"\n"]
+                line_list = [gene_ID+"T0", str(n+1), str(lengths[n]),"\n"]
                 fout.write("\t".join(line_list))
                 n += 1
             

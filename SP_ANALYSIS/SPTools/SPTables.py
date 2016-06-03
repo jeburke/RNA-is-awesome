@@ -249,27 +249,26 @@ def normalize_B_to_mature(total_counts, lengths, config, cutoff=0, cutoff_sample
     df2_indexed = df2.set_index(df2[("Transcript0","Transcript0")])
     df3 = df3.reset_index()
     merged = pandas.merge(df1_indexed,df2_indexed, left_index=True, right_index=True, how = 'left')
-    configNames = []
-    controlValues = []
+    #configNames = []
+    configValues = {}
     for name in df3.columns:
-        configNames.append(name)
+        #configNames.append(name)
         s = pandas.Series(df3[name])
         l = s.tolist()
-        controlValues.append(l)
-  
+        #controlValues.append(l)
+        configValues[name[0]] = l 
     names = []
-    n = 1
     for name, read_type in merged.columns:
         names.append(name)
         if name.startswith("Transcript"):
             print "Reading table"
-        elif n <= len(configNames)+2 and name == configNames[n][0]+"-B":
+        elif name.endswith("B") and name.split("-")[0] in configValues:
             print "Reading sample " +name
-            c1 = controlValues[n][0]
+            c1 = configValues[name.split("-")[0]][0]
             print "Control value 1 = " +str(c1)
-            c2 = controlValues[n][1]
+            c2 = configValues[name.split("-")[0]][1]
             print "Control value 2 = " +str(c2)
-            c3 = controlValues[n][2]
+            c3 = configValues[name.split("-")[0]][2]
             print "Control value 3 = " +str(c3)
             
             #For no untagged sample: (B totals/control reads)/(W totals/control reads)
@@ -278,9 +277,8 @@ def normalize_B_to_mature(total_counts, lengths, config, cutoff=0, cutoff_sample
             
             #For including untagged sample: ((B totals/control reads)/(W totals/control reads))/(B totals untagged/W totals untagged)
             elif untagged != None:
-                merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3))/(merged[(untagged+"-B","Total")]/df3.at[2, untagged]), index = merged.index)
+                merged[(name.split("-")[0],"Normalized to mature")] = pandas.Series(((merged[(name,"Total")]/c2)/(merged[(name.split("-")[0]+"-W","Total")]/c3))/(merged[(untagged+"-B","Total")]/merged[(untagged+"-W","Total")]/configValues[untagged][2]), index = merged.index)
                
-            n += 1
     #Implement cutoff if indicated
     if cutoff > 0:
         merged = merged[merged[(cutoff_sample+"-B","Total")] > cutoff]
@@ -326,6 +324,31 @@ def filter_transcripts_by_cnag(mergedtable, list_file):
                 RNAi_df.index = pandas.MultiIndex.from_tuples(index_list)
     print len(RNAi_df)
     return RNAi_df
+
+def filter_transcripts_by_name(mergedtable, list_file):
+    geneID = []
+    with open(list_file, "r") as fin:
+        for line in fin:
+            gene = line.strip()
+            if len(gene) > 0 and gene[-2] != "T":
+                n = 0
+                while n < 6:
+                    geneID.append(gene+"T"+str(n))
+                    n += 1
+    filtered_df = pandas.DataFrame(columns=mergedtable.columns)
+    print len(mergedtable.index)
+    if type(mergedtable.index[0]) == str:
+        filtered_df = mergedtable[(mergedtable.index.isin(geneID))]
+    else:
+        index_list = []
+        for transcript in mergedtable.iterrows():
+            if transcript[0][0] in geneID:
+                filtered_df = filtered_df.append(df.loc[transcript[0]])
+                index_list.append(transcript[0])
+                filtered_df.index = pandas.MultiIndex.from_tubples(index_list)
+    print len(filtered_df)
+    return filtered_df
+            
 
 def merge_tables(dflow, dfhigh, index_list_low=None, index_list_high=None):
     if index_list_low != None:
