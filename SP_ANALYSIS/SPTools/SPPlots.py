@@ -217,8 +217,12 @@ def scatter_plot2(SampleTuple1, SampleTuple2, DataFrame1, DataFrame2, plot_title
     
     ax1.set_title(plot_title)
     if scaling == "auto":
-        xmax = np.nanmax(xvalues1)+0.5
-        xmin = np.nanmin(xvalues1)-0.5
+        if plot_both == True or plot_both == 1:
+            xmax = np.nanmax(xvalues1)+0.5
+            xmin = np.nanmin(xvalues1)-0.5
+        elif plot_both == 2:
+            xmax = np.nanmax(xvalues2)+0.5
+            xmin = np.nanmin(xvalues2)-0.5
         ax1.set_ylim([xmin,xmax])
         ax1.set_xlim([xmin,xmax])
         ymax = ax1.get_ylim()
@@ -372,3 +376,50 @@ def beeswarm_plot(DataFrame_list, SampleTuple_list, DataFrame2=None, base=10, co
         a += 1
     print median_list
     bs, ax = beeswarm(values_list, method="swarm", labels=name_list, col=color_list)
+    
+def histogram(df1, df2, SampleTuple1, SampleTuple2):
+    xvalues1 = get_ratios(DataFrame1, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
+    
+def cumulative_function(bins, df, SampleTuple1, SampleTuple2=None):
+    transcript_list_1 = bins[0]
+    transcript_list_2 = bins[1]
+    new_df1 = pandas.DataFrame(columns=df.columns)
+    new_df2 = pandas.DataFrame(columns=df.columns)
+    for transcript in transcript_list_1:
+        if transcript not in df.index:
+            print transcript
+    for transcript in transcript_list_2:
+        if transcript not in df.index:
+            print transcript
+    for transcript in df.iterrows():
+        if transcript[0] in transcript_list_1:
+            new_df1 = new_df1.append(df.loc[transcript[0]])
+        elif transcript[0] in transcript_list_2:
+            new_df2 = new_df2.append(df.loc[transcript[0]])
+    
+    x1 = get_ratios(new_df1, SampleTuple1[0], SampleTuple1[1], log=False)
+    x2 = get_ratios(new_df2, SampleTuple1[0], SampleTuple1[1], log=False)
+    
+
+    values1, base1 = np.histogram(x1, bins=100)
+    cumulative1 = np.cumsum(values1)
+    plt.plot(base1[:-1], cumulative1, c='blue', linewidth=2.0)
+    values2, base2 = np.histogram(x2, bins=100)
+    cumulative2 = np.cumsum(values2)
+    plt.plot(base2[:-1], cumulative2, c='green', linewidth=2.0)       
+    
+    if SampleTuple2 is not None:
+        y1 = get_ratios(new_df1, SampleTuple2[0], SampleTuple2[1], log=False)
+        values3, base3 = np.histogram(y1, bins=100)
+        cumulative3 = np.cumsum(values3)
+        plt.plot(base3[:-1], cumulative3, c='lightblue', linewidth=2.0)
+        y2 = get_ratios(new_df2, SampleTuple2[0], SampleTuple2[1], log=False)
+        values4, base4 = np.histogram(y2, bins=100)
+        cumulative4 = np.cumsum(values4)
+        plt.plot(base4[:-1], cumulative4, c='lightgreen', linewidth=2.0)
+    
+    #n, bins, patches = plt.hist(x1, 100, facecolor='green', alpha=0.75)
+    #plt.hist(x2, 100, facecolor='blue', alpha=0.75)
+
+    plt.show()
+    

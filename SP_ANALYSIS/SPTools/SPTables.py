@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 from beeswarm import *
+import operator
+import re
 
 #################################################################
 ## Build dataframes from tables written by crunchBAM           ##
@@ -165,7 +167,15 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
             n+=1
     #Implement cutoff if indicated
     if cutoff > 0:
-        merged = merged[merged[(merged.columns[2][0].split("-")[0]+"-B","Total")] > cutoff]
+        merged = merged[merged[(merged.columns[2][0].split("-")[0]+"-A","Total")] > cutoff]
+        filtered_transcripts = merged.index.tolist()
+        filtered_transcripts = list(set(filtered_transcripts))
+        filtered_transcripts = sorted(filtered_transcripts)
+        with open("top_transcripts.txt", "w") as fout:
+            for transcript in filtered_transcripts:
+                fout.write(transcript+"\n")
+        print "Output top transcript list in top_transcripts.txt"
+                
     
     merged = merged.fillna(0)
     print "New column names: 5prime Normalized, 3prime Normalized"
@@ -297,6 +307,16 @@ def normalize_B_to_mature(total_counts, lengths, config, cutoff=0, cutoff_sample
 ## of CNAGs you want to filter by.                                ##
 ####################################################################
 
+def read_list(list_file, no_T0=False):
+    transcript_list = []
+    with open(list_file, "r") as fin:
+        for line in fin:
+            if no_T0 is True:
+                transcript_list.append(line.split("T0")[0])
+            else: transcript_list.append(line.strip())
+            
+    return transcript_list
+
 def filter_transcripts_by_cnag(mergedtable, list_file):
     geneID = []
     fin = open(list_file, "r")
@@ -311,6 +331,7 @@ def filter_transcripts_by_cnag(mergedtable, list_file):
             geneID.append(gene+"T3")
             geneID.append(gene+"T4")
             geneID.append(gene+"T5")
+    fin.close()
     RNAi_df = pandas.DataFrame(columns=df.columns)
     print len(df.index)
     if type(df.index[0]) == str:
@@ -319,7 +340,7 @@ def filter_transcripts_by_cnag(mergedtable, list_file):
         index_list = []
         for transcript in df.iterrows():
             if transcript[0][0] in geneID:
-                RNAi_df = RNAi_df.append(df.loc[transcript[0]])
+                RNAi_df = RNAi_df.append(RNAi_df.loc[transcript[0]])
                 index_list.append(transcript[0])
                 RNAi_df.index = pandas.MultiIndex.from_tuples(index_list)
     print len(RNAi_df)
@@ -343,9 +364,9 @@ def filter_transcripts_by_name(mergedtable, list_file):
         index_list = []
         for transcript in mergedtable.iterrows():
             if transcript[0][0] in geneID:
-                filtered_df = filtered_df.append(df.loc[transcript[0]])
+                filtered_df = filtered_df.append(mergedtable.loc[transcript[0]])
                 index_list.append(transcript[0])
-                filtered_df.index = pandas.MultiIndex.from_tubples(index_list)
+                filtered_df.index = pandas.MultiIndex.from_tuples(index_list)
     print len(filtered_df)
     return filtered_df
             
@@ -409,3 +430,45 @@ def analyze_transcript_position(feature_counts, feature_type, cutoff=0):
     
     #Do I need to normalize to total RNA?
 
+    
+##Input is the outuput from the Score_splice_sites.py script (Splice_site_strengths.tsv)
+def bin_transcripts(input_file, bin_size, bin_by="length"):
+    score_dict = {}
+    with open(input_file, "r") as fin:
+        for line in fin:
+            if line.startswith("Transcript"): 
+                continue
+            else:
+                columns = re.split(r'\t', line)
+                transcript = columns[0]
+                intron = columns[1]
+                five_p_score = float(columns[2])
+                three_p_score = float(columns[3])
+                length = int(columns[4])
+                key = (transcript, int(intron)+1)
+                if bin_by == "length":
+                    score_dict[key] = length
+                elif bin_by == "five_p_score":
+                    score_dict[key] = five_p_score
+                elif bin_by == "three_p_score":
+                    score_dict[key] = three_p_score
+                else: print "I don't recognize the bin_by value"
+    sorted_dict = sorted(score_dict.items(), key=operator.itemgetter(1))
+    n = 0
+    bin1 = []
+    bin2 = []
+    for transcript, score in sorted_dict:
+        if n < bin_size:
+            bin1.append(transcript)
+            n += 1
+        elif n >= bin_size and n < len(sorted_dict)-bin_size:
+            n += 1
+        else:
+            bin2.append(transcript)
+            n += 1
+    print len(bin1)
+    print len(bin2)
+    return (bin1, bin2)
+        
+     
+                

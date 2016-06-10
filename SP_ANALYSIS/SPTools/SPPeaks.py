@@ -27,9 +27,15 @@ def list_splice_sites(gff3_file, chromosome="All", gene_list=None):
         if len(columns) > 1:
             if columns[2] == "mRNA":
                 CNAG = columns[8].strip()
-                CNAG = CNAG[3:15]
-                splice_site_dict[CNAG] = [[],[],columns[1]]
+                CNAG = CNAG.split("=")[1]
+                CNAG = CNAG.split(";")[0]
+                if CNAG.endswith("mRNA"):
+                    CNAG = CNAG.split("_")[0]
+                if CNAG not in splice_site_dict:
+                    splice_site_dict[CNAG] = [[],[],columns[1]]
+            
             elif columns[2] == "exon":
+                intron_flag=False
                 CNAG = columns[8].strip()
                 CNAG = CNAG[-12:]
                 if gene_list is None:
@@ -47,17 +53,48 @@ def list_splice_sites(gff3_file, chromosome="All", gene_list=None):
                         if columns[6] == "-":
                             splice_site_dict[CNAG][0].append(int(columns[3])-1)
                             splice_site_dict[CNAG][1].append(int(columns[4]))
+            
+            elif columns[2] == "intron":
+                intron_flag=True
+                CNAG = columns[8].strip()
+                CNAG = CNAG.split("=")[1]
+                CNAG = CNAG.split(";")[0]
+                if CNAG.endswith("mRNA"):
+                    CNAG = CNAG.split("_")[0]
+                if CNAG not in splice_site_dict:
+                    splice_site_dict[CNAG] = [[],[],columns[1]]
+                if gene_list is None:
+                    if columns[6] == "+":
+                        splice_site_dict[CNAG][0].append(int(columns[3]))
+                        splice_site_dict[CNAG][1].append(int(columns[4]))
+                    elif columns[6] == "-":
+                        splice_site_dict[CNAG][0].append(int(columns[4]))
+                        splice_site_dict[CNAG][1].append(int(columns[3]))
+                else:
+                    if CNAG in gene_list:
+                        if columns[6] == "+":
+                            splice_site_dict[CNAG][0].append(int(columns[3]))
+                            splice_site_dict[CNAG][1].append(int(columns[4]))
+                        elif columns[6] == "-":
+                            splice_site_dict[CNAG][0].append(int(columns[4]))
+                            splice_site_dict[CNAG][1].append(int(columns[3]))
     
     #Trim to entries in gene list
     if gene_list is not None:
-        splice_site_dict = dict([(CNAG, splice_site_dict[CNAG]) for CNAG in gene_list])
+        splice_site_dict = dict([(CNAG, splice_site_dict[CNAG]) for CNAG in gene_list if CNAG in splice_site_dict])
     
     #Trim to just one chromosome
     if chromosome != "All":
         splice_site_dict = dict([(CNAG, coords) for CNAG, coords in splice_site_dict.iteritems() if coords[2] == chromosome])
     
     print len(splice_site_dict)
-    return splice_site_dict
+    
+    if intron_flag is True: 
+    #    splice_site_dict = {k: v for k, v in splice_site_dict.items() if len(v[0])>0}
+    #    print splice_site_dict
+        splice_site_dict = {k: v for k, v in splice_site_dict.items() if k.startswith("Y")}
+        
+    return (splice_site_dict, intron_flag)
     
 ######################################################################################################
 ## Build a transcript dictionary with all information from a gff3 file                              ##
@@ -71,7 +108,9 @@ def build_transcript_dict(gff3_file):
             if len(columns) > 1:
                 if columns[2] == "mRNA":
                     CNAG = columns[8]
-                    CNAG = CNAG[3:15]
+                    CNAG = CNAG.split("=")[1]
+                    CNAG = CNAG.split(";")[0]
+                    if CNAG.endswith("mRNA"): CNAG = CNAG.split("_")[0]
                     #Transcript dictionary: keys are CNAG, values are [start, end, strand, chromosome]
                     transcript_dict[CNAG] = [int(columns[3]), int(columns[4]), columns[6], columns[0]]
                
@@ -118,21 +157,162 @@ def build_bedgraph_dict(transcript_dict, bedgraph_file):
             count_list = map(str, bedgraph_dict[CNAG][1])
             count_line = "\t".join(count_list)
             fout.write(count_line+"\n")
-            
-                    
+                                
     bedgraph_dict = collections.OrderedDict(sorted(bedgraph_dict.items()))
 
     print datetime.now()
     return bedgraph_dict
 
 
+def build_piranha_dict(transcript_dict, piranha_output, max_p_value=1.0e-04):
+    piranha_dict = {}
+    transcipt_by_chr = {}
+    transcript_by_chr = {}
+    transcript_count = 0
+    for CNAG, coords in transcript_dict.iteritems():
+        if CNAG.endswith("T0"): transcript_count += 1
+        elif CNAG.endswith("mRNA"): CNAG = CNAG.split("_")[0]
+        chromosome = coords[3]
+        piranha_dict[CNAG] = [[],[],[]]
+        if chromosome in transcript_by_chr:
+            transcript_by_chr[chromosome].append(CNAG)
+        else:
+            transcript_by_chr[chromosome] = []
+            transcript_by_chr[chromosome].append(CNAG)
+    
+    with open(piranha_output, "r") as fin:
+        for line in fin:
+            columns = re.split(r'\t', line)
+            bed_chr = columns[0].strip()
+            if columns[5] == "+":
+                bed_position = int(columns[1])
+            elif columns[5] == "-":
+                bed_position = int(columns[2])
+            bed_peak = float(columns[4])
+            p_value = float(columns[6])
+            
+            if bed_chr in transcript_by_chr:
+                CNAG_list = transcript_by_chr[bed_chr]
+            for CNAG in CNAG_list:
+                #Dictionary for bedgraph. Values will be [list of genomic positions][reads starting at that position]
+                if bed_chr == transcript_dict[CNAG][3].strip() and bed_position > transcript_dict[CNAG][0] and bed_position < transcript_dict[CNAG][1] and p_value <= max_p_value:
+                    piranha_dict[CNAG][0].append(bed_position)
+                    piranha_dict[CNAG][1].append(bed_peak)
+                    piranha_dict[CNAG][2].append(p_value)
+
+    piranha_dict = {k: v for k, v in piranha_dict.items() if len(v[0])>0}
+    counter = 0
+    for k, v in piranha_dict.iteritems():
+        for value in v[0]:
+            counter += 1
+    print str(counter)+" peaks"
+    
+    with open("{0}_byCNAG.out".format(piranha_output.split(".")[0].split("/")[-1]), "a") as fout:
+        fout.write("CNAG\n Position\n Peak height\n P-value\n")
+        for CNAG, values in piranha_dict.iteritems():
+            fout.write(CNAG+"\n")
+            coord_list = map(str, piranha_dict[CNAG][0])
+            coord_line = "\t".join(coord_list)
+            fout.write(coord_line+"\n")
+            count_list = map(str, piranha_dict[CNAG][1])
+            count_line = "\t".join(count_list)
+            fout.write(count_line+"\n")
+            p_list = map(str, piranha_dict[CNAG][2])
+            p_line = "\t".join(p_list)
+            fout.write(p_line+"\n")
+    
+    print transcript_count
+    return piranha_dict
+
+def check_splice_sites(peak_dict, gff3_file, chromosome="All", gene_list=None, prefix="New"):
+    #Create dictionary of known splice sites by transcript
+    splice_site_dict, intron_flag = list_splice_sites(gff3_file, chromosome, gene_list=gene_list)
+    five_counter = 0
+    five_found_counter = 0
+    three_counter = 0
+    three_found_counter = 0
+    new_dict = {}
+    new_counter = 0
+    counter = 0
+    
+    for CNAG, splice_sites in splice_site_dict.iteritems():
+        if CNAG in peak_dict and (CNAG[-2] != "T" or CNAG.endswith("T0")):
+            if CNAG not in new_dict:
+                #peak position, peak height, p_value, classification
+                new_dict[CNAG]=[[],[],[],[]]
+                n = 0
+            while n < len(peak_dict[CNAG][0]):
+                new_dict[CNAG][0].append(peak_dict[CNAG][0][n])
+                new_dict[CNAG][1].append(peak_dict[CNAG][1][n])
+                new_dict[CNAG][2].append(peak_dict[CNAG][2][n])
+                peak_range = range(peak_dict[CNAG][0][n]-3, peak_dict[CNAG][0][n]+4)
+                five_prime = set(splice_sites[0]).intersection(peak_range)
+                three_prime = set(splice_sites[1]).intersection(peak_range)
+                if len(five_prime) > 0:
+                    five_found_counter += 1
+                    new_dict[CNAG][3].append("5' splice site")
+                elif len(three_prime) > 0:
+                    three_found_counter += 1
+                    new_dict[CNAG][3].append("3' splice site")
+                elif len(five_prime) == 0 and len(three_prime) == 0:
+                    new_counter += 1
+                    new_dict[CNAG][3].append("Unknown")
+                n+=1
+                
+
+            for five_site in splice_sites[0]:
+                site_range = range(five_site-3, five_site+4)
+                match = set(site_range).intersection(peak_dict[CNAG][0])
+                if len(match) == 0:
+                    new_dict[CNAG][0].append(five_site)
+                    new_dict[CNAG][1].append(0)
+                    new_dict[CNAG][2].append("Not found")
+                    new_dict[CNAG][3].append("5' splice site")
+                    counter += 1
+            for three_site in splice_sites[1]:
+                site_range = range(three_site-3, three_site+4)
+                match = set(site_range).intersection(peak_dict[CNAG][0])
+                if len(match) == 0:
+                    new_dict[CNAG][0].append(three_site)
+                    new_dict[CNAG][1].append(0)
+                    new_dict[CNAG][2].append("Not found")
+                    new_dict[CNAG][3].append("3' splice site")
+                    counter += 1
+
+            for five_prime in splice_sites[0]:
+                five_counter += 1           
+            for three_prime in splice_sites[1]:
+                three_counter += 1
+            
+            if intron_flag is False:
+                five_counter += -1
+                three_counter += -1
+            
+            
+    with open("{}_peak_picking.txt".format(prefix), "w") as fout:
+        fout.write("Transcript\t Location\t Peak height\t P-value\t Classification\n")
+        for CNAG, values in new_dict.iteritems():
+            n = 0
+            while n < len(values[0]):
+                line_list = [CNAG, values[0][n], values[1][n], values[2][n], values[3][n], "\n"]
+                line_list = map(str, line_list)
+                line = "\t".join(line_list)
+                fout.write(line)
+                n+=1
+                            
+    print str(five_found_counter)+" out of "+str(five_counter)+" 5' splice sites found\n"
+    print str(three_found_counter)+" out of "+str(three_counter)+" 3' splice sites found\n"
+    print str(new_counter)+" new peaks found"
+    print counter
+    return new_dict
+      
 ######################################################################################################
 ## Pick peaks using PeakUtils package. Can be further refined or substituted with another package   ##
 ######################################################################################################
 
 def peaks_by_gene(gff3_file, bedgraph_file, chromosome="All", gene_list=None, sort_bedgraph=False, cutoff=1000):
     #Create dictionary of known splice sites by transcript
-    splice_site_dict = list_splice_sites(gff3_file, chromosome, gene_list=gene_list)
+    splice_site_dict, intron_flag = list_splice_sites(gff3_file, chromosome, gene_list=gene_list)
     
     #Build transcript dictionary
     transcript_dict = build_transcript_dict(gff3_file)
@@ -406,7 +586,7 @@ def find_new_peak_sequence(fasta_file, gff3_file, index_file1, index_file2):
 
 def poisson_peaks(gff3_file, bedgraph_file, chromosome="All", gene_list=None):
     #Create dictionary of known splice sites by transcript
-    splice_site_dict = list_splice_sites(gff3_file, chromosome, gene_list=gene_list)
+    splice_site_dict, intron_flag = list_splice_sites(gff3_file, chromosome, gene_list=gene_list)
 
     #Build transcript dictionary
     transcript_dict = build_transcript_dict(gff3_file)
@@ -492,7 +672,30 @@ def poisson_peaks(gff3_file, bedgraph_file, chromosome="All", gene_list=None):
                 outlier_list.append(x)
     print outlier_list
 
-    
-
-
-
+def convert_bed_file(bed_file):
+    counter = 0
+    with open(bed_file, "r") as fin:
+        for line in fin:
+            counter += 1
+            columns = re.split(r'\t', line)
+            new_list = []
+            new_list.append(columns[0])
+            if columns[5].strip() == "+":
+                new_list.append(columns[1])
+                new_list.append(str(int(columns[1])+1))
+            elif columns[5].strip() == "-":
+                new_list.append(str(int(columns[2])-1))
+                new_list.append(columns[2])
+            else:
+                print "unknown strand"
+                print counter
+            new_list = new_list+columns[3:6]
+            with open("{0}_5p.bed".format(bed_file.split("/")[-1].split(".")[0]), "a") as fout:
+                new_line = "\t".join(new_list)
+                fout.write(new_line)
+            
+def plot_picked_peaks(peak_dict, transcript_dict, transcript_list):
+    for transcript, peaks in peak_dict.iteritems():
+        if transcript in transcript_list:
+            chromosome = transcript_dict[transcript][0]
+            
