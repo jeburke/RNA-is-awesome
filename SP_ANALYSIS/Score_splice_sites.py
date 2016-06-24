@@ -25,6 +25,7 @@ pos_matrix_3prime = np.zeros([4,8])
 
 counter1 = 0
 counter2 = 0
+
 for cnag in gene_list_as_dict:
     counter2 += 1
     gene = gene_list_as_dict.FindGeneByCNAG(cnag)
@@ -83,7 +84,7 @@ print pos_matrix_3prime
 
 #Compare each splice site and output scores into a spreadsheet
 fout = open("Splice_site_strengths.csv", "w")
-header_list = ["Transcript","Intron", "5' Splice Site Score", "3' Splice Site Score", "Intron Length", "\n"]
+header_list = ["Transcript","Intron", "5' Splice Site Score", "3' Splice Site Score", "Intron Length", "5' splice site", "3' splice site", "\n"]
 header = "\t".join(header_list)
 fout.write(header)
 
@@ -99,22 +100,22 @@ for cnag in gene_list_as_dict:
         else:
             seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
         for a, base in enumerate(seq):
-             if base == "A":
-                 gene_matrix_5prime[0,a] = gene_matrix_5prime[0,a]+1
-             if base == "C":
-                 gene_matrix_5prime[1,a] = gene_matrix_5prime[1,a]+1
-             if base == "T":
-                 gene_matrix_5prime[2,a] = gene_matrix_5prime[2,a]+1
-             if base == "G":
-                 gene_matrix_5prime[3,a] = gene_matrix_5prime[3,a]+1
+            if base == "A":
+                gene_matrix_5prime[0,a] = gene_matrix_5prime[0,a]+1
+            if base == "C":
+                gene_matrix_5prime[1,a] = gene_matrix_5prime[1,a]+1
+            if base == "T":
+                gene_matrix_5prime[2,a] = gene_matrix_5prime[2,a]+1
+            if base == "G":
+                gene_matrix_5prime[3,a] = gene_matrix_5prime[3,a]+1
 
         gene_matrix_3prime = np.zeros([4,8])
         if gene.strand == "-":
             seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
-            intron_seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1], intron[0], gene.strand, genome)
+            intron_seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1], intron[0]-1, gene.strand, genome)
         else:
             seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
-            intron_seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0], intron[1], gene.strand, genome)
+            intron_seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0], intron[1]-1, gene.strand, genome)
         for b, base in enumerate(seq):
             if base == "A":
                 gene_matrix_3prime[0,b] = gene_matrix_3prime[0,b]+1
@@ -125,7 +126,7 @@ for cnag in gene_list_as_dict:
             if base == "G":
                 gene_matrix_3prime[3,b] = gene_matrix_3prime[3,b]+1
 
-         #Calculate Scores (score of 0 is perfect, higher score is worse, 40 is highest possible)
+        #Calculate Scores (score of 0 is perfect, higher score is worse, 40 is highest possible)
         score_5prime = 0
         score_3prime = 0
         a = 0
@@ -141,7 +142,7 @@ for cnag in gene_list_as_dict:
 
 #        format_transcript_list = [cnag, "T0-", str(intron_num)]
 #        format_transcript = "".join(format_transcript_list)
-        lineout_list = [cnag+"T0", str(intron_num+1), str(score_5prime), str(score_3prime), str(intron_length), "\n"]
+        lineout_list = [cnag+"T0", str(intron_num+1), str(score_5prime), str(score_3prime), str(intron_length), intron_seq[:2], intron_seq[-3:], "\n"]
         lineout = "\t".join(lineout_list)
         fout.write(lineout)
 

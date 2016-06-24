@@ -167,7 +167,7 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
             n+=1
     #Implement cutoff if indicated
     if cutoff > 0:
-        merged = merged[merged[(merged.columns[2][0].split("-")[0]+"-A","Total")] > cutoff]
+        merged = merged[merged[(merged.columns[2][0].split("-")[0]+"-B","Total")] > cutoff]
         filtered_transcripts = merged.index.tolist()
         filtered_transcripts = list(set(filtered_transcripts))
         filtered_transcripts = sorted(filtered_transcripts)
@@ -430,45 +430,5 @@ def analyze_transcript_position(feature_counts, feature_type, cutoff=0):
     
     #Do I need to normalize to total RNA?
 
-    
-##Input is the outuput from the Score_splice_sites.py script (Splice_site_strengths.tsv)
-def bin_transcripts(input_file, bin_size, bin_by="length"):
-    score_dict = {}
-    with open(input_file, "r") as fin:
-        for line in fin:
-            if line.startswith("Transcript"): 
-                continue
-            else:
-                columns = re.split(r'\t', line)
-                transcript = columns[0]
-                intron = columns[1]
-                five_p_score = float(columns[2])
-                three_p_score = float(columns[3])
-                length = int(columns[4])
-                key = (transcript, int(intron)+1)
-                if bin_by == "length":
-                    score_dict[key] = length
-                elif bin_by == "five_p_score":
-                    score_dict[key] = five_p_score
-                elif bin_by == "three_p_score":
-                    score_dict[key] = three_p_score
-                else: print "I don't recognize the bin_by value"
-    sorted_dict = sorted(score_dict.items(), key=operator.itemgetter(1))
-    n = 0
-    bin1 = []
-    bin2 = []
-    for transcript, score in sorted_dict:
-        if n < bin_size:
-            bin1.append(transcript)
-            n += 1
-        elif n >= bin_size and n < len(sorted_dict)-bin_size:
-            n += 1
-        else:
-            bin2.append(transcript)
-            n += 1
-    print len(bin1)
-    print len(bin2)
-    return (bin1, bin2)
-        
      
                 

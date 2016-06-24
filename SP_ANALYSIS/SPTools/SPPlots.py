@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 from beeswarm import *
+from scipy.stats import ks_2samp
+import re
+import operator
 
 #################################################################
 ## Convert output from normalize_counts to lists for plotting  ##
@@ -13,14 +16,9 @@ from beeswarm import *
 
 def get_ratios(dataFrame, samplename, count_type, log=False, base=10, T0only=False):
     values = []
-    print len(dataFrame.columns)
     for name1, name2 in dataFrame.columns:
-        #print name1, name2
         if name2 == count_type:
-            #print name2
             if name1 == samplename:
-                #print name1
-                #print dataFrame
                 s = pandas.Series(dataFrame[(name1,name2)])
                 if T0only == True:
                     transcript_list = []
@@ -32,7 +30,6 @@ def get_ratios(dataFrame, samplename, count_type, log=False, base=10, T0only=Fal
                             if row[0].endswith("T0"):
                                 transcript_list.append(row[0])
                     s = s[s.index.get_level_values(0).isin(transcript_list)]
-                #print s
                 values = s.tolist()
             else:
                 continue
@@ -377,49 +374,199 @@ def beeswarm_plot(DataFrame_list, SampleTuple_list, DataFrame2=None, base=10, co
     print median_list
     bs, ax = beeswarm(values_list, method="swarm", labels=name_list, col=color_list)
     
-def histogram(df1, df2, SampleTuple1, SampleTuple2):
-    xvalues1 = get_ratios(DataFrame1, SampleTuple1[0], SampleTuple1[1], log=True, base=base)
+def histogram(df1, SampleTuple1, df2=None, SampleTuple2=None, xlabel="Intermediate levels", ylabel="Number of introns", bins=100, legend2=None):
+    x1 = get_ratios(df1, SampleTuple1[0], SampleTuple1[1], log=True, base=10)
+    x1 = [x for x in x1 if str(x) != 'nan']
+    fig1 = plt.figure()
+    ax = fig1.add_subplot(111)
+    ax.hist(x1, bins=bins, color='royalblue', edgecolor='royalblue', alpha=0.8, label='All' )
+    if df2 is not None and SampleTuple2 is None:
+        x2 = get_ratios(df2, SampleTuple1[0], SampleTuple1[1], log=True, base=10)
+        x2 = [x for x in x2 if str(x) != 'nan']
+        ax.hist(x2, bins=bins, color='coral', edgecolor='coral', alpha=0.8, label=legend2)
+    elif SampleTuple2 is not None and df2 is None:
+        y1 = get_ratios(df1, SampleTuple2[0], SampleTuple2[1], log=True, base=10)
+        y1 = [x for x in y1 if str(x) != 'nan']
+        ax.hist(y1, bins=bins, color='coral', edgecolor='coral', alpha=0.8, label=legend2)
+    elif df2 is not None and SampleTuple2 is not None:
+        y2 = get_ratios(df2, SampleTuple2[0], SampleTuple2[1], log=True, base=10)
+        y2 = [x for x in y2 if str(x) != 'nan']
+        ax.hist(y2, bins=bins, color='coral', edgecolor='coral', alpha=0.8, label=legend2)
+    if df2 is not None and SampleTuple2 is not None:    
+        ax.legend(loc=1)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.show()
+    return fig1
     
-def cumulative_function(bins, df, SampleTuple1, SampleTuple2=None):
-    transcript_list_1 = bins[0]
-    transcript_list_2 = bins[1]
+##Input is the outuput from the Score_splice_sites.py script (Splice_site_strengths.tsv)
+def bin_transcripts(input_file, bin_size, bin_by="length", df_list=None):
+    score_dict = {}
+    with open(input_file, "r") as fin:
+        for line in fin:
+            if line.startswith("Transcript"): 
+                continue
+            else:
+                columns = re.split(r'\t', line)
+                transcript = columns[0]
+                intron = columns[1]
+                five_p_score = float(columns[2])
+                three_p_score = float(columns[3])
+                length = int(columns[4])
+                key = (transcript, int(intron)+1)
+                if bin_by == "length" and length > 30:
+                    score_dict[key] = length
+                elif bin_by == "length" and length <= 30:
+                    continue
+                elif bin_by == "five_p_score":
+                    score_dict[key] = five_p_score
+                elif bin_by == "three_p_score":
+                    score_dict[key] = three_p_score
+                else: print "I don't recognize the bin_by value"
+    if df_list is not None:
+        score_dict = {key: score_dict[key] for key in score_dict if key in df_list }
+    sorted_dict = sorted(score_dict.items(), key=operator.itemgetter(1))
+
+    n = 0
+    bin1 = []
+    values1 = []
+    bin2 = []
+    values2 = []
+    all_scores = []
+    for transcript, score in sorted_dict:
+        all_scores.append(score)
+        if n < bin_size:
+            bin1.append(transcript)
+            values1.append(score)
+            n += 1
+        elif n >= bin_size and n < len(sorted_dict)-bin_size:
+            n += 1
+        else:
+            bin2.append(transcript)
+            values2.append(score)
+            n += 1
+    print "Mean intron length or splice site score:"
+    print "%0.1f" % np.mean(all_scores)
+    print "Mean intron length or splice site score for bottom bin:"
+    print "%0.1f" % np.mean(values1)
+    print "Mean intron length or splice site score for top bin:"
+    print "%0.1f" % np.mean(values2)
+    return (bin1, bin2)
+        
+    
+def bin_by_position(df, first_last=True, first_other=False, other_last=False):
+    df_list = df.index.tolist()
+    intron_dict = {}
+    for intron in df_list:
+        if intron[0] not in intron_dict:
+            intron_dict[intron[0]]=[]
+        intron_dict[intron[0]].append(intron[1])
+    
+    bin1 = []
+    bin2 = []
+    for transcript, introns in intron_dict.iteritems():
+        introns = sorted(introns)
+        first = introns[0]
+        last = introns[-1]
+        if first_last == True:
+            bin1.append((transcript, first))
+            bin2.append((transcript, last))
+        elif first_other == True:
+            bin1.append((transcript, first))
+            i=1
+            for i in range(len(introns)):
+                bin2.append((transcript, introns[i]))
+        elif other_last == True:
+            bin2.append((transcript, last))
+            i=0
+            for i in range(len(introns)-1):
+                bin1.append((transcript, introns[i]))
+    if len(bin1) != len(bin2):
+        if len(bin1) < len(bin2):
+            bin2 = random.sample(bin2, len(bin1))
+        elif len(bin1) > len(bin2):
+            bin1 = random.sample(bin1, len(bin2))
+    return bin1, bin2
+    
+def cumulative_function(df, score_file, bin_size, SampleTuple1, bin_by=False, bin_tuple=None, SampleTuple2=None, xlabel="Intermediate levels", ylabel="Number of introns", title="CDF", plot_type="CDF", bins=100):
+    #df = df[df[SampleTuple1] > 0]
+    if bin_by == 'position':
+        transcript_list_1, transcript_list_2 = bin_by_position(df, first_last=False, first_other=False, other_last=True)
+    elif bin_by != False:
+        df_list = df.index.tolist()
+        transcript_list_1, transcript_list_2 = bin_transcripts(score_file, bin_size, bin_by, df_list=df_list)
+    elif bin_tuple is not None:
+        transcript_list_1= bin_tuple[0]
+        transcript_list_2= bin_tuple[1]
     new_df1 = pandas.DataFrame(columns=df.columns)
     new_df2 = pandas.DataFrame(columns=df.columns)
-    for transcript in transcript_list_1:
-        if transcript not in df.index:
-            print transcript
-    for transcript in transcript_list_2:
-        if transcript not in df.index:
-            print transcript
-    for transcript in df.iterrows():
-        if transcript[0] in transcript_list_1:
-            new_df1 = new_df1.append(df.loc[transcript[0]])
-        elif transcript[0] in transcript_list_2:
-            new_df2 = new_df2.append(df.loc[transcript[0]])
-    
-    x1 = get_ratios(new_df1, SampleTuple1[0], SampleTuple1[1], log=False)
-    x2 = get_ratios(new_df2, SampleTuple1[0], SampleTuple1[1], log=False)
-    
 
-    values1, base1 = np.histogram(x1, bins=100)
-    cumulative1 = np.cumsum(values1)
-    plt.plot(base1[:-1], cumulative1, c='blue', linewidth=2.0)
-    values2, base2 = np.histogram(x2, bins=100)
-    cumulative2 = np.cumsum(values2)
-    plt.plot(base2[:-1], cumulative2, c='green', linewidth=2.0)       
+    new_df1 = df[df.index.map(lambda x: x in transcript_list_1)]
+    new_df2 = df[df.index.map(lambda x: x in transcript_list_2)]
     
+    fig1 = plt.figure()
+    ax1 = fig1.add_subplot(111)
+    if plot_type == "CDF":
+        x1 = get_ratios(new_df1, SampleTuple1[0], SampleTuple1[1], log=False)
+        x2 = get_ratios(new_df2, SampleTuple1[0], SampleTuple1[1], log=False)
+        values1, base1 = np.histogram(x1, bins=bins)
+        values2, base2 = np.histogram(x2, bins=bins)
+        cumulative1 = np.cumsum(values1)
+        base1 = np.insert(base1, 0, 0)
+        cumulative1 = np.insert(cumulative1, 0, 0)
+        ax1.plot(base1[:-1], cumulative1, c='blue', linewidth=3.0, label="Low 1")
+        cumulative2 = np.cumsum(values2)
+        base2 = np.insert(base2, 0, 0)
+        cumulative2 = np.insert(cumulative2, 0, 0)
+        ax1.plot(base2[:-1], cumulative2, c='orangered', linewidth=3.0, label="High 1")
+        if SampleTuple2 is not None:
+            y1 = get_ratios(new_df1, SampleTuple2[0], SampleTuple2[1], log=False)
+            values3, base3 = np.histogram(y1, bins=1000)
+            y2 = get_ratios(new_df2, SampleTuple2[0], SampleTuple2[1], log=False)
+            values4, base4 = np.histogram(y2, bins=1000)
+            cumulative3 = np.cumsum(values3)
+            base3 = np.insert(base3, 0, 0)
+            cumulative3 = np.insert(cumulative3, 0, 0)
+            ax1.plot(base3[:-1], cumulative3, color='lightskyblue', linewidth=3.0, label="Low 2")
+            cumulative4 = np.cumsum(values4)
+            base4 = np.insert(base4, 0, 0)
+            cumulative4 = np.insert(cumulative4, 0, 0)
+            ax1.plot(base4[:-1], cumulative4, color='coral', linewidth=3.0, label="High 2")
+            ax1.legend(loc=4)
+    elif plot_type == "PDF":
+        x1 = get_ratios(new_df1, SampleTuple1[0], SampleTuple1[1], log=True)
+        x2 = get_ratios(new_df2, SampleTuple1[0], SampleTuple1[1], log=True)
+        x1 = [x for x in x1 if str(x) != 'nan']
+        x2 = [x for x in x2 if str(x) != 'nan']
+        ax1.hist(x2, color='coral', edgecolor='coral', label="High 1", bins=bins, alpha=0.9)
+        ax1.hist(x1, color='royalblue', edgecolor='royalblue', label="Low 1", bins=bins, alpha=0.5)
+        ax1.legend(loc=1)
+        if SampleTuple2 is not None:
+            y1 = get_ratios(new_df1, SampleTuple2[0], SampleTuple2[1], log=True)
+            y2 = get_ratios(new_df2, SampleTuple2[0], SampleTuple2[1], log=True)
+            y1 = [x for x in y1 if str(x) != 'nan']
+            y2 = [x for x in y2 if str(x) != 'nan']
+            ax1.hist(y2, color='orangered',  label="High 2", bins=bins)
+            ax1.hist(y1, color='lightskyblue', label="Low 2", bins=bins)
+
+    
+    print "KS_statistic, p_value for replicate 1: "
+    for value in ks_2samp(x1, x2):
+        print "%0.1e" % value
     if SampleTuple2 is not None:
-        y1 = get_ratios(new_df1, SampleTuple2[0], SampleTuple2[1], log=False)
-        values3, base3 = np.histogram(y1, bins=100)
-        cumulative3 = np.cumsum(values3)
-        plt.plot(base3[:-1], cumulative3, c='lightblue', linewidth=2.0)
-        y2 = get_ratios(new_df2, SampleTuple2[0], SampleTuple2[1], log=False)
-        values4, base4 = np.histogram(y2, bins=100)
-        cumulative4 = np.cumsum(values4)
-        plt.plot(base4[:-1], cumulative4, c='lightgreen', linewidth=2.0)
-    
-    #n, bins, patches = plt.hist(x1, 100, facecolor='green', alpha=0.75)
-    #plt.hist(x2, 100, facecolor='blue', alpha=0.75)
+        print "KS_statistic, p_value for replicate 2: "
+        for value in ks_2samp(y1, y2):
+            print "%0.1e" % value
 
+    ax1.set_xlabel(xlabel)
+    ax1.set_ylabel(ylabel)
+    #ax1.set_ylim([0.9*len(new_df1),len(new_df1)+len(new_df1)*0.01])
+    #ax1.set_ylim([0*len(new_df1),len(new_df1)+len(new_df1)*0.01])
+    xmax = np.nanmax([np.nanmax(x1),np.nanmax(x2)])
+    ax1.set_xlim([-2,xmax+.05*xmax])
+    #ax1.set_xlim([-2, 50])
+    ax1.set_title(title)
     plt.show()
+    return fig1
     
+
