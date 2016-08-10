@@ -13,21 +13,22 @@ import re
 ## Build dataframes from tables written by crunchBAM           ##
 #################################################################
 
-def build_tables(file1, file2=None, header='infer', skiprows=None, low_memory=False, multiIndex=False):
-    #For junction reads, cleavages and feayture counts use header=[0,1], skiprows=[2] and multiIndex=True. For all other tables, use default values.
+def build_tables(file1, file2=None, header='infer', skiprows=None, low_memory=False, multiIndex=False, int_index=False, sep='\t'):
+    #For junction reads, cleavages and feature counts use header=[0,1], skiprows=[2] and multiIndex=True. For all other tables, use default values.
     
     if file2==None:
         fin = open(file1, "r")
-        df = pandas.read_table(fin, header=header, skiprows=skiprows)
+        df = pandas.read_table(fin, header=header, skiprows=skiprows, sep=sep)
         index_list = []
         if multiIndex is True:
             for row in df.iterrows():
                 index_list.append((row[1][0],row[1][1]))
             df.index = pandas.MultiIndex.from_tuples(index_list)
-        elif multiIndex is False:
+        elif multiIndex is False and int_index is False:
             for row in df.iterrows():
                 index_list.append(row[1][0])
             df.index = index_list
+
     else:
         fin = open(file1, "r")
         fin2 = open(file2, "r")
@@ -48,15 +49,17 @@ def build_tables(file1, file2=None, header='infer', skiprows=None, low_memory=Fa
             df1.index = index_list1
             for row in df2.iterrows():
                 index_list2.append(row[1][0])
-            df2.index = index_list1
-        df1_sorted = df1.sort()
-        df2_sorted = df2.sort()
+            df2.index = index_list2
+        df1_sorted = df1.sort_index()
+        df2_sorted = df2.sort_index()
         df = pandas.merge(df1_sorted, df2_sorted, left_index=True, right_index=True, copy=False, sort=True)
     
     
     columns_list = []
     n = 0
-    for column in df.columns:
+    if ("Transcript0","Transcript0") in df.columns:
+        n = 1
+    for column in df.columns:            
         if header != 'infer':
             if column[0].startswith("Unnamed: 0"):
                 columns_list.append(("Transcript"+str(n),"Transcript"+str(n)))
@@ -76,7 +79,7 @@ def build_tables(file1, file2=None, header='infer', skiprows=None, low_memory=Fa
             else:
                 columns_list.append((column.split("_")[0],"Total"))
     df.columns = pandas.MultiIndex.from_tuples(columns_list)
-    df = df.sort()
+    df = df.sort_index()
     return df
 
 ##################################################################
@@ -136,6 +139,8 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
     df1_indexed = df1.set_index(df1[("Transcript0","Transcript0")])
     df2_indexed = df2.set_index(df2[("Transcript0","Transcript0")])
     df3_indexed = df3.set_index(df3[("Transcript0","Transcript0")])
+    #merged = pd.DataFrame(index=df1.index)
+    #for name_tuple, row in 
     merged = pandas.merge(df1_indexed, df2_indexed, left_index=True, right_index=True, how = 'left')
     merged = pandas.merge(merged, df3_indexed, left_index=True, right_index=True, how = 'left')
     configNames = []
@@ -147,6 +152,7 @@ def normalize_AtoB(feature_counts, total_counts, lengths, config, cutoff=0):
         controlValues.append(l)
     names = []
     n = 0
+    print merged.columns
     for name, read_type in merged.columns:
         names.append(name)
         if name.startswith("Transcript"):

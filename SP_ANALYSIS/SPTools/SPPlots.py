@@ -374,12 +374,12 @@ def beeswarm_plot(DataFrame_list, SampleTuple_list, DataFrame2=None, base=10, co
     print median_list
     bs, ax = beeswarm(values_list, method="swarm", labels=name_list, col=color_list)
     
-def histogram(df1, SampleTuple1, df2=None, SampleTuple2=None, xlabel="Intermediate levels", ylabel="Number of introns", bins=100, legend2=None):
+def histogram(df1, SampleTuple1, df2=None, SampleTuple2=None, xlabel="Intermediate levels", ylabel="Number of introns", bins=100, legend1='All', legend2=None):
     x1 = get_ratios(df1, SampleTuple1[0], SampleTuple1[1], log=True, base=10)
     x1 = [x for x in x1 if str(x) != 'nan']
     fig1 = plt.figure()
     ax = fig1.add_subplot(111)
-    ax.hist(x1, bins=bins, color='royalblue', edgecolor='royalblue', alpha=0.8, label='All' )
+    ax.hist(x1, bins=bins, color='royalblue', edgecolor='royalblue', alpha=0.8, label=legend1 )
     if df2 is not None and SampleTuple2 is None:
         x2 = get_ratios(df2, SampleTuple1[0], SampleTuple1[1], log=True, base=10)
         x2 = [x for x in x2 if str(x) != 'nan']
@@ -392,7 +392,7 @@ def histogram(df1, SampleTuple1, df2=None, SampleTuple2=None, xlabel="Intermedia
         y2 = get_ratios(df2, SampleTuple2[0], SampleTuple2[1], log=True, base=10)
         y2 = [x for x in y2 if str(x) != 'nan']
         ax.hist(y2, bins=bins, color='coral', edgecolor='coral', alpha=0.8, label=legend2)
-    if df2 is not None and SampleTuple2 is not None:    
+    if df2 is not None or SampleTuple2 is not None:    
         ax.legend(loc=1)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -533,13 +533,20 @@ def cumulative_function(df, score_file, bin_size, SampleTuple1, bin_by=False, bi
             cumulative4 = np.insert(cumulative4, 0, 0)
             ax1.plot(base4[:-1], cumulative4, color='coral', linewidth=3.0, label="High 2")
             ax1.legend(loc=4)
+    
     elif plot_type == "PDF":
         x1 = get_ratios(new_df1, SampleTuple1[0], SampleTuple1[1], log=True)
         x2 = get_ratios(new_df2, SampleTuple1[0], SampleTuple1[1], log=True)
         x1 = [x for x in x1 if str(x) != 'nan']
         x2 = [x for x in x2 if str(x) != 'nan']
+        #x1 = [1e-15 if str(x) == 'nan' else x for x in x1]
+        #x2 = [1e-15 if str(x) == 'nan' else x for x in x2]
+        print "Zero values removed:"
+        print str(bin_size-len(x2))+" from high bin"
+        print str(bin_size-len(x1))+" from low bin"
         ax1.hist(x2, color='coral', edgecolor='coral', label="High 1", bins=bins, alpha=0.9)
         ax1.hist(x1, color='royalblue', edgecolor='royalblue', label="Low 1", bins=bins, alpha=0.5)
+
         ax1.legend(loc=1)
         if SampleTuple2 is not None:
             y1 = get_ratios(new_df1, SampleTuple2[0], SampleTuple2[1], log=True)
@@ -549,15 +556,17 @@ def cumulative_function(df, score_file, bin_size, SampleTuple1, bin_by=False, bi
             ax1.hist(y2, color='orangered',  label="High 2", bins=bins)
             ax1.hist(y1, color='lightskyblue', label="Low 2", bins=bins)
 
-    
     print "KS_statistic, p_value for replicate 1: "
-    for value in ks_2samp(x1, x2):
+    ks_x1 = get_ratios(new_df1, SampleTuple1[0], SampleTuple1[1], log=False)
+    ks_x2 = get_ratios(new_df2, SampleTuple1[0], SampleTuple1[1], log=False)
+    for value in ks_2samp(ks_x1, ks_x2):
         print "%0.1e" % value
     if SampleTuple2 is not None:
         print "KS_statistic, p_value for replicate 2: "
-        for value in ks_2samp(y1, y2):
+        ks_y1 = get_ratios(new_df1, SampleTuple2[0], SampleTuple2[1], log=False)
+        ks_y2 = get_ratios(new_df2, SampleTuple2[0], SampleTuple2[1], log=False)
+        for value in ks_2samp(ks_y1, ks_y2):
             print "%0.1e" % value
-
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel(ylabel)
     #ax1.set_ylim([0.9*len(new_df1),len(new_df1)+len(new_df1)*0.01])
