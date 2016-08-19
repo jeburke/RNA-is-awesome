@@ -1375,8 +1375,8 @@ def normalize_and_plot_peaks(peak_df, gobs_count_reads_in_transcripts, transcrip
          
     if cutoff is not None and len(rep_tuples) > 1:
         new_df = new_df[new_df[('B-avg2','Total')] > cutoff]
-    elif cutoff is not None and len(rep_tuples) == 1:
-        new_df = new_df9[new_df[('rep_tuples
+    #elif cutoff is not None and len(rep_tuples) == 1:
+
         
     #Sort peaks by whether they increase or decrease between conditions
     columns = pandas.MultiIndex.from_tuples(new_df.columns)

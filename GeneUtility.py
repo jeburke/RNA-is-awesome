@@ -35,7 +35,7 @@ class CommonEquality(object):
         return not self.__eq__(other)
 
 def BuildGenome():
-    fin = open("/home/jordan/GENOMES/cryptococcus_neoformans_var._grubii_h99__cna3__3_chr.fasta", "r")
+    fin = open("/Users/jordanburke/GENOMES/CNA3-gobs.fa", "r")
     genome = {}
     chromosome = []
     firstline = fin.readline()
@@ -100,7 +100,7 @@ class GeneAnnotationDict(CommonEquality):
         f.close()
                 
     def PopulateGeneAnnotation_new(self):
-        filename1 = "/home/jordan/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3"
+        filename1 = "/Users/jordanburke/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3"
         #filename2 = "/home/chomer/Code_Base/PrimerDesigner/CNA2_MISC_RNA_1.gff3"
         with open(filename1, "r") as f:
             for line in f:
@@ -375,7 +375,7 @@ class GeneDict(CommonEquality):
                 
     def PopulateFromFile_new(self):
         '''designed to work with Guillem's new annotations'''
-        filename = "/home/jordan/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3"
+        filename = "/Users/jordanburke/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3"
         start = sys.maxint
         end = 0
         CNAG = ""
