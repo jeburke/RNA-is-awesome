@@ -1,5 +1,5 @@
 '''Usage: python procues_juncbase.py juncbase_output gff3_file fasta_file prefix
-Please note: uses chr# format for chromosomes.'''
+Please note: uses chr# format for chromosome names.'''
 
 import sys
 sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/SP_ANALYSIS/')
@@ -9,7 +9,7 @@ import SPTools as SP
 juncbase_output = sys.argv[1]
 gff3_file = sys.argv[2]
 fasta_file = sys.argv[3]
-prefix = sys.arv[4]
+prefix = sys.argv[4]
 
 junc_df = SP.read_juncbase_output(juncbase_output)
 seq_df = SP.get_junction_sequence(junc_df, gff3_file, fasta_file)
@@ -22,4 +22,4 @@ filt_df = SP.reformat_df(scored_df)
 #alt_donor = filt_df[filt_df['as_event_type'] == 'alternative_donor']
 #alt_acceptor = filt_df[filt_df['as_event_type'] == 'alternative_acceptor']
 
-filt_df.to_csv('{0}.tsv'.format(prefix), sep='\t')
+filt_df.to_csv('{0}.tsv'.format(prefix), sep='\t', float_format='%.2f')

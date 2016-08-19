@@ -315,10 +315,11 @@ def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime):
     return df
 
 def reformat_df(df):
-    new_columns=['Gene', 'as_event_type', 'coord_1', 'coord_2', 'sequence1', 'sequence2', 'intron length', '5p score', '3p score', 'strand', 'intron', '#Contains_Novel_or_Only_Known(Annotated)_Junctions', 'contained in']
+    new_columns=['Gene', 'as_event_type', 'chr', 'coord_1', 'coord_2', 'sequence1', 'sequence2', 'intron length', '5p score', '3p score', 'strand', 'intron', '#Contains_Novel_or_Only_Known(Annotated)_Junctions', 'contained in']
     new_df = df[new_columns]
     new_df = new_df.sort_values('as_event_type', axis=0)
     new_df = new_df.rename(columns = {'as_event_type':'event','sequence1':'5p sequence','sequence2':'3p sequence','#Contains_Novel_or_Only_Known(Annotated)_Junctions':'known or novel'})
     new_df = new_df.reset_index()
     new_df = new_df.drop('index', axis=1)
+    new_df[['5p score','3p score']] = new_df[['5p score','3p score']].astype(float)
     return new_df
