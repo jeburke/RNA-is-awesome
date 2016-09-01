@@ -885,12 +885,15 @@ def find_new_peak_sequence(fasta_file, gff3_file, peak_dict1, peak_dict2=None, p
             classification = peaks[2][i]
             if transcript_dict[CNAG+"T0"][2] == "+":
                 sequence = fasta_dict[chromosome][(position-2):(position+6)]
+                ext_seq = fasta_dict[chromosome][(position-14):(position+18)]
                 #sequence = fasta_dict[chromosome][(position-10):(position+10)]
             elif transcript_dict[CNAG+"T0"][2] == "-":
                 sequence = fasta_dict[chromosome][(position-5):(position+3)]
+                ext_seq = fasta_dict[chromosome][(position-17):(position+15)]
                 #sequence = fasta_dict[chromosome][(position-10):(position+10)]
                 sequence = reverse_complement(sequence)
-
+                ext_seq = reverse_complement(ext_seq)
+                
             #Classify sequences as splice sites
             if sequence[3:5] == "GT" or sequence[3:5] == "GC":
                 site_class = "5'"
@@ -904,35 +907,41 @@ def find_new_peak_sequence(fasta_file, gff3_file, peak_dict1, peak_dict2=None, p
                 if classification == "3' splice site":
                     counter3 += 1
                     vol3 += peaks[1][i]
-            elif sequence[3:5] != "GT" and sequence[3:5] != "GC" and "GT" in sequence:
-                site_class = "5' offset"
-                GUpos = sequence.index('GT')
-                if classification == "5' splice site":
-                    counter5 += 1
-                    vol5 += peaks[1][i]
-            elif sequence[3:5] != "GT" and sequence[3:5] != "GC" and "AG" in sequence:
-                site_class = "3' offset"
-                AGpos = sequence.index('AG')
-                if classification == "3' splice site":
-                    counter3 += 1
-                    vol3 += peaks[1][i]
+            #elif sequence[3:5] != "GT" and sequence[3:5] != "GC" and "GT" in sequence:
+            #    site_class = "5'"
+            #    GUpos = sequence.index('GT')
+            #    if classification == "5' splice site":
+            #        counter5 += 1
+            #        vol5 += peaks[1][i]
+            #elif sequence[3:5] != "GT" and sequence[3:5] != "GC" and "AG" in sequence:
+            #    site_class = "3'"
+            #    AGpos = sequence.index('AG')
+            #    if classification == "3' splice site":
+            #        counter3 += 1
+            #        vol3 += peaks[1][i]
             else:
                 site_class = "Unknown"
                 unknown_counter += 1
             
-            if site_class == "5' offset":
-                if transcript_dict[CNAG+"T0"][2] == "+":
-                    sequence = fasta_dict[chromosome][(position+GUpos-5):(position+GUpos+3)]
-                elif transcript_dict[CNAG+"T0"][2] == "-":
-                    sequence = fasta_dict[chromosome][(position-GUpos-2):(position-GUpos+6)]
-                    sequence = reverse_complement(sequence)
-            elif site_class == "3' offset":
-                if transcript_dict[CNAG+"T0"][2] == "+":
-                    sequence = fasta_dict[chromosome][(position+AGpos-3):(position+AGpos+5)]
-                elif transcript_dict[CNAG+"T0"][2] == "-":
-                    sequence = fasta_dict[chromosome][(position-AGpos-4):(position-AGpos+4)]
-                    sequence = reverse_complement(sequence)
-                
+            #if site_class == "5' offset":
+            #    if transcript_dict[CNAG+"T0"][2] == "+":
+            #        sequence = fasta_dict[chromosome][(position+GUpos-5):(position+GUpos+3)]
+            #        ext_seq = fasta_dict[chromosome][(position+GUpos-17):(position+GUpos+15)]
+            #    elif transcript_dict[CNAG+"T0"][2] == "-":
+            #        sequence = fasta_dict[chromosome][(position-GUpos-2):(position-GUpos+6)]
+            #        ext_seq = fasta_dict[chromosome][(position+GUpos-14):(position+GUpos+18)]
+            #        sequence = reverse_complement(sequence)
+            #        ext_seq = reverse_complement(ext_seq)
+            #elif site_class == "3' offset":
+            #    if transcript_dict[CNAG+"T0"][2] == "+":
+            #        sequence = fasta_dict[chromosome][(position+AGpos-3):(position+AGpos+5)]
+            #        ext_seq = fasta_dict[chromosome][(position+GUpos-15):(position+GUpos+17)]
+            #    elif transcript_dict[CNAG+"T0"][2] == "-":
+            #        sequence = fasta_dict[chromosome][(position-AGpos-4):(position-AGpos+4)]
+            #        ext_seq = fasta_dict[chromosome][(position+GUpos-16):(position+GUpos+16)]
+            #        sequence = reverse_complement(sequence)
+            #        ext_seq = reverse_complement(ext_seq)
+                    
             if classification == "Unknown" and "5'" in site_class: 
                 unk5 += 1
                 vol5_unk += peaks[1][i]
@@ -945,10 +954,12 @@ def find_new_peak_sequence(fasta_file, gff3_file, peak_dict1, peak_dict2=None, p
                 
             #Build index dictionary: [transcript, chromosome, known site?, peak position, peak height, sequence (-4 to +4), classification
             if CNAG in index_dict1:      
-                index_dict1[CNAG].append([CNAG, chromosome, peaks[2][i], position, peaks[1][i], sequence, site_class])
+                #index_dict1[CNAG].append([CNAG, chromosome, peaks[2][i], position, peaks[1][i], sequence, site_class])
+                index_dict1[CNAG].append([CNAG, chromosome, peaks[2][i], position, peaks[1][i], ext_seq, site_class])
             else:
                 index_dict1[CNAG] = []
-                index_dict1[CNAG].append([CNAG, chromosome, peaks[2][i], position, peaks[1][i], sequence, site_class])
+                #index_dict1[CNAG].append([CNAG, chromosome, peaks[2][i], position, peaks[1][i], sequence, site_class])
+                index_dict1[CNAG].append([CNAG, chromosome, peaks[2][i], position, peaks[1][i], ext_seq, site_class])
     
     
     #Make output file
@@ -1467,3 +1478,68 @@ def normalize_and_plot_peaks(peak_df, gobs_count_reads_in_transcripts, transcrip
 def convert_to_log(num_list):
     log_list = [numpy.NaN if x == 0 else log(x, 10) for x in num_list]
     return log_list
+
+def analyze_peaks(peak_tsv_file, gff3_file):
+    df = pandas.read_csv(peak_tsv_file, sep='\t')
+    print df.columns
+    transcripts = list(set(df['transcript'].tolist()))
+    print len(transcripts)
+    transcripts_T0 = [x+'T0' for x in transcripts]
+    transcript_dict = build_transcript_dict(gff3_file)
+    splice_site_dict, intron_flag = list_splice_sites(gff3_file, gene_list = transcripts_T0)
+    print len(splice_site_dict)
+    
+    index = pandas.MultiIndex(levels=[[],[]], labels=[[],[]], names=[u'transcript', u'interval'])
+    new_df = pandas.DataFrame(columns=['chromosome','# novel peaks', 'peak coords', 'peak heights', 'annotated sites', 'interval length'], index=index)
+    
+    for transcript in transcripts:
+        #print transcript
+        tx_df = df[df['transcript'] == transcript]
+        tx_df = tx_df.reset_index()
+        tx_df['intron/exon'] = 'Unknown'
+        intervals = []
+        intervals.append(transcript_dict[transcript+'T0'][0])
+        intervals.append(transcript_dict[transcript+'T0'][1])
+        intervals = intervals + splice_site_dict[transcript+'T0'][0]
+        intervals = intervals + splice_site_dict[transcript+'T0'][1]
+        intervals.sort()
+
+        a = 0
+        for a in range(len(intervals)-1):
+            interval = a
+            interval_length = intervals[a+1] - intervals[a]
+            if transcript_dict[transcript+'T0'][2] == '-':
+                interval = len(intervals)-interval
+                
+            peak_count = 0
+            peak_coords = []
+            peak_heights = []
+            annotated_sites = []
+            n=0
+            for n in range(len(tx_df)): 
+                if tx_df[' coordinate'][n] < intervals[a+1] and tx_df[' coordinate'][n] > intervals[a]:
+                    peak_count += 1
+                    peak_coords.append(tx_df[' coordinate'][n])
+                    peak_heights.append(tx_df[' peak height'][n])
+                elif tx_df[' coordinate'][n] == intervals[a+1] or tx_df[' coordinate'][n] == intervals[a]:
+                    annotated_sites.append(tx_df[' coordinate'][n])
+
+            if interval % 2 == 0:
+                interval = 'exon '+str(interval/2)
+            else:
+                interval = 'intron '+str(interval/2+1)
+            if peak_count != 0:
+                new_df.loc[(transcript,interval),] = [transcript_dict[transcript+'T0'][3], peak_count, ','.join(str(x) for x in peak_coords), ','.join(str(x) for x in peak_heights), ','.join(str(x) for x in annotated_sites), interval_length]
+
+            #new_df.loc[(transcript, interval), 'chromosome'] = transcript_dict[transcript+'T0'][3]
+            #new_df.loc[(transcript, interval), '# novel peaks'] = peak_count
+            #new_df.loc[(transcript, interval), 'peak coords'] = ','.join(str(x) for x in peak_coords)
+            #new_df.loc[(transcript, interval), 'peak heights'] = ','.join(str(x) for x in peak_heights)
+            #new_df.loc[(transcript, interval), 'annotated sites'] = ','.join(str(x) for x in annotated_sites)
+            
+    new_df.to_csv('{0}_by_interval.tsv'.format(peak_tsv_file.split('.')[-2]), sep='\t')
+    return new_df
+            
+            
+                
+    

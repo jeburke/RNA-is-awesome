@@ -29,14 +29,25 @@ def read_juncbase_output(juncbase_output):
         with open(juncbase_output, 'r') as fin:
             junc_df = pd.read_csv(fin, sep='\t')
     
+    sample_list = []
     junc_df['contained in'] = None
     n_max = len(junc_df.columns)
     n = 11
     while n < n_max:
         if junc_df.columns[n].startswith('avg'): continue
         elif junc_df.columns[n] == 'contained in': n += 1
+        elif n == 11:
+            sample_list.append(junc_df.columns[n])
+            sample_list.append(junc_df.columns[n+1])
+            junc_df['avg_'+junc_df.columns[n]+'+'+junc_df.columns[n+1]] = junc_df[junc_df.columns[n]]
+            wt = junc_df.columns[n]
+            n += 2
         else:
-            junc_df['avg_'+junc_df.columns[n]+'+'+junc_df.columns[n+1]] = junc_df[[(junc_df.columns[n]),(junc_df.columns[n+1])]].mean(axis=1)
+            junc_df['avg_'+junc_df.columns[n]+'+'+junc_df.columns[n+1]] = junc_df[[(junc_df.columns[n]),(junc_df.columns[n+1])]].mean(axis=1, skipna=False)
+            sample_list.append(junc_df.columns[n])
+            sample_list.append(junc_df.columns[n+1])
+            if str(junc_df.columns[n]) == 'nan' or str(junc_df.columns[n+1]) == 'nan':
+                print junc_df['avg_'+junc_df.columns[n]+'+'+junc_df.columns[n+1]]
             if n != 11:
                 junc_df[junc_df.columns[n]+'+'+junc_df.columns[n+1]] = ''
             n += 2
@@ -70,12 +81,21 @@ def read_juncbase_output(juncbase_output):
 
     filt_df.replace(to_replace=np.NaN, value='NA', inplace=True)
     filt_df = filt_df[filt_df['strand'] != 'NA']
+    filt_df = filt_df.reset_index()
+    
+    n = 0
+    for n in range(len(filt_df)):
+        for column in filt_df.columns:
+            if column in sample_list:
+                if filt_df[column][n] == 'NA':
+                    filt_df.loc[n, column] = filt_df[wt][n]
+                    
     
     filt_df['coord_1'] = filt_df['exclusion_junctions'].str.split(':').str.get(1).str.split('-').str.get(0)
     filt_df['coord_2'] = filt_df['exclusion_junctions'].str.split(':').str.get(1).str.split('-').str.get(1).str.split(';').str.get(0)
     
-    filt_df = filt_df.reset_index()
-    return filt_df
+    print sample_list
+    return (filt_df, sample_list)
 
 def make_fasta_dict(fasta_file):
     fasta_dict = {}
@@ -181,11 +201,11 @@ def get_junction_sequence(df, gff3_file, fasta_file):
 def mirrored(listtree):
     return [(mirrored(x) if isinstance(x, list) else x) for x in reversed(listtree)]
 
-def generate_consensus_matrix():
+def generate_consensus_matrix(fasta_dict):
     #Populate gene dictionary and build genome
     gene_list_as_dict = GeneUtility.GeneDict()
     gene_list_as_dict.PopulateFromFile_new()
-    genome = GeneUtility.BuildGenome()
+    genome = fasta_dict
     print genome.keys()
 
     #First generate a consensus matrix for 5' and 3' splice site, where 1st row is A counts, second row is C, third row is T, fourth row is G.
@@ -314,12 +334,21 @@ def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime):
         
     return df
 
-def reformat_df(df):
-    new_columns=['Gene', 'as_event_type', 'chr', 'coord_1', 'coord_2', 'sequence1', 'sequence2', 'intron length', '5p score', '3p score', 'strand', 'intron', '#Contains_Novel_or_Only_Known(Annotated)_Junctions', 'contained in']
-    new_df = df[new_columns]
-    new_df = new_df.sort_values('as_event_type', axis=0)
-    new_df = new_df.rename(columns = {'as_event_type':'event','sequence1':'5p sequence','sequence2':'3p sequence','#Contains_Novel_or_Only_Known(Annotated)_Junctions':'known or novel'})
-    new_df = new_df.reset_index()
-    new_df = new_df.drop('index', axis=1)
-    new_df[['5p score','3p score']] = new_df[['5p score','3p score']].astype(float)
-    return new_df
+def reformat_df(df, sample_list):
+    new_columns1=['Gene', 'as_event_type', 'chr', 'coord_1', 'coord_2', 'sequence1', 'sequence2', 'intron length', '5p score', '3p score', 'strand', 'intron', '#Contains_Novel_or_Only_Known(Annotated)_Junctions', 'contained in']
+    new_df1 = df[new_columns1]
+    new_df1 = new_df1.sort_values('as_event_type', axis=0)
+    new_df1 = new_df1.rename(columns = {'as_event_type':'event','sequence1':'5p sequence','sequence2':'3p sequence','#Contains_Novel_or_Only_Known(Annotated)_Junctions':'known or novel'})
+    new_df1 = new_df1.reset_index()
+    new_df1 = new_df1.drop('index', axis=1)
+    new_df1[['5p score','3p score']] = new_df1[['5p score','3p score']].astype(float)
+    
+    new_columns2 = ['Gene', 'as_event_type', 'chr', 'coord_1', 'coord_2', 'strand']+sample_list
+    new_df2 = df[new_columns2]
+    new_df2 = new_df2.sort_values('as_event_type', axis=0)
+    new_df2 = new_df2.rename(columns = {'as_event_type':'event'})
+    new_df2 = new_df2.reset_index()
+    new_df2 = new_df2.drop('index', axis=1)
+    new_df2[sample_list] = new_df2[sample_list].astype(float)
+    
+    return new_df1, new_df2

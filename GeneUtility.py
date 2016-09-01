@@ -35,22 +35,25 @@ class CommonEquality(object):
         return not self.__eq__(other)
 
 def BuildGenome():
-    fin = open("/Users/jordanburke/GENOMES/CNA3-gobs.fa", "r")
+    fin = open("/home/jordan/GENOMES/CNA3-gobs.fa", "r")
     genome = {}
     chromosome = []
-    firstline = fin.readline()
-    data = firstline[1:].split(" ")
-    chrom_name = data[0]
     for line in fin: 
         if line[0] == ">":
-            data = line[1:].split(" ")
-            chromosome = "".join(chromosome)
-            genome[chrom_name] = chromosome
-            chrom_name = data[0]
-            chromosome = []
+	    if len(line.strip()) <= 6: 
+            	chrom_name = line[1:].strip()
+                genome[chrom_name] = ''
+                chromosome = []
+	    else:
+		data = line.split(" ")
+		chrom_name = data[0][1:]
+		genome[chrom_name] = ''
+		chromosome = []
         else: 
             chromosome.append(line.rstrip())
     chromosome = "".join(chromosome)
+    print chrom_name
+    print len(chromosome)
     genome[chrom_name] = chromosome
     return genome
 
@@ -100,7 +103,7 @@ class GeneAnnotationDict(CommonEquality):
         f.close()
                 
     def PopulateGeneAnnotation_new(self):
-        filename1 = "/Users/jordanburke/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3"
+        filename1 = "/home/jordan/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3"
         #filename2 = "/home/chomer/Code_Base/PrimerDesigner/CNA2_MISC_RNA_1.gff3"
         with open(filename1, "r") as f:
             for line in f:
@@ -375,7 +378,7 @@ class GeneDict(CommonEquality):
                 
     def PopulateFromFile_new(self):
         '''designed to work with Guillem's new annotations'''
-        filename = "/Users/jordanburke/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3"
+        filename = "/home/jordan/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3"
         start = sys.maxint
         end = 0
         CNAG = ""
