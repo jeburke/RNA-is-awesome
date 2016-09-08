@@ -9,10 +9,10 @@ import math
 import numpy as np
 import pandas as pd
 sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/')
-sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/')
+sys.path.insert(0, '/Users/jordanburke/CodeBase/RNA-is-awesome/')
 import GeneUtility
 sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/SP_ANALYSIS/')
-sys.path.insert(0, '/home/jordan/RNA-is-awesome/SP_ANALYSIS/')
+sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/SP_ANALYSIS/')
 import SPTools as SP
 import collections
 
@@ -75,9 +75,9 @@ def read_juncbase_output(juncbase_output):
                         elif junc_df[column][n] < junc_df[wt_name][n]:
                             junc_df[column.split('avg_')[1]] = 'Down'
                 a += 1                   
-        if flag == True:
-            filt_df.iloc[[n]] = junc_df.iloc[[n]]
-            filt_df.loc[n,'contained in'] = sample_str
+#        if flag == True:
+        filt_df.iloc[[n]] = junc_df.iloc[[n]]
+        filt_df.loc[n,'contained in'] = sample_str
 
     filt_df.replace(to_replace=np.NaN, value='NA', inplace=True)
     filt_df = filt_df[filt_df['strand'] != 'NA']
@@ -141,7 +141,7 @@ def get_junction_sequence(df, gff3_file, fasta_file):
             transcript_by_chr[chromosome].append(transcript)
 
     df['Gene'] = "Unknown"
-    df['intron'] = "Novel"
+    df['intron'] = "Middle"
     df['sequence1'] = ''
     df['sequence2'] = ''
 
@@ -160,41 +160,57 @@ def get_junction_sequence(df, gff3_file, fasta_file):
             
             if strand == tx_strand and coord1 >= start and coord2 <= stop:
                 df.loc[n,'Gene'] = transcript
-                
-                if strand == '+':
-                    if coord1-2 in splice_dict[transcript][0]:
-                        m = splice_dict[transcript][0].index(coord1-2)
-                        if coord2-1 in splice_dict[transcript][1]:
-                            if m+1 == 1:
-                                df.loc[n,'intron'] = 'First'
-                            elif m+1 == len(splice_dict[transcript][0]):
-                                df.loc[n,'intron'] = 'Last'
-                            elif m+1 > 1 and m+1 < len(splice_dict[transcript][0]):
-                                df.loc[n,'intron'] = 'Middle'
-                
-                elif strand == '-':
-                    if coord1 in splice_dict[transcript][1]:
-                        m = splice_dict[transcript][1].index(coord1)
-                        if coord2 in splice_dict[transcript][0]:
-                            if len(splice_dict[transcript][0])-m == 1:
-                                df.loc[n,'intron'] = 'First'
-                            elif m == 0:
-                                df.loc[n,'intron'] = 'Last'
-                            elif m > 0 and m < len(splice_dict[transcript][0]):
-                                df.loc[n,'intron'] = 'Middle'
-
+               
         if strand == '+':
-            sequence1 = fasta_dict[chrom][(coord1-3):(coord1+5)]
-            sequence2 = fasta_dict[chrom][(coord2-6):(coord2+2)]
+            sequence1 = fasta_dict[chrom][(coord1-11):(coord1+9)]
+            sequence2 = fasta_dict[chrom][(coord2-10):(coord2+10)]
         elif strand == '-':
-            sequence1 = fasta_dict[chrom][(coord2-6):(coord2+2)]
+            sequence1 = fasta_dict[chrom][(coord2-10):(coord2+10)]
             sequence1 = SP.reverse_complement(sequence1)
-            sequence2 = fasta_dict[chrom][(coord1-3):(coord1+5)]
+            sequence2 = fasta_dict[chrom][(coord1-11):(coord1+9)]
             sequence2 = SP.reverse_complement(sequence2)
         
         df.loc[n,'sequence1'] = sequence1
         df.loc[n,'sequence2'] = sequence2
 
+    for transcript in transcripts:
+        if transcript in df['Gene'].tolist():
+            tx_df = df[df['Gene'] == transcript]
+            s = tx_df['coord_1']
+            min_idx = s.idxmin()
+            first = int(s.min())
+            print transcript_dict[transcript][2]
+            print first
+            max_idx = s.idxmax()
+            last = int(s.max())
+            print last
+        
+            if first == last:
+                df.loc[min_idx,'intron'] = 'Only'
+            else:
+                if transcript_dict[transcript][2] == '+':
+                    df.loc[min_idx,'intron'] = 'First'
+                    df.loc[max_idx,'intron'] = 'Last'
+                elif transcript_dict[transcript][2] == '-':
+                    df.loc[min_idx,'intron'] = 'Last'
+                    df.loc[max_idx,'intron'] = 'First'
+            
+            for index, coord_1 in s.iteritems():
+                if df['intron'][index] == 'Middle':
+                    if coord_1 in range(first-10, first+10):
+                        df_idx = s[s == coord_1].index[0]
+                        if transcript_dict[transcript][2] == '+':
+                            df.loc[df_idx, 'intron'] = 'First'
+                        elif transcript_dict[transcript][2] == '-':
+                            df.loc[df_idx, 'intron'] = 'Last'
+                    elif coord_1 in range(last-10, last+10):
+                        df_idx = s[s == coord_1].index[0]
+                        if transcript_dict[transcript][2] == '+':
+                            df.loc[df_idx, 'intron'] = 'Last'
+                        elif transcript_dict[transcript][2] == '-':
+                            df.loc[df_idx, 'intron'] = 'First'
+                
+    df = df[df['contained in'] != '']
     df = df.reset_index()
     return df
 
@@ -209,8 +225,8 @@ def generate_consensus_matrix(fasta_dict):
     print genome.keys()
 
     #First generate a consensus matrix for 5' and 3' splice site, where 1st row is A counts, second row is C, third row is T, fourth row is G.
-    pos_matrix_5prime = np.zeros([4,8])
-    pos_matrix_3prime = np.zeros([4,8])
+    pos_matrix_5prime = np.zeros([4,20])
+    pos_matrix_3prime = np.zeros([4,20])
 
     counter1 = 0
     counter2 = 0
@@ -224,9 +240,9 @@ def generate_consensus_matrix(fasta_dict):
         for intron in introns:
             counter1+=1
             if gene.strand == "-":
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 7, intron[0] + 1, gene.strand, genome)
+                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 11, intron[0] + 9, gene.strand, genome)
             else:
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 2, intron[0] + 6, gene.strand, genome)
+                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 10, intron[0] + 10, gene.strand, genome)
             for a, base in enumerate(seq):
                 if base == "A":
                     pos_matrix_5prime[0,a] = pos_matrix_5prime[0,a]+1
@@ -238,9 +254,9 @@ def generate_consensus_matrix(fasta_dict):
                     pos_matrix_5prime[3,a] = pos_matrix_5prime[3,a]+1
 
             if gene.strand == "-":
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1] - 2, intron[1] + 6, gene.strand, genome)
+                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1] - 10, intron[1] + 10, gene.strand, genome)
             else:
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1] - 7, intron[1] + 1, gene.strand, genome)
+                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1] - 11, intron[1] + 9, gene.strand, genome)
             for b, base in enumerate(seq):
                 if base == "A":
                     pos_matrix_3prime[0,b] = pos_matrix_3prime[0,b]+1
@@ -256,7 +272,7 @@ def generate_consensus_matrix(fasta_dict):
     a = 0
     while a < 4:
         b = 0
-        while b < 8:
+        while b < 20:
             pos_matrix_5prime[a,b] = (pos_matrix_5prime[a,b])/36855.
             pos_matrix_3prime[a,b] = (pos_matrix_3prime[a,b])/36855.
             b += 1
@@ -290,9 +306,7 @@ def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime):
             seq5 = df['sequence1'][n]
             seq3 = df['sequence2'][n]
         
-        gene_matrix_5prime = np.zeros([4,8])
-        
-        gene_matrix_5prime = np.zeros([4,8])
+        gene_matrix_5prime = np.zeros([4,20])
         for a, base in enumerate(seq5):
             if base == "A":
                 gene_matrix_5prime[0,a] = gene_matrix_5prime[0,a]+1
@@ -303,7 +317,7 @@ def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime):
             if base == "G":
                 gene_matrix_5prime[3,a] = gene_matrix_5prime[3,a]+1
 
-        gene_matrix_3prime = np.zeros([4,8])
+        gene_matrix_3prime = np.zeros([4,20])
         for b, base in enumerate(seq3):
             if base == "A":
                 gene_matrix_3prime[0,b] = gene_matrix_3prime[0,b]+1
@@ -320,7 +334,7 @@ def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime):
         a = 0
         while a < 4:
             b = 0
-            while b < 8:
+            while b < 20:
                 score_5prime += abs(pos_matrix_5prime[a,b] - (gene_matrix_5prime[a,b]))
                 score_3prime += abs(pos_matrix_3prime[a,b] - (gene_matrix_3prime[a,b]))
                 b += 1
