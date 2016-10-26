@@ -116,6 +116,53 @@ def make_fasta_dict(fasta_file):
     return fasta_dict
 
 
+##Input: dictionary of coordinates by transcript (transcript:[list of coordinates][list of coordinates])
+def get_sequence(coord_dict, gff3_file, fasta_file):
+    transcript_dict = SP.build_transcript_dict(gff3_file)
+    if type(fasta_file) is str:
+        fasta_dict = make_fasta_dict(fasta_file)
+    else:
+        fasta_dict = fasta_file
+    
+    seq_dict = {}
+    counter5 = 0
+    counter3 = 0
+    other = 0
+    for transcript, coord_sets in coord_dict.iteritems():
+        seq_dict[transcript] = []
+        chrom = transcript_dict[transcript][3]
+        strand = transcript_dict[transcript][2]
+        for coord in coord_sets[0]:
+            seq_type = 'other'
+            if strand == "+":
+                sequence = fasta_dict[chrom][(coord-9):(coord+11)]
+            elif strand == "-":
+                sequence = fasta_dict[chrom][(coord-10):(coord+10)]
+                sequence = SP.reverse_complement(sequence)
+
+            if sequence[10:12] == 'GT' or sequence[10:12] == 'GC': 
+                seq_type = "5'"
+                counter5 += 1
+            seq_dict[transcript].append((sequence, seq_type))
+     
+        for coord in coord_sets[1]:
+            seq_type = 'other'
+            if strand == "+":
+                sequence = fasta_dict[chrom][(coord-9):(coord+11)]
+            elif strand == "-":
+                sequence = fasta_dict[chrom][(coord-10):(coord+10)]
+                sequence = SP.reverse_complement(sequence)
+                
+            if sequence[8:10] == 'AG': 
+                seq_type = "3'"
+                counter3 += 1
+            seq_dict[transcript].append((sequence, seq_type))
+    
+    print str(counter5)+" 5' splice sites"
+    print str(counter3)+" 3' splice sites"
+    
+    return seq_dict
+        
 def get_junction_sequence(df, gff3_file, fasta_file):
     df = df.sort_values('chr', axis=0)
     
