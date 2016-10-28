@@ -191,6 +191,7 @@ def get_junction_sequence(df, gff3_file, fasta_file):
     df['intron'] = "Middle"
     df['sequence1'] = ''
     df['sequence2'] = ''
+    df['intron sequence'] = 'No sequence here'
 
     n = 0
     for n in range(len(df)):
@@ -211,14 +212,18 @@ def get_junction_sequence(df, gff3_file, fasta_file):
         if strand == '+':
             sequence1 = fasta_dict[chrom][(coord1-11):(coord1+9)]
             sequence2 = fasta_dict[chrom][(coord2-10):(coord2+10)]
+            all_seq = fasta_dict[chrom][(coord1-1):coord2]
         elif strand == '-':
             sequence1 = fasta_dict[chrom][(coord2-10):(coord2+10)]
             sequence1 = SP.reverse_complement(sequence1)
             sequence2 = fasta_dict[chrom][(coord1-11):(coord1+9)]
             sequence2 = SP.reverse_complement(sequence2)
+            all_seq = fasta_dict[chrom][(coord1-1):coord2]
+            all_seq = SP.reverse_complement(all_seq)
         
         df.loc[n,'sequence1'] = sequence1
         df.loc[n,'sequence2'] = sequence2
+        df.loc[n,'intron sequence'] = all_seq
 
     for transcript in transcripts:
         if transcript in df['Gene'].tolist():
@@ -396,7 +401,7 @@ def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime):
     return df
 
 def reformat_df(df, sample_list):
-    new_columns1=['Gene', 'as_event_type', 'chr', 'coord_1', 'coord_2', 'sequence1', 'sequence2', 'intron length', '5p score', '3p score', 'strand', 'intron', '#Contains_Novel_or_Only_Known(Annotated)_Junctions', 'contained in']
+    new_columns1=['Gene', 'as_event_type', 'chr', 'coord_1', 'coord_2', 'sequence1', 'sequence2', 'intron length', 'intron sequence', '5p score', '3p score', 'strand', 'intron', '#Contains_Novel_or_Only_Known(Annotated)_Junctions', 'contained in']
     new_df1 = df[new_columns1]
     new_df1 = new_df1.sort_values('as_event_type', axis=0)
     new_df1 = new_df1.rename(columns = {'as_event_type':'event','sequence1':'5p sequence','sequence2':'3p sequence','#Contains_Novel_or_Only_Known(Annotated)_Junctions':'known or novel'})

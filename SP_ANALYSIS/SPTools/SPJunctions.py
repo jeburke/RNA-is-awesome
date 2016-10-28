@@ -63,23 +63,27 @@ def build_junction_dict(junction_bed, gff3_file, transcript_dict):
                                 ann_size = size
                             else:
                                 for intron in ss_by_gene[transcript[:-2]]:
-                                    ann_size = abs(intron[1]-intron[0])
+                                    ann_size = None
                                     if strand == '+':
                                         if jct_start >= intron[0] and jct_end <= intron[1]:
                                             jct_type = 'Intronic'
-                                            if intron[1]-intron[0] > 20:
+                                            if intron[1]-intron[0] > 100:
                                                 jct_type = 'Recursive'
+                                            ann_size = abs(intron[1]-intron[0])
                                     elif strand == '-':
                                         if jct_start <= intron[0] and jct_end >= intron[1]:
                                             jct_type = 'Intronic'
-                                            if intron[0]-intron[1] > 20:
+                                            if intron[0]-intron[1] > 100:
                                                 jct_type = 'Recursive'
+                                            ann_size = abs(intron[1]-intron[0])
+                                if ann_size == None: jct_type = 'Other'
                             break
                         except IndexError:
                             print transcript
  
                 try:
                     if jct_transcript != None:
+                        if jct_type == 'Other': ann_size = 0
                         if jct_transcript not in junction_dict:
                             junction_dict[jct_transcript] = []
                         else:
@@ -87,9 +91,7 @@ def build_junction_dict(junction_bed, gff3_file, transcript_dict):
                 except ValueError:
                     print jct_transcript
                     print jct_type
-                    #print jct_transcript
-                    #print ss_dict[jct_transcript]
-                    #print junction_dict[jct_transcript]
+
     return junction_dict                       
 
 def junction_v_peak(junction_dict, peak_pipeline_out):
