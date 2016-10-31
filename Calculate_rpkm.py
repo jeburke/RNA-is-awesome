@@ -73,10 +73,10 @@ for gene in gene_dict:
 
     iter_ko = fsam_ko.fetch(gene_data[1], int(gene_data[2]), int(gene_data[3]))
     for read in iter_ko:
-        if gene_data[4] == "-":
+        if gene_data[4] == "+":
             if read.is_reverse:
                 ko_gene_count += 1
-        elif gene_data[4] == "+":
+        elif gene_data[4] == "-":
             if not read.is_reverse:
                 ko_gene_count += 1
                 
