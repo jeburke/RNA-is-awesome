@@ -91,8 +91,8 @@ for gene in gene_dict:
         ratio = sys.maxint
     else:
         ratio = float(wt_gene_rpkm) / float(ko_gene_rpkm)
-    ratio2 = (float(wt_gene_count+1)*float(wt_reads)) / (float(ko_gene_count+1)*float(ko_reads))
-    rpkm_dict[gene] = [wt_gene_rpkm, ko_gene_rpkm, float(ratio), wt_gene_count, ko_gene_count, float(ratio2)]
+    #ratio2 = (float(wt_gene_count+1)*float(wt_reads)) / (float(ko_gene_count+1)*float(ko_reads))
+    rpkm_dict[gene] = [wt_gene_rpkm, ko_gene_rpkm, float(ratio), wt_gene_count, ko_gene_count]
 
     fsam_wt.close()
     fsam_ko.close()        
@@ -103,7 +103,8 @@ print wt_median
 print ko_median
 
 fout = open("{0}_rpkm_ratios.txt".format(sys.argv[3]), "w")
-header_list = ["Gene", "WT RPKM", "KO RPKM", "WT/KO", "Wild Reads", "KO Reads", "Normalized WT/KO", "\n"]
+#header_list = ["Gene", "WT RPKM", "KO RPKM", "WT/KO", "Wild Reads", "KO Reads", "Normalized WT/KO", "\n"]
+header_list = ["Gene", "WT RPKM", "KO RPKM", "WT/KO", "Wild Reads", "KO Reads", "\n"]
 header = "\t".join(header_list)
 fout.write(header)
 ko_median_gene = ""
@@ -118,7 +119,8 @@ for gene in rpkm_dict:
     if ko_median - data[1] < ko_diff:
         ko_diff = ko_median - data[1]
         ko_median_gene = gene
-    line_list = [gene, str(data[0]), str(data[1]), str(data[2]), str(data[3]), str(data[4]), str(data[5]), "\n"]
+    #line_list = [gene, str(data[0]), str(data[1]), str(data[2]), str(data[3]), str(data[4]), str(data[5]), "\n"]
+    line_list = [gene, str(data[0]), str(data[1]), str(data[2]), str(data[3]), str(data[4]), "\n"]
     line = "\t".join(line_list)
     fout.write(line)
 
