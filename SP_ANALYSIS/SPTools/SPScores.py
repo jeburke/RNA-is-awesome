@@ -91,8 +91,8 @@ def read_juncbase_output(juncbase_output):
                     filt_df.loc[n, column] = filt_df[wt][n]
                     
     
-    filt_df['coord_1'] = filt_df['exclusion_junctions'].str.split(':').str.get(1).str.split('-').str.get(0)
-    filt_df['coord_2'] = filt_df['exclusion_junctions'].str.split(':').str.get(1).str.split('-').str.get(1).str.split(';').str.get(0)
+    filt_df['coord_1'] = filt_df['exclusion_junctions'].str.split(',').str.get(0).str.split(':').str.get(1).str.split('-').str.get(0)
+    filt_df['coord_2'] = filt_df['exclusion_junctions'].str.split(',').str.get(0).str.split(':').str.get(1).str.split('-').str.get(1).str.split(';').str.get(0)
     
     print sample_list
     return (filt_df, sample_list)
@@ -210,13 +210,13 @@ def get_junction_sequence(df, gff3_file, fasta_file):
                 df.loc[n,'Gene'] = transcript
                
         if strand == '+':
-            sequence1 = fasta_dict[chrom][(coord1-11):(coord1+9)]
-            sequence2 = fasta_dict[chrom][(coord2-10):(coord2+10)]
+            sequence1 = fasta_dict[chrom][(coord1-3):(coord1+5)]
+            sequence2 = fasta_dict[chrom][(coord2-6):(coord2+2)]
             all_seq = fasta_dict[chrom][(coord1-1):coord2]
         elif strand == '-':
-            sequence1 = fasta_dict[chrom][(coord2-10):(coord2+10)]
+            sequence1 = fasta_dict[chrom][(coord2-6):(coord2+2)]
             sequence1 = SP.reverse_complement(sequence1)
-            sequence2 = fasta_dict[chrom][(coord1-11):(coord1+9)]
+            sequence2 = fasta_dict[chrom][(coord1-3):(coord1+5)]
             sequence2 = SP.reverse_complement(sequence2)
             all_seq = fasta_dict[chrom][(coord1-1):coord2]
             all_seq = SP.reverse_complement(all_seq)
@@ -277,8 +277,8 @@ def generate_consensus_matrix(fasta_dict):
     print genome.keys()
 
     #First generate a consensus matrix for 5' and 3' splice site, where 1st row is A counts, second row is C, third row is T, fourth row is G.
-    pos_matrix_5prime = np.zeros([4,20])
-    pos_matrix_3prime = np.zeros([4,20])
+    pos_matrix_5prime = np.zeros([4,8])
+    pos_matrix_3prime = np.zeros([4,8])
 
     counter1 = 0
     counter2 = 0
@@ -292,9 +292,9 @@ def generate_consensus_matrix(fasta_dict):
         for intron in introns:
             counter1+=1
             if gene.strand == "-":
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 11, intron[0] + 9, gene.strand, genome)
+                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0]-7, intron[0]+1, gene.strand, genome)
             else:
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0] - 10, intron[0] + 10, gene.strand, genome)
+                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0]-2, intron[0]+6, gene.strand, genome)
             for a, base in enumerate(seq):
                 if base == "A":
                     pos_matrix_5prime[0,a] = pos_matrix_5prime[0,a]+1
@@ -306,9 +306,9 @@ def generate_consensus_matrix(fasta_dict):
                     pos_matrix_5prime[3,a] = pos_matrix_5prime[3,a]+1
 
             if gene.strand == "-":
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1] - 10, intron[1] + 10, gene.strand, genome)
+                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1]-2, intron[1]+6, gene.strand, genome)
             else:
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1] - 11, intron[1] + 9, gene.strand, genome)
+                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1]-7, intron[1]+1, gene.strand, genome)
             for b, base in enumerate(seq):
                 if base == "A":
                     pos_matrix_3prime[0,b] = pos_matrix_3prime[0,b]+1
@@ -324,7 +324,7 @@ def generate_consensus_matrix(fasta_dict):
     a = 0
     while a < 4:
         b = 0
-        while b < 20:
+        while b < 8:
             pos_matrix_5prime[a,b] = (pos_matrix_5prime[a,b])/36855.
             pos_matrix_3prime[a,b] = (pos_matrix_3prime[a,b])/36855.
             b += 1
@@ -358,7 +358,7 @@ def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime):
             seq5 = df['sequence1'][n]
             seq3 = df['sequence2'][n]
         
-        gene_matrix_5prime = np.zeros([4,20])
+        gene_matrix_5prime = np.zeros([4,8])
         for a, base in enumerate(seq5):
             if base == "A":
                 gene_matrix_5prime[0,a] = gene_matrix_5prime[0,a]+1
@@ -386,7 +386,7 @@ def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime):
         a = 0
         while a < 4:
             b = 0
-            while b < 20:
+            while b < 8:
                 score_5prime += abs(pos_matrix_5prime[a,b] - (gene_matrix_5prime[a,b]))
                 score_3prime += abs(pos_matrix_3prime[a,b] - (gene_matrix_3prime[a,b]))
                 b += 1
@@ -415,6 +415,7 @@ def reformat_df(df, sample_list):
     new_df2 = new_df2.rename(columns = {'as_event_type':'event'})
     new_df2 = new_df2.reset_index()
     new_df2 = new_df2.drop('index', axis=1)
+    new_df2.replace(to_replace='NA', value=np.NaN, inplace=True)
     new_df2[sample_list] = new_df2[sample_list].astype(float)
     
     return new_df1, new_df2

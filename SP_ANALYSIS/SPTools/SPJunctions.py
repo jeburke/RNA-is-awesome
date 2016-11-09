@@ -38,6 +38,7 @@ def build_junction_dict(junction_bed, gff3_file, transcript_dict):
         for line in fin:
             jct_transcript = None
             jct_type = 'Other'
+            intron_num = None
             if line.startswith('c'):
                 columns = line.split('\t')
                 chromosome = columns[0]
@@ -61,33 +62,59 @@ def build_junction_dict(junction_bed, gff3_file, transcript_dict):
                             if jct_start in all_sites[0] and jct_end in all_sites[1]:
                                 jct_type = 'Annotated'
                                 ann_size = size
+                                intron_num = all_sites[0].index(jct_start)+1
                             else:
+                                n=0
                                 for intron in ss_by_gene[transcript[:-2]]:
+                                    n += 1
                                     ann_size = None
                                     if strand == '+':
                                         if jct_start >= intron[0] and jct_end <= intron[1]:
-                                            jct_type = 'Intronic'
-                                            if intron[1]-intron[0] > 100:
-                                                jct_type = 'Recursive'
                                             ann_size = abs(intron[1]-intron[0])
+                                            jct_type = 'Nested'
+                                            intron_num = n
+                                            break
+                                        elif jct_start >= intron[0] and jct_end == intron[1]:
+                                            ann_size = abs(intron[1]-intron[0])
+                                            jct_type = 'Tethered'
+                                            intron_num = n
+                                            break
+                                        elif jct_start == intron[0] and jct_end <= intron[1]:
+                                            ann_size = abs(intron[1]-intron[0])
+                                            jct_type = 'Tethered' 
+                                            intron_num = n
+                                            break
+                                        
                                     elif strand == '-':
                                         if jct_start <= intron[0] and jct_end >= intron[1]:
-                                            jct_type = 'Intronic'
-                                            if intron[0]-intron[1] > 100:
-                                                jct_type = 'Recursive'
-                                            ann_size = abs(intron[1]-intron[0])
-                                if ann_size == None: jct_type = 'Other'
+                                            jct_type = 'Nested'
+                                            ann_size = intron[0]-intron[1]
+                                            intron_num = n
+                                            break
+                                        elif jct_start <= intron[0] and jct_end == intron[1]:
+                                            jct_type = 'Tethered'
+                                            ann_size = intron[0]-intron[1]
+                                            intron_num = n
+                                            break
+                                        elif jct_start == intron[0] and jct_end >= intron[1]:
+                                            jct_type = 'Tethered'
+                                            ann_size = intron[0]-intron[1]
+                                            intron_num = n
+                                            break
                             break
                         except IndexError:
                             print transcript
  
                 try:
                     if jct_transcript != None:
-                        if jct_type == 'Other': ann_size = 0
+                        if ann_size == None:
+                            jct_type = "Other"
+                            ann_size = 0
+                            intron_num = None
                         if jct_transcript not in junction_dict:
                             junction_dict[jct_transcript] = []
                         else:
-                            junction_dict[jct_transcript].append([jct_start, jct_end, depth, jct_type, size, ann_size])
+                            junction_dict[jct_transcript].append([jct_start, jct_end, depth, jct_type, size, ann_size, intron_num])
                 except ValueError:
                     print jct_transcript
                     print jct_type
@@ -107,10 +134,7 @@ def junction_v_peak(junction_dict, peak_pipeline_out):
         for junction in junction_dict[transcript]:
             peak_at_jct5 = False
             peak_at_jct3 = False
-            #if transcript == 'CNAG_00483T0': 
-            #    print junction[0]
-            #    print junction[1]
-            
+
             if junction[0] in peaks:
                 peak_at_jct5 = True
                 matched_peaks.add(junction[0])
@@ -123,11 +147,7 @@ def junction_v_peak(junction_dict, peak_pipeline_out):
             new_dict[transcript].append(junction_dict[transcript][n]+[peak_at_jct5,peak_at_jct3])
             n += 1
         unmatched_peaks = list(set(peaks).difference(matched_peaks))
-        #if transcript == 'CNAG_00483T0':
-        #    print junction_dict['CNAG_00483T0']
-        #    print peaks
-        #    print matched_peaks
-        #    print unmatched_peaks
+        
         if transcript not in novel_peak_dict:
             novel_peak_dict[transcript] = []
         for row in transcript_df.iterrows():
@@ -146,29 +166,38 @@ def count_junctions(jct_peak_dict, novel_peaks):
     total_rec = 0
     
     rec_dict = {}
+    ann_dict = {}
     for transcript, jcts in jct_peak_dict.iteritems():
         recursive = False
         rec_per_t = 0
         if len(jcts) > 0: transcript_count += 1
+        sizes = []
+        reads = []
         jct_sizes = []
         ann_sizes = []
+        intron_num = []
         for jct in jcts:
             jct_counter += 1
             if jct[3] == 'Annotated': 
                 ann_counter += 1
+                if jct[2] > 10:
+                    sizes.append(jct[4])
+                    reads.append(jct[2])
                 if jct[6] == True or jct[7] == True: peak_at_ann += 1
             else:
                 unk_counter += 1
                 if jct[6] == True or jct[7] == True: peak_at_unk += 1
                     
-            if jct[3] == 'Recursive':
+            if jct[3] == 'Nested' or jct[3] == 'Tethered':
                 recursive = True
                 rec_per_t += 1
                 jct_sizes.append(jct[4])
                 ann_sizes.append(jct[5])
+                intron_num.append(jct[6])
+        ann_dict[transcript] = [sizes, reads]
         if recursive == True: 
             rec_count += 1
-            rec_dict[transcript] = [rec_per_t,jct_sizes,ann_sizes]
+            rec_dict[transcript] = [rec_per_t,jct_sizes,ann_sizes, intron_num]
             total_rec += rec_per_t
     print str(jct_counter)+' junctions detected'
     print str(ann_counter)+' junctions at annotated sites'
@@ -196,13 +225,13 @@ def count_junctions(jct_peak_dict, novel_peaks):
     print str(GU)+' with 5prime splice sites'
     print str(AG)+' with 3prime splice sites'
     
-    return rec_dict
+    return rec_dict, ann_dict
 
 def rec_seq(jct_dict, gff3_file, fasta_file):
     rec_dict = {}
     for transcript, junctions in jct_dict.iteritems():
         for junction in junctions:
-            if junction[3] == "Recursive":
+            if junction[3] == "Nested":
                 if transcript not in rec_dict:
                     rec_dict[transcript] = [[],[]]
                 rec_dict[transcript][0].append(junction[0])

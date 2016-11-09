@@ -44,8 +44,8 @@ def build_transcript_dict(gff3_file, organism=None):
                 elif columns[2] == 'CDS':
                     transcript = columns[8].split(':')[1]
                     #if transcript[-2] != 'T': transcript = transcript[:-1]+'T1'
-                    transcript_dict[transcript][4].append(columns[3])
-                    transcript_dict[transcript][5].append(columns[4])
+                    transcript_dict[transcript][4].append(int(columns[3]))
+                    transcript_dict[transcript][5].append(int(columns[4]))
                         
             if len(columns) > 1 and organism is None:
                 if columns[2] == "mRNA" or columns[2] == "snoRNA_gene" or columns[2] == "tRNA_gene":
@@ -68,8 +68,8 @@ def build_transcript_dict(gff3_file, organism=None):
                     if transcript[-2] != 'T': transcript = transcript+'T0'
                     if transcript not in transcript_dict:
                         transcript_dict[transcript] = [0,0,None,None,[],[]]
-                    transcript_dict[transcript][4].append(columns[3])
-                    transcript_dict[transcript][5].append(columns[4])
+                    transcript_dict[transcript][4].append(int(columns[3]))
+                    transcript_dict[transcript][5].append(int(columns[4]))
     transcript_dict = collections.OrderedDict(sorted(transcript_dict.items()))
     return transcript_dict
 
@@ -170,8 +170,13 @@ def list_splice_sites(gff3_file, chromosome="All", gene_list=None, organism=None
     
     #Trim to entries in gene list
     if gene_list is not None:
-        splice_site_dict = dict([(transcript, splice_site_dict[transcript]) for transcript in gene_list if transcript in splice_site_dict])
-    
+        splice_site_dict = {transcript: splice_site_dict[transcript] for transcript in gene_list}
+        #new_dict = {}
+        #for transcript, sites in splice_site_dict.iteritems():
+        #    if transcript in gene_list:
+        #        print transcript
+        #        new_dict[transcript] = sites
+        #splice_site_dict = new_dict
     #Trim to just one chromosome
     if chromosome != "All":
         splice_site_dict = dict([(transcript, coords) for transcript, coords in splice_site_dict.iteritems() if coords[2] == chromosome])
