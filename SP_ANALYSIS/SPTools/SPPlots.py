@@ -9,6 +9,8 @@ from beeswarm import *
 from scipy.stats import ks_2samp
 import re
 import operator
+import seaborn as sns
+sns.set_style('white')
 
 #################################################################
 ## Convert output from normalize_counts to lists for plotting  ##
@@ -399,30 +401,33 @@ def histogram(df1, SampleTuple1, df2=None, SampleTuple2=None, xlabel="Intermedia
     plt.show()
     return fig1
     
-##Input is the outuput from the Score_splice_sites.py script (Splice_site_strengths.tsv)
+##Input is the outuput from the Score_splice_sites.py script (Splice_site_strengths.tsv), can also take score_dict directly
 def bin_transcripts(input_file, bin_size, bin_by="length", df_list=None):
     score_dict = {}
-    with open(input_file, "r") as fin:
-        for line in fin:
-            if line.startswith("Transcript"): 
-                continue
-            else:
-                columns = re.split(r'\t', line)
-                transcript = columns[0]
-                intron = columns[1]
-                five_p_score = float(columns[2])
-                three_p_score = float(columns[3])
-                length = int(columns[4])
-                key = (transcript, int(intron)+1)
-                if bin_by == "length" and length > 30:
-                    score_dict[key] = length
-                elif bin_by == "length" and length <= 30:
+    if type(input_file) == str:
+        with open(input_file, "r") as fin:
+            for line in fin:
+                if line.startswith("Transcript"): 
                     continue
-                elif bin_by == "five_p_score":
-                    score_dict[key] = five_p_score
-                elif bin_by == "three_p_score":
-                    score_dict[key] = three_p_score
-                else: print "I don't recognize the bin_by value"
+                else:
+                    columns = re.split(r'\t', line)
+                    transcript = columns[0]
+                    intron = columns[1]
+                    five_p_score = float(columns[2])
+                    three_p_score = float(columns[3])
+                    length = int(columns[4])
+                    key = (transcript, int(intron)+1)
+                    if bin_by == "length" and length > 30:
+                        score_dict[key] = length
+                    elif bin_by == "length" and length <= 30:
+                        continue
+                    elif bin_by == "five_p_score":
+                        score_dict[key] = five_p_score
+                    elif bin_by == "three_p_score":
+                        score_dict[key] = three_p_score
+                    else: print "I don't recognize the bin_by value"
+    elif type(input_file) == dict:
+        score_dict = input_file
     if df_list is not None:
         score_dict = {key: score_dict[key] for key in score_dict if key in df_list }
     sorted_dict = sorted(score_dict.items(), key=operator.itemgetter(1))
@@ -504,7 +509,7 @@ def cumulative_function(df, score_file, bin_size, SampleTuple1, bin_by=False, bi
     new_df1 = df[df.index.map(lambda x: x in transcript_list_1)]
     new_df2 = df[df.index.map(lambda x: x in transcript_list_2)]
     
-    fig1 = plt.figure()
+    fig1 = plt.figure(figsize=(8, 6), dpi=600)
     ax1 = fig1.add_subplot(111)
     if plot_type == "CDF":
         x1 = get_ratios(new_df1, SampleTuple1[0], SampleTuple1[1], log=False)
@@ -544,9 +549,10 @@ def cumulative_function(df, score_file, bin_size, SampleTuple1, bin_by=False, bi
         print "Zero values removed:"
         print str(bin_size-len(x2))+" from high bin"
         print str(bin_size-len(x1))+" from low bin"
-        ax1.hist(x2, color='coral', edgecolor='coral', label="High 1", bins=bins, alpha=0.9)
-        ax1.hist(x1, color='royalblue', edgecolor='royalblue', label="Low 1", bins=bins, alpha=0.5)
-
+        #ax1.hist(x2, color='coral', edgecolor='coral', label="High 1", bins=bins, alpha=0.9)
+        #ax1.hist(x1, color='royalblue', edgecolor='royalblue', label="Low 1", bins=bins, alpha=0.5)
+        sns.distplot(x2, color='orangered', label="High", ax=ax1, bins=bins)
+        sns.distplot(x1, color='royalblue', label="Low", ax=ax1, bins=bins)
         ax1.legend(loc=1)
         if SampleTuple2 is not None:
             y1 = get_ratios(new_df1, SampleTuple2[0], SampleTuple2[1], log=True)
@@ -572,10 +578,65 @@ def cumulative_function(df, score_file, bin_size, SampleTuple1, bin_by=False, bi
     #ax1.set_ylim([0.9*len(new_df1),len(new_df1)+len(new_df1)*0.01])
     #ax1.set_ylim([0*len(new_df1),len(new_df1)+len(new_df1)*0.01])
     xmax = np.nanmax([np.nanmax(x1),np.nanmax(x2)])
-    ax1.set_xlim([-2,xmax+.05*xmax])
+    ax1.set_xlim([-1,xmax+.05*xmax])
     #ax1.set_xlim([-2, 50])
     ax1.set_title(title)
     plt.show()
     return fig1
-    
 
+
+##################################################################################
+## Functions for normalizing data and creating a CDF that actually adds up to 1 ##
+## Takes a list of data                                                         ##
+##################################################################################
+
+def normalize(data):
+    data = [float(x)/sum(data) for x in data]
+    return data
+
+def cdf_values(data, bins='auto'):
+    if bins=='auto':
+        bins = len(data)/10
+    values, base = np.histogram(data, bins=bins)
+    values = normalize(values)
+    cumulative = np.cumsum(values)
+    base = np.insert(base, 0, min(data))
+    cumulative = np.insert(cumulative, 0, 0)
+    return cumulative, base
+
+def cdf_for_n_lists(list_of_lists, label_list=None, color_list=None, x_title='Lengths', y_title='Fraction of introns'):
+    fig = plt.figure(figsize=(8, 6), dpi=600)
+    ax = fig.add_subplot(111)
+    if label_list is None:
+        label_list = range(len(list_of_lists))
+    if color_list is None:
+        color_list = ['0.3','cornflowerblue','orangered','0.7','limegreen','mediumvioletred']
+    
+    n = 0 
+    for n in range(len(list_of_lists)):
+        cumulative, base = cdf_values(list_of_lists[n])
+        ax.plot(base[:-1], cumulative, c=color_list[n], linewidth=3.0, label=label_list[n])
+        
+    #ax.legend(bbox_to_anchor=(1, 0), loc='lower left', fontsize=14)
+    ax.legend(fontsize=14)
+    plt.ylabel(y_title, fontsize=16)
+    plt.xlabel(x_title, fontsize=16)
+    ax.tick_params(axis='x', labelsize=14)
+    ax.tick_params(axis='y', labelsize=14)
+    plt.show()
+    
+    return fig
+        
+def sns_distplot_n(list_of_lists, label_list=None, color_list=None, x_title='Lengths', y_title='Franction of introns'):
+    fig = plt.figure(figsize=(8, 6), dpi=600)
+    ax = fig.add_subplot(111)
+    if label_list is None:
+        label_list = range(len(list_of_lists))
+    if color_list is None:
+        color_list = ['0.3','cornflowerblue','orangered','0.7','limegreen','mediumvioletred']
+    
+    n = 0 
+    for n in range(len(list_of_lists)):
+        ax = sns.distplot(list_of_lists[n])
+        
+    

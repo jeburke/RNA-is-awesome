@@ -376,6 +376,7 @@ class GeneDict(CommonEquality):
                 self.GenesByCNAG[data[CNAG_index]]=genetemp
         f.close()
                 
+
     def PopulateFromFile_new(self):
         '''designed to work with Guillem's new annotations'''
         filename = "/home/jordan/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3"

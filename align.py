@@ -441,8 +441,8 @@ def align_once(fp_obj, flags, ref, match_type, use_quality=False,
     
     logger.info('Launching samtools again to sort BAM output')
     output_dir, output_file = os.path.split(path_to_unsorted)
-    bam_file = os.path.splitext(output_file)[0]
-    sorter_args = [path_to_samtools, 'sort', '-o', output_file, bam_file]
+    bam_file = os.path.splitext(output_file)[0]+'.bam'
+    sorter_args = [path_to_samtools, 'sort', output_file, '-o', bam_file]
     logger.info(' '.join(sorter_args))
     samtools_stdout = PolledPipe(logger=logger, level=logging.WARN)
     samtools_stderr = PolledPipe(logger=logger, level=logging.ERROR)
@@ -455,14 +455,15 @@ def align_once(fp_obj, flags, ref, match_type, use_quality=False,
         return
     
     # don't destroy the files until we're sure we succeeded!
-    assert_path(os.path.join(output_dir, bam_file + '.bam'))
+    assert_path(os.path.join(output_dir, bam_file))
     logger.debug('Removing unsorted file %s', path_to_unsorted)
     os.remove(path_to_unsorted)
-    
+
+   
     logger.debug('Launching samtools again to index sorted BAM output') 
     samtools_stdout = PolledPipe(logger=logger, level=logging.WARN)
     samtools_stderr = PolledPipe(logger=logger, level=logging.ERROR)
-    index_args = [path_to_samtools, 'index', bam_file + '.bam']
+    index_args = [path_to_samtools, 'index', bam_file]
     samtools_indexer = Popen(index_args, stdout=samtools_stdout.w,
                             stderr=samtools_stderr.w, cwd=output_dir)
     wait_for_job(samtools_indexer, [samtools_stdout, samtools_stderr], logger)
@@ -472,7 +473,7 @@ def align_once(fp_obj, flags, ref, match_type, use_quality=False,
         return
     
     # Make sure indexing succeeds
-    assert_path(os.path.join(output_dir, bam_file + '.bam.bai'))
+    assert_path(os.path.join(output_dir, bam_file + '.bai'))
     return
 
 if __name__=="__main__": main()

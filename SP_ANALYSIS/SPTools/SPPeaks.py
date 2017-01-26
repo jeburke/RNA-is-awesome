@@ -47,7 +47,7 @@ def build_transcript_dict(gff3_file, organism=None):
                     transcript_dict[transcript][4].append(int(columns[3]))
                     transcript_dict[transcript][5].append(int(columns[4]))
                         
-            if len(columns) > 1 and organism is None:
+            if len(columns) == 9 and organism is None:
                 if columns[2] == "mRNA" or columns[2] == "snoRNA_gene" or columns[2] == "tRNA_gene":
                     transcript = columns[8]
                     transcript = transcript.split("=")[1]
@@ -63,7 +63,7 @@ def build_transcript_dict(gff3_file, organism=None):
                         transcript_dict[transcript][2] = columns[6]
                         transcript_dict[transcript][3] = columns[0]
                 elif columns[2] == "CDS":
-                    transcript = columns[8].split("=")[1].split(".")[0]
+                    transcript = columns[8].split("=")[1].split(".")[0].split(';')[0]
                     if 'mRNA' in transcript: transcript = transcript.split("_")[0]
                     if transcript[-2] != 'T': transcript = transcript+'T0'
                     if transcript not in transcript_dict:
@@ -72,6 +72,7 @@ def build_transcript_dict(gff3_file, organism=None):
                     transcript_dict[transcript][5].append(int(columns[4]))
     transcript_dict = collections.OrderedDict(sorted(transcript_dict.items()))
     return transcript_dict
+
 
 ##################################################################################
 ## Determines splice site locations from gff3 file. Needs to have "chr" format  ##
@@ -99,11 +100,11 @@ def list_splice_sites(gff3_file, chromosome="All", gene_list=None, organism=None
                 if transcript not in splice_site_dict:
                     splice_site_dict[transcript] = [[],[],chrom]
                 if columns[6] == "+":
-                    splice_site_dict[transcript][0].append(int(columns[4]))
-                    splice_site_dict[transcript][1].append(int(columns[3])-1)
+                    splice_site_dict[transcript][0].append(int(columns[4])-1)
+                    splice_site_dict[transcript][1].append(int(columns[3])-2)
                 elif columns[6] == "-":
-                    splice_site_dict[transcript][0].append(int(columns[3]))
-                    splice_site_dict[transcript][1].append(int(columns[4])+1)
+                    splice_site_dict[transcript][0].append(int(columns[3])-1)
+                    splice_site_dict[transcript][1].append(int(columns[4]))
         
         if len(columns) > 1 and organism is None:
             if columns[2] == "mRNA" or columns[2] == "snoRNA_gene" or columns[2] == "tRNA_gene":
@@ -269,7 +270,7 @@ def build_bedgraph_dict(transcript_dict, bedgraph_file):
             if bed_chr in rom_lat:
                 bed_chr = rom_lat[bed_chr]
             bed_position = int(columns[1])
-            bed_peak = int(columns[3])
+            bed_peak = float(columns[3])
             
             if bed_chr in transcript_by_chr:
                 transcript_list = transcript_by_chr[bed_chr]
@@ -292,7 +293,7 @@ def build_bedgraph_dict(transcript_dict, bedgraph_file):
     bedgraph_dict = collections.OrderedDict(sorted(bedgraph_dict.items()))
 
     print datetime.now()
-    print bedgraph_dict
+    #print bedgraph_dict
     #return bedgraph_dict
 
 def read_CNAGsort_bedgraph(CNAGsorted_bedgraph):
@@ -897,7 +898,7 @@ def peaks_by_gene(gff3_file, bedgraph_file, chromosome="All", gene_list=None, so
 ############################################################################################################
 
 def complement(seq):
-    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A','N':'N'} 
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A','N':'N', 'Y':'R', 'R':'Y'} 
     bases = list(seq) 
     bases = [complement[base] for base in bases] 
     return ''.join(bases)

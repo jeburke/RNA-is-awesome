@@ -1,32 +1,101 @@
 #!/usr/bin/env python
-'''
-Created on Sep 19, 2013
-Updated by JEB on Oct 28, 2016
-
-Usage: python Calculate_rpkm.py  accepted_hits_wt.bam accepted_hits_ko.bam output_prefix
-Note that the rpkm  is calculated here for the whole mRNA, not just the exons. 
-@author: chomer
-'''
-
 import pysam
 import sys
 import numpy
+import pandas as pd
 
+if len(sys.argv) < 3 or sys.argv[1] == '-h' or sys.argv[1] == '--help':
+    print'''
+    Created on Sep 19, 2013
+    Updated by JEB on Oct 28, 2016
+
+    Usage: Calculate_rpkm.py  accepted_hits_wt.bam accepted_hits_ko.bam output_prefix
+    Note that the rpkm  is calculated here for the whole mRNA, not just the exons.
+
+    2 additional functions were added on Nov 11, 2016:
+    It is now possible to use your own gff3 or gtf file by adding the file name after the output_prefix argument
+    e.g. Calculate_rpkm.py  accepted_hits_wt.bam accepted_hits_ko.bam output_prefix gtf_file
+
+    It is also now possible to count reads in intergenic regions. Simply add "intergenic" as the last argument.
+    e.g. Calculate_rpkm.py  accepted_hits_wt.bam accepted_hits_ko.bam output_prefix "intergenic"
+    e.g. Calculate_rpkm.py  accepted_hits_wt.bam accepted_hits_ko.bam output_prefix gff3_file "intergenic"
+
+    @author: chomer
+    '''
+    sys.exit()
 
 '''populate annotation dictionary'''
-gene_dict = {}
-fin = open("/home/jordan/GENOMES/CNA3_all_transcripts.gff3", "r")
-for line in fin:
-    data = line.split("\t")
-    if len(data) > 1 and data[2] == "mRNA":
-        cnag = data[8].split(";")[0].split("=")[-1][0:10]
-        chrom = data[0]
-        start = data[3]
-        end = data[4]
-        strand = data[6]
-        gene_dict[cnag] = [cnag, chrom, start, end, strand]
 
+if len(sys.argv) > 4:
+    print sys.argv[4][-3:]
+chrom_set = set()
+if len(sys.argv) == 4 or sys.argv[4][-3:] not in ['ff3', 'gtf', 'gff']:
+    gene_dict = {}
+    fin = open("/home/jordan/GENOMES/CNA3_all_transcripts.gff3", "r")
+    for line in fin:
+        data = line.split("\t")
+        if len(data) > 1 and data[2] == "mRNA":
+            cnag = data[8].split(";")[0].split("=")[-1][0:10]
+            chrom = data[0]
+            chrom_set.add(chrom)
+            start = data[3]
+            end = data[4]
+            strand = data[6]
+            gene_dict[cnag] = [cnag, chrom, start, end, strand]
 
+else:
+    gene_dict = {}
+    with open(sys.argv[4], 'r') as f:
+        if sys.argv[4].endswith('gff3'):
+            for line in f:
+                data = line.split('\t')
+                if len(data) > 1 and data[2] == 'mRNA':
+                    cnag = data[8].split(";")[0].split("=")[-1][0:10]
+                    chrom = data[0]
+                    chrom_set.add(chrom)
+                    start = data[3]
+                    end = data[4]
+                    strand = data[6]
+                    gene_dict[cnag] = [cnag, chrom, start, end, strand]
+        
+        elif sys.argv[4].endswith('gtf'):
+            for line in f:
+                data = line.split('\t')
+                if len(data) > 1 and data[2] == 'transcript':
+                    cnag = data[8].split(';')[0].split('"')[1]
+                    chrom = data[0]
+                    chrom_set.add(chrom)
+                    start = data[3]
+                    end = data[4]
+                    strand = data[6]
+                    gene_dict[cnag] = [cnag, chrom, start, end, strand]
+                    
+print chrom_set
+if 'intergenic' in sys.argv:
+    print "Counting reads in intergenic regions"
+    inter_dict = {}
+    for chrom in list(chrom_set):
+        chrom_genes = dict((k, gene_dict[k]) for k in gene_dict if gene_dict[k][1] == chrom)
+        chr_gene_df = pd.DataFrame.from_dict(chrom_genes, orient='index')
+        chr_gene_df.sort_values([0], inplace=True)
+        sorted_genes = chr_gene_df.index.tolist()
+        
+        n = 0
+        for n in range(len(sorted_genes)-1):
+            gene = sorted_genes[n]
+            next_gene = sorted_genes[n+1]
+            gene_end = int(chr_gene_df[3][gene])
+            next_start = int(chr_gene_df[2][next_gene])
+            
+            if next_start > gene_end:
+                inter_name = gene+'_'+next_gene+'_intergenic'
+                inter_dict[inter_name] = [inter_name, chrom, gene_end, next_start]
+
+            else:
+                print 'Overlapping transcripts:'
+                print gene
+                print next_gene
+                
 '''determine the number of reads in each dataset'''
 fsam_wt = pysam.Samfile(sys.argv[1])
 fsam_ko = pysam.Samfile(sys.argv[2])
@@ -54,6 +123,7 @@ wt_rpkm_list = []
 ko_rpkm_list = []
 wt_gene_list = []
 ko_gene_list = []
+
 for gene in gene_dict:
     fsam_wt = pysam.Samfile(sys.argv[1])
     fsam_ko = pysam.Samfile(sys.argv[2])
@@ -81,7 +151,7 @@ for gene in gene_dict:
                 ko_gene_count += 1
                 
     wt_gene_rpkm = float(wt_gene_count) * float(1000000) / (float(gene_length)*float(wt_reads))
-    ko_gene_rpkm = float(ko_gene_count) * float(1000000) / (float(gene_length)*float(wt_reads))
+    ko_gene_rpkm = float(ko_gene_count) * float(1000000) / (float(gene_length)*float(ko_reads))
     wt_rpkm_list.append(wt_gene_rpkm)
     wt_gene_list.append([gene, wt_gene_rpkm])
     ko_rpkm_list.append(ko_gene_rpkm)
@@ -97,6 +167,46 @@ for gene in gene_dict:
     fsam_wt.close()
     fsam_ko.close()        
 
+wt_inter_rpkms = []
+wt_inter_list = []
+ko_inter_rpkms = []
+ko_inter_list = []
+
+if 'intergenic' in sys.argv:
+    for inter in inter_dict:
+        fsam_wt = pysam.Samfile(sys.argv[1])
+        fsam_ko = pysam.Samfile(sys.argv[2])
+        wt_inter_count = 0
+        ko_inter_count = 0
+        inter_data = inter_dict[inter]
+        inter_length = int(inter_data[3]) - int(inter_data[2])
+        
+        iter_wt = fsam_wt.fetch(inter_data[1], int(inter_data[2]), int(inter_data[3]))
+        for read in iter_wt:
+            wt_inter_count += 1
+            
+        iter_ko = fsam_ko.fetch(inter_data[1], int(inter_data[2]), int(inter_data[3]))
+        for read in iter_ko:
+            ko_inter_count += 1
+            
+        wt_inter_rpkm = float(wt_inter_count) * float(1000000) / (float(inter_length)*float(wt_reads))
+        ko_inter_rpkm = float(ko_inter_count) * float(1000000) / (float(inter_length)*float(ko_reads))
+        wt_inter_rpkms.append(wt_inter_rpkm)
+        wt_inter_list.append([inter, wt_inter_rpkm])
+        ko_inter_rpkms.append(ko_inter_rpkm)
+        ko_inter_list.append([inter, ko_inter_rpkm])
+    
+    
+        if int(ko_inter_count) == 0:
+            ratio = sys.maxint
+        else:
+            ratio = float(wt_inter_rpkm) / float(ko_inter_rpkm)
+        ratio2 = (float(wt_inter_count+1)*float(wt_reads)) / (float(ko_inter_count+1)*float(ko_reads))
+        rpkm_dict[inter] = [wt_inter_rpkm, ko_inter_rpkm, float(ratio), wt_inter_count, ko_inter_count, ratio2]
+
+        fsam_wt.close()
+        fsam_ko.close()        
+#print rpkm_dict
 wt_median = numpy.median(wt_rpkm_list)
 ko_median = numpy.median(ko_rpkm_list)
 print wt_median

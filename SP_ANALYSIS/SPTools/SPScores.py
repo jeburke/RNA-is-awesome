@@ -15,6 +15,7 @@ sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/SP_ANALYSIS/')
 sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/SP_ANALYSIS/')
 import SPTools as SP
 import collections
+from math import log
 
 def read_juncbase_output(juncbase_output):
     if type(juncbase_output) == list:
@@ -118,7 +119,11 @@ def make_fasta_dict(fasta_file):
 
 ##Input: dictionary of coordinates by transcript (transcript:[list of coordinates][list of coordinates])
 def get_sequence(coord_dict, gff3_file, fasta_file):
-    transcript_dict = SP.build_transcript_dict(gff3_file)
+    if 'pombe' in gff3_file:
+        organism = 'pombe'
+    else: organism = None
+    
+    transcript_dict = SP.build_transcript_dict(gff3_file, organism=organism)
     if type(fasta_file) is str:
         fasta_dict = make_fasta_dict(fasta_file)
     else:
@@ -269,13 +274,38 @@ def get_junction_sequence(df, gff3_file, fasta_file):
 def mirrored(listtree):
     return [(mirrored(x) if isinstance(x, list) else x) for x in reversed(listtree)]
 
-def generate_consensus_matrix(fasta_dict):
-    #Populate gene dictionary and build genome
-    gene_list_as_dict = GeneUtility.GeneDict()
-    gene_list_as_dict.PopulateFromFile_new()
-    genome = fasta_dict
-    print genome.keys()
+def gc_content(fasta_dict):
+    a = 0
+    c = 0
+    g = 0
+    t = 0
+    for chrom, seq in fasta_dict.iteritems():
+        a += seq.count('A')
+        c += seq.count('C')
+        g += seq.count('G')
+        t += seq.count('T')
+    total = sum([a,c,g,t])
+    nucleotide_prob = [float(a)/total, float(c)/total, float(t)/total, float(g)/total]
+    return nucleotide_prob
 
+def generate_consensus_matrix(gff3, fasta_dict, PSSM=False):
+    #Populate gene dictionary and build genome
+    if 'pombe' in gff3.lower():
+        transcript_dict = SP.build_transcript_dict(gff3, organism='pombe')
+        ss, flag = SP.list_splice_sites(gff3, organism='pombe')
+        organism = 'pombe'
+    else:
+        transcript_dict = SP.build_transcript_dict(gff3)
+        ss, flag = SP.list_splice_sites(gff3)
+        organism = None
+    ss_dict = SP.collapse_ss_dict(ss)
+    genome = fasta_dict
+    #print genome.keys()
+    nuc_prob = gc_content(fasta_dict)
+    #print nuc_prob
+
+    base_dict = {"A":0, "C":1, "T":2, "G":3}
+    
     #First generate a consensus matrix for 5' and 3' splice site, where 1st row is A counts, second row is C, third row is T, fourth row is G.
     pos_matrix_5prime = np.zeros([4,8])
     pos_matrix_3prime = np.zeros([4,8])
@@ -283,52 +313,56 @@ def generate_consensus_matrix(fasta_dict):
     counter1 = 0
     counter2 = 0
 
-    for cnag in gene_list_as_dict:
+    for transcript, introns in ss_dict.iteritems():
         counter2 += 1
-        gene = gene_list_as_dict.FindGeneByCNAG(cnag)
-        introns = gene.introns
-        if gene.strand == "-":
-            introns = mirrored(introns)
+        if organism == 'pombe':
+            isoform = transcript+'.1'
+        else:
+            isoform = transcript+'T0'
+        strand = transcript_dict[isoform][2]
+        chrom = transcript_dict[isoform][3]
+
         for intron in introns:
             counter1+=1
-            if gene.strand == "-":
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0]-7, intron[0]+1, gene.strand, genome)
-            else:
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[0]-2, intron[0]+6, gene.strand, genome)
-            for a, base in enumerate(seq):
-                if base == "A":
-                    pos_matrix_5prime[0,a] = pos_matrix_5prime[0,a]+1
-                if base == "C":
-                    pos_matrix_5prime[1,a] = pos_matrix_5prime[1,a]+1
-                if base == "T":
-                    pos_matrix_5prime[2,a] = pos_matrix_5prime[2,a]+1
-                if base == "G":
-                    pos_matrix_5prime[3,a] = pos_matrix_5prime[3,a]+1
+            if strand == '+':
+                seq = fasta_dict[chrom][(intron[0]-1):(intron[0]+7)]
+            elif strand == '-':
+                seq = fasta_dict[chrom][(intron[0]-6):(intron[0]+2)]
+                seq = SP.reverse_complement(seq)
 
-            if gene.strand == "-":
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1]-2, intron[1]+6, gene.strand, genome)
-            else:
-                seq = GeneUtility.SequenceByGenLoc("chr{0}".format(gene.chromosome), intron[1]-7, intron[1]+1, gene.strand, genome)
+            for a, base in enumerate(seq):
+                pos_matrix_5prime[base_dict[base],a] += 1
+
+            if strand == '+':
+                seq = fasta_dict[chrom][(intron[1]-5):(intron[1]+3)]
+            elif strand == '-':
+                seq = fasta_dict[chrom][(intron[1]-2):(intron[1]+6)]
+                seq = SP.reverse_complement(seq)
+            
             for b, base in enumerate(seq):
-                if base == "A":
-                    pos_matrix_3prime[0,b] = pos_matrix_3prime[0,b]+1
-                if base == "C":
-                    pos_matrix_3prime[1,b] = pos_matrix_3prime[1,b]+1
-                if base == "T":
-                    pos_matrix_3prime[2,b] = pos_matrix_3prime[2,b]+1
-                if base == "G":
-                    pos_matrix_3prime[3,b] = pos_matrix_3prime[3,b]+1
+                pos_matrix_3prime[base_dict[base],b] += 1
+                
     print counter1
     print counter2
 
+    float_formatter = lambda x: "%.1f" % x
+    np.set_printoptions(formatter={'float_kind':float_formatter})
+    
     a = 0
     while a < 4:
         b = 0
         while b < 8:
-            pos_matrix_5prime[a,b] = (pos_matrix_5prime[a,b])/36855.
-            pos_matrix_3prime[a,b] = (pos_matrix_3prime[a,b])/36855.
+            if PSSM is False:
+                pos_matrix_5prime[a,b] = (pos_matrix_5prime[a,b])/float(counter1)
+                pos_matrix_3prime[a,b] = (pos_matrix_3prime[a,b])/float(counter1)
+            if PSSM is True:
+                if pos_matrix_5prime[a,b] == 0: pos_matrix_5prime[a,b] += 1
+                if pos_matrix_3prime[a,b] == 0: pos_matrix_3prime[a,b] += 1
+                pos_matrix_5prime[a,b] = np.log2((pos_matrix_5prime[a,b]/float(counter1))/nuc_prob[a])
+                pos_matrix_3prime[a,b] = np.log2((pos_matrix_3prime[a,b]/float(counter1))/nuc_prob[a])
             b += 1
         a += 1
+
 
     print sum(pos_matrix_5prime)        
     print pos_matrix_5prime
@@ -338,60 +372,55 @@ def generate_consensus_matrix(fasta_dict):
     return (pos_matrix_5prime, pos_matrix_3prime)
 
 
-def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime):
+def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime, PSSM=False):
     #Compare each splice site and add scores to dataframe - needs columns named 'coord_1', 'coord_2', 'sequence1', 'sequence2'
     df['5p score'] = ''
     df['3p score'] = ''
     df['intron length'] = 'NA'
-
+    
+    base_dict = {"A":0, "C":1, "T":2, "G":3}
+    
     n = 0
     for n in range(len(df)):
         strand = df['strand'][n]
         if strand == '+':
             coord1 = int(df['coord_1'][n])
             coord2 = int(df['coord_2'][n])
-            seq5 = df['sequence1'][n]
-            seq3 = df['sequence2'][n]
         elif strand == '-':
             coord1 = int(df['coord_2'][n])
             coord2 = int(df['coord_1'][n])
-            seq5 = df['sequence1'][n]
-            seq3 = df['sequence2'][n]
+        seq5 = df['sequence1'][n]
+        seq3 = df['sequence2'][n]
         
-        gene_matrix_5prime = np.zeros([4,8])
-        for a, base in enumerate(seq5):
-            if base == "A":
-                gene_matrix_5prime[0,a] = gene_matrix_5prime[0,a]+1
-            if base == "C":
-                gene_matrix_5prime[1,a] = gene_matrix_5prime[1,a]+1
-            if base == "T":
-                gene_matrix_5prime[2,a] = gene_matrix_5prime[2,a]+1
-            if base == "G":
-                gene_matrix_5prime[3,a] = gene_matrix_5prime[3,a]+1
+        if PSSM is False:
+            gene_matrix_5prime = np.zeros([4,8])
+            for a, base in enumerate(seq5):
+                gene_matrix_5prime[base_dict[base],a] += 1
 
-        gene_matrix_3prime = np.zeros([4,20])
-        for b, base in enumerate(seq3):
-            if base == "A":
-                gene_matrix_3prime[0,b] = gene_matrix_3prime[0,b]+1
-            if base == "C":
-                gene_matrix_3prime[1,b] = gene_matrix_3prime[1,b]+1
-            if base == "T":
-                gene_matrix_3prime[2,b] = gene_matrix_3prime[2,b]+1
-            if base == "G":
-                gene_matrix_3prime[3,b] = gene_matrix_3prime[3,b]+1
+            gene_matrix_3prime = np.zeros([4,20])
+            for b, base in enumerate(seq3):
+                gene_matrix_3prime[base_dict[base],b] += 1
 
-        #Calculate Scores (score of 0 is perfect, higher score is worse, 40 is highest possible)
-        score_5prime = 0
-        score_3prime = 0
-        a = 0
-        while a < 4:
-            b = 0
-            while b < 8:
-                score_5prime += abs(pos_matrix_5prime[a,b] - (gene_matrix_5prime[a,b]))
-                score_3prime += abs(pos_matrix_3prime[a,b] - (gene_matrix_3prime[a,b]))
-                b += 1
-            a += 1
+            #Calculate Scores (score of 0 is perfect, higher score is worse, 40 is highest possible)
+            score_5prime = 0
+            score_3prime = 0
+            a = 0
+            while a < 4:
+                b = 0
+                while b < 8:
+                    score_5prime += abs(pos_matrix_5prime[a,b] - (gene_matrix_5prime[a,b]))
+                    score_3prime += abs(pos_matrix_3prime[a,b] - (gene_matrix_3prime[a,b]))
+                    b += 1
+                a += 1
 
+        elif PSSM is True:
+            score_5prime = 0
+            score_3prime = 0
+            for a, base in enumerate(seq5):
+                score_5prime += pos_matrix_5prime[base_dict[base],a]
+            for b, base in enumerate(seq3):
+                score_3prime += pos_matrix_3prime[base_dict[base],b]                  
+                
         intron_length = abs(coord2-coord1)
     
         df.loc[n,'5p score'] = score_5prime
@@ -419,3 +448,11 @@ def reformat_df(df, sample_list):
     new_df2[sample_list] = new_df2[sample_list].astype(float)
     
     return new_df1, new_df2
+
+def write_seq_list_to_file(df, prefix):
+    with open('{0}_5pseq_list.txt'.format(prefix),'w') as f:
+        for seq in df['sequence1'].tolist():
+            f.write(seq+'\n')
+    with open('{0}_3pseq_list.txt'.format(prefix),'w') as f:
+        for seq in df['sequence2'].tolist():
+            f.write(seq+'\n')
