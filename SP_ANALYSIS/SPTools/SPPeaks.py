@@ -67,9 +67,17 @@ def build_transcript_dict(gff3_file, organism=None):
                     if 'mRNA' in transcript: transcript = transcript.split("_")[0]
                     if transcript[-2] != 'T': transcript = transcript+'T0'
                     if transcript not in transcript_dict:
-                        transcript_dict[transcript] = [0,0,None,None,[],[]]
+                        strand = columns[6]
+                        chrom = columns[0]
+                        transcript_dict[transcript] = [0,0,strand,chrom,[],[]]
                     transcript_dict[transcript][4].append(int(columns[3]))
                     transcript_dict[transcript][5].append(int(columns[4]))
+    
+    for tx in transcript_dict:
+        if transcript_dict[tx][0] == 0:
+            transcript_dict[tx][0] = transcript_dict[tx][4][0]
+            transcript_dict[tx][1] = transcript_dict[tx][5][0]
+    
     transcript_dict = collections.OrderedDict(sorted(transcript_dict.items()))
     return transcript_dict
 
@@ -317,6 +325,50 @@ def read_CNAGsort_bedgraph(CNAGsorted_bedgraph):
                 count_list = map(int, count_list)
                 bedgraph_dict[CNAG].append(count_list)
     return bedgraph_dict
+
+def read_CNAGsort_bedgraph2(bedgraph_dict_output, transcript_dict, organism=None):
+    bg_dict = {}
+    count = 0
+    dtype = [('coord', int), ('height', float)]
+    with open(bedgraph_dict_output,'r') as f:
+        n = 0
+        for line in f:
+            n += 1
+            if len(line) > 1:
+                
+                #Read the transcript line
+                if n%3 == 1:
+                    tx = line.strip()
+                    count += 1
+                    #print count
+                    if tx[-2] != 'T' and organism != 'pombe':
+                        tx = tx+'T0'
+                
+                #Read the coordinate line
+                elif n%3 == 2:
+                    coords  = map(int, line.strip().split('\t'))
+                
+                #Read the values line
+                elif n%3 == 0:
+                    heights = map(float, line.strip().split('\t'))
+
+                    if tx not in transcript_dict:
+                        pass
+                    else:
+                        all_coords = set(range(transcript_dict[tx][0],transcript_dict[tx][1]))
+                        missing = all_coords.difference(coords)
+                        coords = coords + list(missing)
+
+                        #Fill in missing coordinates with zeros
+                        zero_fill = [0]*len(missing)
+                        heights = heights + zero_fill
+
+                        #Create a pandas series with all coordinates and sort so zeros are inserted appropriately
+                        entry = pandas.Series(heights, index=coords)
+                        entry.sort_index(inplace=True)
+
+                        bg_dict[tx] = entry
+    return bg_dict
 
 def build_piranha_dict(transcript_dict, piranha_output, sort_bedgraph=True, sorted_bedgraph=None, bedgraph_file=None, max_p_value=1.0e-04):
     piranha_dict = {}
