@@ -1,7 +1,7 @@
 __author__ = 'jordanburke'
 
 import sys
-import pandas
+import pandas as pd
 import math
 import random
 import re
@@ -18,6 +18,7 @@ import operator
 sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/SP_ANALYSIS/SPTools')
 import SPTables
 import SPPlots
+import SPScores
 from math import log
 
 
@@ -162,8 +163,8 @@ def list_splice_sites(gff3_file, chromosome="All", gene_list=None, organism=None
                     splice_site_dict[transcript] = [[],[],columns[0]]
                 if gene_list is None:
                     if columns[6] == "+":
-                        splice_site_dict[transcript][0].append(int(columns[3])-2)
-                        splice_site_dict[transcript][1].append(int(columns[4])-1)
+                        splice_site_dict[transcript][0].append(int(columns[3])-1)
+                        splice_site_dict[transcript][1].append(int(columns[4]))
                     elif columns[6] == "-":
                         splice_site_dict[transcript][0].append(int(columns[4]))
                         splice_site_dict[transcript][1].append(int(columns[3])-1)
@@ -355,7 +356,7 @@ def read_CNAGsort_bedgraph2(bedgraph_dict_output, transcript_dict, organism=None
                     if tx not in transcript_dict:
                         pass
                     else:
-                        all_coords = set(range(transcript_dict[tx][0],transcript_dict[tx][1]))
+                        all_coords = set(range(min(coords),max(coords)))
                         missing = all_coords.difference(coords)
                         coords = coords + list(missing)
 
@@ -364,9 +365,12 @@ def read_CNAGsort_bedgraph2(bedgraph_dict_output, transcript_dict, organism=None
                         heights = heights + zero_fill
 
                         #Create a pandas series with all coordinates and sort so zeros are inserted appropriately
-                        entry = pandas.Series(heights, index=coords)
+                        entry = pd.Series(heights, index=coords)
                         entry.sort_index(inplace=True)
 
+                        selected_range = range(transcript_dict[tx][0],transcript_dict[tx][1])
+                        entry = entry[entry.index.isin(selected_range)]
+                        
                         bg_dict[tx] = entry
     return bg_dict
 
@@ -1423,14 +1427,14 @@ def count_reads_at_splice_sites(gff3_dict, transcript_dict, bedgraph_list, sort_
         for n in range(len(coords[4])):
             index_tuples.append((gene+'T0', coords[4][n]))
     
-    index = pandas.MultiIndex.from_tuples(index_tuples)
+    index = pd.MultiIndex.from_tuples(index_tuples)
     columns = [('Transcript0','Transcript0'),('Exon0','Exon0')]
     for bg in bedgraph_list:
         columns.append((bg.split("/")[-1].split("_")[0],'5prime'))
     for bg in bedgraph_list:
         columns.append((bg.split("/")[-1].split("_")[0],'3prime'))
-    columns = pandas.MultiIndex.from_tuples(columns)
-    count_df = pandas.DataFrame(index=index, columns=columns)
+    columns = pd.MultiIndex.from_tuples(columns)
+    count_df = pd.DataFrame(index=index, columns=columns)
     
     n=0
     for n in range(len(bedgraph_dict_list)):
@@ -1517,10 +1521,10 @@ def normalize_and_plot_peaks(peak_df, gobs_count_reads_in_transcripts, transcrip
     controls = SPTables.build_tables(control_file, int_index=True)
     df = SPTables.normalize_AtoB(peak_df, totals_df, transcript_lengths, controls)
     index_tuples = zip(df[('Transcript0','Transcript0')].tolist(), df[('Exon0','Exon0')].tolist())
-    df.index = pandas.MultiIndex.from_tuples(index_tuples)
+    df.index = pd.MultiIndex.from_tuples(index_tuples)
     
     #Average replicates if indicated
-    new_df = pandas.DataFrame(index=df.index)
+    new_df = pd.DataFrame(index=df.index)
     for n in range(len(rep_tuples)):
         new_df[(rep_tuples[n][0],'5prime Normalized')] = df[(rep_tuples[n][0],'5prime Normalized')]
         new_df[(rep_tuples[n][1],'5prime Normalized')] = df[(rep_tuples[n][1],'5prime Normalized')]
@@ -1538,10 +1542,10 @@ def normalize_and_plot_peaks(peak_df, gobs_count_reads_in_transcripts, transcrip
 
         
     #Sort peaks by whether they increase or decrease between conditions
-    columns = pandas.MultiIndex.from_tuples(new_df.columns)
-    increase_df = pandas.DataFrame(index=new_df.index, columns=columns)
-    decrease_df = pandas.DataFrame(index=new_df.index, columns=columns)
-    other_df = pandas.DataFrame(index=new_df.index, columns=columns)
+    columns = pd.MultiIndex.from_tuples(new_df.columns)
+    increase_df = pd.DataFrame(index=new_df.index, columns=columns)
+    decrease_df = pd.DataFrame(index=new_df.index, columns=columns)
+    other_df = pd.DataFrame(index=new_df.index, columns=columns)
     
     if len(rep_tuples) > 1:            
         increase_df = new_df[new_df[(rep_tuples[1][0],'5prime Normalized')] > new_df[(rep_tuples[0][0],'5prime Normalized')]*3]
@@ -1628,7 +1632,7 @@ def convert_to_log(num_list):
     return log_list
 
 def analyze_peaks(peak_tsv_file, gff3_file):
-    df = pandas.read_csv(peak_tsv_file, sep='\t')
+    df = pd.read_csv(peak_tsv_file, sep='\t')
     print df.columns
     transcripts = list(set(df['transcript'].tolist()))
     print len(transcripts)
@@ -1637,8 +1641,8 @@ def analyze_peaks(peak_tsv_file, gff3_file):
     splice_site_dict, intron_flag = list_splice_sites(gff3_file, gene_list = transcripts_T0)
     print len(splice_site_dict)
     
-    index = pandas.MultiIndex(levels=[[],[]], labels=[[],[]], names=[u'transcript', u'interval'])
-    new_df = pandas.DataFrame(columns=['chromosome','# novel peaks', 'peak coords', 'peak heights', 'annotated sites', 'interval length'], index=index)
+    index = pd.MultiIndex(levels=[[],[]], labels=[[],[]], names=[u'transcript', u'interval'])
+    new_df = pd.DataFrame(columns=['chromosome','# novel peaks', 'peak coords', 'peak heights', 'annotated sites', 'interval length'], index=index)
     
     for transcript in transcripts:
         #print transcript
@@ -1691,7 +1695,7 @@ def analyze_peaks(peak_tsv_file, gff3_file):
 def check_annotation(peak_pipeline_output, gff3_file, organism=None):
     transcript_dict = build_transcript_dict(gff3_file, organism=organism)
     splice_site_dict, intron_flag = list_splice_sites(gff3_file, organism=organism)
-    peak_df = pandas.read_csv(peak_pipeline_output, sep='\t')
+    peak_df = pd.read_csv(peak_pipeline_output, sep='\t')
     
     misannotated = {}
     for transcript, sites in splice_site_dict.iteritems():
@@ -1722,5 +1726,295 @@ def check_annotation(peak_pipeline_output, gff3_file, organism=None):
     
     misannotated = dict((k, v) for k, v in misannotated.iteritems() if v)
     return misannotated
-                
+            
     
+#####################################################################################################
+## New simplified code for processing peaks from Jessica Li                                        ##
+#####################################################################################################
+
+#Function to read peak output file
+def CP_peaks_by_gene(fin, transcript_dict, cutoff=5):
+    genes_by_chr = {}
+    for tx, info in transcript_dict.iteritems():
+        if info[3] not in genes_by_chr:
+            genes_by_chr[info[3]] = []
+        genes_by_chr[info[3]].append(tx)
+    
+    rom_lat = {'I':'chr1','II':'chr2','III':'chr3'}
+    
+    peak_count = 0
+    line_count = 0
+    peaks_by_gene = {}
+    strand_dict = {'0':'-','1':'+'}
+    with open(fin,'r') as f:
+        for line in f:
+            data = line.split('\t')
+            if len(data[0]) > 0 and len(data) > 3:
+                chrom = data[0]
+                peak = int(data[1])
+                strand = strand_dict[data[2]]
+                peak_height = float(data[3])
+            elif len(data[0]) > 0 and len(data) == 3:
+                chrom = data[0]
+                if '_' in chrom:
+                    chrom = 'chr'+chrom.split('_')[-1]
+                peak = int(data[1])
+                peak_height = float(data[2])
+                strand = None
+            else:
+                chrom = data[1]
+                peak = int(data[2])
+                strand = strand_dict[data[3]]
+                peak_height = float(data[4])
+
+            if chrom in rom_lat: chrom = rom_lat[chrom]
+            
+            if peak_height >= cutoff:
+                line_count += 1
+                if chrom in genes_by_chr:
+                    tx_list = genes_by_chr[chrom]
+                    for tx in tx_list:
+                        start = transcript_dict[tx][0]
+                        end = transcript_dict[tx][1]
+                        if peak > start and peak < end and (strand == transcript_dict[tx][2] or strand is None):
+                            peak_count += 1
+                            if tx not in peaks_by_gene:
+                                peaks_by_gene[tx] = []
+                            peaks_by_gene[tx].append([peak,peak_height,strand])
+                            
+                            #else:
+                            #    n=0
+                            #    neighbor=False
+                            #    for n in range(len(peaks_by_gene[tx])):
+                            #        if abs(peak-peaks_by_gene[tx][n][0]) <= 2:
+                            #            neighbor=True
+                            #            if peak_height >= peaks_by_gene[tx][n][1]:
+                            #                del peaks_by_gene[tx][n]
+                            #                peaks_by_gene[tx].append([peak,peak_height,strand])
+                            #            elif peak_height < peaks_by_gene[tx][n]:
+                            #                pass
+                            #    if neighbor == False:
+                            #        peaks_by_gene[tx].append([peak,peak_height,strand])
+    print peak_count
+    return peaks_by_gene
+ 
+#Function to compare untagged and 2 replicates and pick peaks that are in both but not in untagged
+def CP_compare_reps(untagged, tagged1, tagged2):
+    #print len(tagged1)
+    #print len(tagged2)
+    tx_list = list(set(tagged1.keys()).intersection(tagged2.keys()))
+    #print len(tx_list)
+    new_peak_dict = {}
+    peak_count = 0
+    for tx in tx_list:
+        new_peak_dict[tx] = []
+        for peak,peak_height,strand in tagged1[tx]:
+            #if peak_height > 0.05*max(zip(*tagged1[tx])[1]):
+            if peak in zip(*tagged2[tx])[0]:
+                if tx not in untagged or peak not in zip(*untagged[tx])[0]:
+                    new_peak_dict[tx].append([peak,peak_height,strand])
+                    peak_count += 1
+    print peak_count
+    return new_peak_dict
+
+#Function to check peaks against annotation
+def CP_compare_to_annotation(peaks, ss_dict, transcript_dict):
+    five_count = 0
+    three_count = 0
+    other_count = 0
+    intronic_count = 0
+    peak_count = 0
+    for tx, peak_list in peaks.iteritems():
+        peak_count += len(peak_list)   
+    print peak_count
+    compare_df = pd.DataFrame(index = range(peak_count+1), columns=['transcript','chromosome','strand','position','height','type'])
+    n=0
+    for tx, info in ss_dict.iteritems():
+        chrom = transcript_dict[tx][3]
+        if tx in peaks:
+            if len(info[0]) > 0 and len(peaks[tx]) > 0:
+                for peak, height, strand in peaks[tx]:
+                    if strand is None:
+                        strand = transcript_dict[tx][2]
+                    try:
+                        if peak-1 in info[0] or peak in info[0] or peak+1 in info[0]:
+                            five_count += 1
+                            compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "5prime"]
+                            #print [tx[:-2], chrom, strand, peak, height, "5prime"]
+                        elif peak-1 in info[1] or peak in info[1] or peak+1 in info[1]:
+                            three_count += 1
+                            compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "3prime"]
+                        else:
+                            other_count += 1
+                            intron_flag = False
+                            m=0
+                            for m in range(len(info[0])):
+                                if peak > info[0][m] and peak < info[1][m]:
+                                    intronic_count += 1
+                                    intron_flag = True
+                                    break
+                            if intron_flag is True:
+                                compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "intronic"]
+                            else:
+                                compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "other"]
+                    except IndexError:
+                        print tx
+                        print n
+                        print peak_count
+                        print len(info)
+                    n+=1
+    print "5prime annotated sites: "+str(five_count)
+    print "3prime annotated sites: "+str(three_count)
+    print "Unpredicted peaks: "+str(other_count)
+    print "Unpredicted peaks in introns: "+str(intronic_count)
+    compare_df.dropna(how='all',inplace=True)
+    return compare_df
+
+
+def collapse_unpredicted_peaks(df):
+    tx_list = list(set(df['transcript'].tolist()))
+    for tx in tx_list:
+        tx_df = df[df['transcript'] == tx]
+        tx_df = tx_df[tx_df['type'].isin(['other','intronic'])]
+        index=tx_df.index
+        n=0
+        for n in range(len(index)):
+            if tx_df['height'][index[n]] < 10:
+                if index[n] in df.index:
+                    df.drop(index[n], inplace=True)
+            else:
+                m=0
+                for m in range(len(index)):
+                    spacing = abs(tx_df['position'][index[n]]-tx_df['position'][index[m]])
+                    if spacing > 0 and spacing <= 2:
+                        if tx_df['height'][index[n]] > tx_df['height'][index[m]]:
+                            if index[m] in df.index:
+                                df.drop(index[m], inplace=True)
+                        if tx_df['height'][index[n]] < tx_df['height'][index[m]]:
+                            if index[n] in df.index:
+                                df.drop(index[n], inplace=True)
+                            break
+                        else:
+                            continue
+    print "Number of unpredicted peaks after condensing:"
+    print len(df[df['type'].isin(['other','intronic'])])
+    print "Number of intronic peaks after condensing:"
+    print len(df[df['type'] == 'intronic'])
+    df.reset_index(inplace=True)
+    return df
+
+#Add sequences and check whether they're splice sites
+def add_sequence_to_df(df, fa_dict):
+    seq_df = df
+    sequence = []
+    looks_like = []
+    for index, row in df.iterrows():
+        if row['strand'] == '+':
+            seq = fa_dict[row['chromosome']][row['position']-6:row['position']+6]
+        elif row['strand'] == '-':
+            seq = fa_dict[row['chromosome']][row['position']-7:row['position']+5]
+            seq = reverse_complement(seq)
+        sequence.append(seq)
+        
+        if row['type'] == '5prime':
+            looks_like.append('5prime')
+        elif row['type'] == '3prime':
+            looks_like.append('3prime')
+        else:
+            if seq[6:8] == 'GT' or seq[6:8] == 'GC' or seq[6:8] == 'AT':
+                looks_like.append(seq[6:8])
+            elif seq[4:6] == 'AG' or seq[4:6] == 'AC':
+                looks_like.append(seq[4:6])
+            else:
+                looks_like.append('')
+    seq_df['sequence'] = sequence
+    seq_df['looks like'] = looks_like
+    return seq_df
+
+def peak_to_seq_pipeline(untagged_peak_file, tagged1_peak_file, tagged2_peak_file, gff3, fasta, organism=None, cutoff=5):
+    test_tx = 'SPCC16A11.10c'
+    
+    transcript_dict = build_transcript_dict(gff3, organism=organism)
+    print "Finding peaks in transcripts..."
+    print untagged_peak_file
+    untagged = CP_peaks_by_gene(untagged_peak_file, transcript_dict, cutoff=cutoff)
+    if test_tx in untagged: print untagged[test_tx]
+    print tagged1_peak_file
+    tagged1 = CP_peaks_by_gene(tagged1_peak_file, transcript_dict, cutoff=cutoff)
+    if test_tx in tagged1: print untagged[test_tx]
+    print tagged2_peak_file
+    tagged2 = CP_peaks_by_gene(tagged2_peak_file, transcript_dict, cutoff=cutoff)
+    if test_tx in tagged1: print untagged[test_tx]
+    
+    print "Comparing peaks between replicates..."
+    peaks = CP_compare_reps(untagged, tagged1, tagged2)
+    
+    print "Checking peaks against annotation..."
+    ss_dict, flag = list_splice_sites(gff3, organism=organism)
+    peak_df = CP_compare_to_annotation(peaks, ss_dict, transcript_dict)
+    peak_df = collapse_unpredicted_peaks(peak_df)
+    
+    if type(fasta) == str:
+        fasta = SPScores.make_fasta_dict(fasta)
+    print "Adding sequences..."
+    peak_seq_df = add_sequence_to_df(peak_df, fasta)
+    print "Completed"
+    return peak_seq_df
+
+def count_peak_types(df):
+    other = df[df['type'].isin(['other','intronic'])]
+    print len(other)
+    other = other[other['looks like'] == '']
+    print 'GT:'
+    print len(df[df['looks like'] == 'GT'])
+    print len(other[other['sequence'].str[5:9].str.contains('GT')])
+    other = other[~other['sequence'].str[5:9].str.contains('GT')]
+    print 'GC:'
+    print len(df[df['looks like'] == 'GC'])
+    print len(other[other['sequence'].str[5:9].str.contains('GC')])
+    other = other[~other['sequence'].str[5:9].str.contains('GC')]
+    print 'AT:'
+    print len(df[df['looks like'] == 'AT'])
+    print len(other[other['sequence'].str[5:9].str.contains('AT')])
+    other = other[~other['sequence'].str[5:9].str.contains('AT')]
+    print 'AG:'
+    print len(df[df['looks like'] == 'AG'])
+    print len(other[other['sequence'].str[3:7].str.contains('AG')])
+    other = other[~other['sequence'].str[3:7].str.contains('AG')]
+    print 'AC:'
+    print len(df[df['looks like'] == 'AC'])
+    print len(other[other['sequence'].str[3:7].str.contains('AC')])
+    other = other[~other['sequence'].str[3:7].str.contains('AC')]
+    print 'Other sequences:'
+    print len(other[other['looks like'] == ''])
+    
+def compare_peak_junc_df(peak_df, junc_df, organism = None):
+    print "Unpredicted peaks: "+str(len(peak_df[peak_df['type'] == 'intronic']))
+    print "Unpredicted junctions: "+str(len(junc_df[junc_df['type'] == 'Nested']))
+    peak_df = peak_df[peak_df['type'] == 'intronic']
+    junc_df = junc_df[junc_df['type'] != 'Annotated']
+    junc_df = junc_df[junc_df['type'] != 'Other']
+    match_count = 0
+    for tx in list(set(peak_df['transcript'].tolist())):
+        tx_peak = peak_df[peak_df['transcript'] == tx]
+        if organism == 'pombe':
+            tx_junc = junc_df[junc_df['transcript'] == tx+'.1']
+        else:
+            tx_junc = junc_df[junc_df['transcript'] == tx+'T0']
+        for index, row in tx_peak.iterrows():
+            match_flag = False
+            #print tx_junc['start']
+            peak_range = range(row['position']-5,row['position']+5)
+            for pos in peak_range:
+                if match_flag is False:
+                    if pos in tx_junc['start'].tolist():
+                        match_count += 1
+                        match_flag = True
+                        tx_junc = tx_junc[tx_junc['start'] != pos]
+                    elif pos in tx_junc['end'].tolist():
+                        match_count += 1
+                        match_flag = True
+                        tx_junc = tx_junc[tx_junc['end'] != pos]
+                    
+    print "Overlap:"
+    print match_count

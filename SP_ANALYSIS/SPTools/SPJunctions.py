@@ -8,6 +8,12 @@ import pandas as pd
 import numpy as np
 import pysam
 
+def convert_chrom(chrom):
+    rom_lat = {'I':'chr1','II':'chr2','III':'chr3'}
+    if chrom in rom_lat:
+        chrom = rom_lat[chrom]
+    return chrom
+
 def collapse_ss_dict(splice_site_dict):
     ss_by_gene = {}
     transcripts = splice_site_dict.keys()
@@ -149,13 +155,90 @@ def build_junction_dict(junction_bed, gff3_file, transcript_dict, organism=None)
                             intron_num = None
                         if (jct_transcript, ann_size) not in junction_dict:
                             junction_dict[(jct_transcript, ann_size)] = []
-                        junction_dict[(jct_transcript, ann_size)].append([jct_start, jct_end, depth, jct_type, size, ann_size, ann_start, ann_stop, intron_num])
+                        junction_dict[(jct_transcript, ann_size)].append([chromosome, jct_start, jct_end, strand, depth, jct_type, size, ann_size, ann_start, ann_stop])
                 except ValueError:
                     print jct_transcript
                     print jct_type
 
     print str(unassigned_count)+' junctions not assigned to transcripts'
-    return junction_dict                       
+    return junction_dict
+
+def build_junction_df(junction_bed, gff3_file, fasta, organism=None):
+    transcript_dict = SPPeaks.build_transcript_dict(gff3_file, organism=organism)
+    if type(fasta) == str:
+        fasta=SPScores.make_fasta_dict(fasta)
+    junction_dict = build_junction_dict(junction_bed, gff3_file, transcript_dict, organism=organism)
+    junction_count = 0
+    for tx, junctions in junction_dict.iteritems():
+        junction_count += len(junctions)
+    
+    junction_df = pd.DataFrame(index=range(junction_count), columns=['intron tuple','chromosome','start','end','strand','depth','type','size','annotated intron size','annotated intron start','annotated intron end'])
+    n=0
+    for tx, junctions in junction_dict.iteritems():
+        for junction in junctions:
+            junction_df.ix[n] = [tx]+junction
+            n+=1
+    
+    sequence1 = []
+    sequence2 = []
+    ann_seq1 = []
+    ann_seq2 = []
+    seq_type1 = []
+    seq_type2 = []
+    df_tx = []
+    for index, row in junction_df.iterrows():
+        df_tx.append(row['intron tuple'][0])
+        chrom = convert_chrom(row['chromosome'])
+        if row['strand'] == '+':
+            curr1 = fasta[chrom][(row['start']-1):(row['start']+7)]
+            sequence1.append(curr1)
+            curr2 = fasta[chrom][(row['end']-5):(row['end']+3)]
+            sequence2.append(curr2)
+            if row['annotated intron start'] is None:
+                ann_seq1.append(None)
+                ann_seq2.append(None)
+            else:
+                ann_seq1.append(fasta[chrom][(row['annotated intron start']-1):(row['annotated intron start']+7)])
+                ann_seq2.append(fasta[chrom][(row['annotated intron end']-5):(row['annotated intron end']+3)])
+        elif row['strand'] == '-':
+            curr1 = SPPeaks.reverse_complement(fasta[chrom][(row['start']-6):(row['start']+2)])
+            sequence1.append(curr1)
+            curr2 = SPPeaks.reverse_complement(fasta[chrom][(row['end']-2):(row['end']+6)])
+            sequence2.append(curr2)
+            if row['annotated intron start'] is None:
+                ann_seq1.append(None)
+                ann_seq2.append(None)
+            else:
+                ann_seq1.append(SPPeaks.reverse_complement(fasta[chrom][row['annotated intron start']-6:row['annotated intron start']+2]))
+                ann_seq2.append(SPPeaks.reverse_complement(fasta[chrom][row['annotated intron end']-2:row['annotated intron end']+6]))
+        else:
+            sequence1.append('NNNNNNNN')
+            sequence2.append('NNNNNNNN')
+            ann_seq1.append('NNNNNNNN')
+            ann_seq2.append('NNNNNNNN')
+        
+        
+        if row['type'] == 'Annotated': 
+            seq_type1.append('5p annotated')
+            seq_type2.append('3p annotated')
+        elif row['type'] == '5p tethered':
+            seq_type1.append('5p annotated')
+            seq_type2.append(curr2[4:6])
+        else:
+            seq_type1.append(curr1[2:4])
+            seq_type2.append(curr2[4:6])
+            
+    junc_seq_df = junction_df
+    junc_seq_df['sequence1'] = sequence1
+    junc_seq_df['sequence2'] = sequence2
+    junc_seq_df['seq type1'] = seq_type1
+    junc_seq_df['seq type2'] = seq_type2
+    junc_seq_df['annotated sequence1'] = ann_seq1
+    junc_seq_df['annotated sequence2'] = ann_seq2
+    junc_seq_df['transcript'] = df_tx
+    
+    return junc_seq_df
+            
 
 def junction_v_peak(junction_dict, peak_pipeline_out):
     new_dict = {}

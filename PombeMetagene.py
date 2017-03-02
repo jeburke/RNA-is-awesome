@@ -13,8 +13,17 @@ sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/SP_ANALYSIS/')
 import SPTools as SP
 
 ### Transcript dictionary where key is transcript name and values are [start, stop, strand, chromosome, list of cds starts, list  of cds ends]. Can provide a different gff3 file if desired.
-def build_transcript_dict(gff3="/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3"):
+def build_transcript_dict(gff3="/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3", expand=False):
     transcript_dict = SP.build_transcript_dict(gff3, organism='pombe')
+    
+    if expand is True:
+        expanded_dict = {}
+        for tx, info in transcript_dict.iteritems():
+            new_start = info[0]-220
+            new_end = info[1]+220
+            expanded_dict[tx] = [new_start, new_end, info[2], info[3]]
+        transcript_dict = expanded_dict
+    
     return transcript_dict
 
 def find_polyA_sites(transcript_dict, window=600):
@@ -30,6 +39,21 @@ def find_polyA_sites(transcript_dict, window=600):
                 pA_site = min(s.index)
                 pA_dict[tx] = [pA_site-220, pA_site+window, transcript_dict[tx][2], transcript_dict[tx][3]]
     return pA_dict
+
+def build_tss_dict(gff3="/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3", window=220):
+    transcript_dict = SP.build_transcript_dict(gff3, organism='pombe')
+    
+    tss_dict = {}
+    for tx, info in transcript_dict.iteritems():
+        if info[2] == '+':
+            start = info[0]-220
+            end = info[0]+window
+            tss_dict[tx] = [start, end, info[2], info[3]]
+        elif info[2] == '-':
+            start = info[1]-window
+            end = info[1]+220
+            tss_dict[tx] = [start, end, info[2], info[3]]
+    return tss_dict
 
 def count_reads_in_window(bam, chrom, start, end, strand):
     bam_iter = bam.fetch(chrom, start, end)
@@ -61,6 +85,7 @@ def rpkm_from_bam(transcript_dict, bam_file):
             chrom = chrom_convert[chrom]
         strand = info[2]
         start = info[0]
+        if start < 0: start = 0
         end = info[1]
         length = abs(info[1]-info[0])
         read_count = count_reads_in_window(bam, chrom, start, end, strand)
@@ -125,13 +150,14 @@ def read_sorted_bedgraphs(directory, transcript_dict):
 
 def build_metagene(tx_dict, bedgraph_dict_tuple, bam_file, window=600):
     metagene = np.zeros([1,window+220])[0]
-    aligned_reads_million = count_aligned_reads(bam_file)
+    #aligned_reads_million = count_aligned_reads(bam_file)
+    aligned_reads_million = 1
     
-    for tx, data in bedgraph_dict_tuple[1].iteritems():
+    for tx, data in bedgraph_dict_tuple[0].iteritems():
         if tx in tx_dict and tx_dict[tx][2] == '+':
             total = sum(data)
-            region1 = data[:window]
-            region2 = data[window:window+219]
+            region1 = data[-window-220:-220]
+            region2 = data[-220:]
             n = 0
             for index, value in region1.iteritems():
                 metagene[n] += float(value)/aligned_reads_million/total
@@ -143,12 +169,12 @@ def build_metagene(tx_dict, bedgraph_dict_tuple, bam_file, window=600):
                 except IndexError:
                     pass
    
-    for tx, data in bedgraph_dict_tuple[0].iteritems():
+    for tx, data in bedgraph_dict_tuple[1].iteritems():
         if tx in tx_dict and tx_dict[tx][2] == '-':
             data = data.sort_index(ascending=False)
             total = sum(data)
-            region1 = data[:220]
-            region2 = data[220:220+window-1]
+            region1 = data[-window-220:-220]
+            region2 = data[-220:]
             n = 0
             for index, value in region1.iteritems():
                 metagene[n] += float(value)/aligned_reads_million/total
@@ -159,12 +185,79 @@ def build_metagene(tx_dict, bedgraph_dict_tuple, bam_file, window=600):
                     n+=1
                 except IndexError:
                     pass
-    x = range(0-window,220)
+    x = range(-window,220)
     
     x_smooth = np.linspace(min(x), max(x), 100)
     y_smooth = spline(x, metagene, x_smooth)
     return (x_smooth, y_smooth)
 
+def mean_confidence_interval(data, confidence=0.99):
+    a = 1.0*np.array(data)
+    n = len(a)
+    m, se = np.mean(a), stats.sem(a)
+    h = se * stats.t._ppf((1+confidence)/2., n-1)
+    return m-h, m+h
+
+def metagene_confidence_intervals(tx_dict, wt_bedgraph_dict_tuple, mut_bedgraph_dict_tuple, bam_file, window=600):
+    wt_CI = np.zeros([2,window+220])
+    
+    n=0
+    for n in range(window+219):
+        position_list = []
+        for tx, data in wt_bedgraph_dict_tuple[0].iteritems():
+            if tx in tx_dict and tx_dict[tx][2] == '+':
+                if len(data) == 820:
+                    total = sum(data)
+                    position = data.tolist()[n]/float(total)
+                    position_list.append(position)
+        
+        for tx, data in wt_bedgraph_dict_tuple[1].iteritems():
+            if tx in tx_dict and tx_dict[tx][2] == '-':
+                if len(data) == 820:
+                    total = sum(data)
+                    data = data.sort_index(ascending=False)
+                    position = data.tolist()[n]/float(total)
+                    position_list.append(position)
+        
+        pos_CI = mean_confidence_interval(position_list)
+        wt_CI[0,n] = pos_CI[0]
+        wt_CI[1,n] = pos_CI[1]
+    
+    below_CI = []
+    above_CI = []
+    m=0
+    
+    for m in range(window+219):
+        tx_count = 0
+        position_sum = 0
+        for tx, data in mut_bedgraph_dict_tuple[0].iteritems():
+            if tx in tx_dict and tx_dict[tx][2] == '+':
+                if len(data) == 820:
+                    total = sum(data)
+                    tx_count += 1
+                    position = data.tolist()[m]/float(total)
+                    position_sum += position
+        
+        for tx, data in mut_bedgraph_dict_tuple[1].iteritems():
+            if tx in tx_dict and tx_dict[tx][2] == '-':
+                if len(data) == 820:
+                    total = sum(data)
+                    tx_count += 1
+                    data = data.sort_index(ascending=False)
+                    position = data.tolist()[m]/float(total)
+                    position_sum += position
+        position_avg = float(position_sum)/tx_count
+        #print wt_CI[0,m]
+        #print wt_CI[1,m]
+        #print position_avg
+        #print '\n'
+        
+        if position_avg < wt_CI[0,m]:
+            below_CI.append(-window+m)
+        elif position_avg > wt_CI[1,m]:
+            above_CI.append(-window+m)
+    return below_CI, above_CI                 
+                    
 def metagenes_from_bedgraph(stranded_bedgraphs, transcript_dict, original_directory='./', window=600):
     metagene_dict = {}
     for sample in stranded_bedgraphs:
@@ -172,7 +265,7 @@ def metagenes_from_bedgraph(stranded_bedgraphs, transcript_dict, original_direct
         metagene_dict[sample] = build_metagene(transcript_dict, stranded_bedgraphs[sample], bam_file, window=window)
     return metagene_dict
 
-def plot_metagenes(sample_names, metagene_dict, color_list=None, plot_name='Yay'):
+def plot_metagenes(sample_names, metagene_dict, CI_lists=None, color_list=None, plot_name='Yay', ymax=None, xlabel=None):
     if color_list is None:
         color_list = ['0.5','orange','navy','skyblue']
     fig = plt.figure(figsize=(8, 6))
@@ -188,9 +281,52 @@ def plot_metagenes(sample_names, metagene_dict, color_list=None, plot_name='Yay'
         ymax_list.append(max(y))
         xmin_list.append(min(x))
         xmax_list.append(max(x))
+        ax.plot(x, y, color_list[n], label=sample)
+    
+    if ymax is None:
+        ymax = max(ymax_list)+0.5
+    xmin = max(xmin_list)+3
+    xmax = min(xmax_list)-3
+    if CI_lists is not None:
+        y_low = []
+        for x in CI_lists[0]:
+            y_low.append(ymax)
+        y_high = []
+        for x in CI_lists[1]:
+            y_high.append(ymax)
+        plt.bar(CI_lists[0], y_low, color='0.9', alpha=0.1, zorder=10)
+        plt.bar(CI_lists[1], y_high, color='red', alpha=0.1, zorder=10)
+        
+
+    ax.plot([0, 0], [0, ymax], color='0.7', linestyle='--', linewidth=2)
+    if xlabel is None: ax.set_xlabel('Distance from polyA site')
+    else: ax.set_xlabel(xlabel)
+    ax.set_ylabel('Total normalized reads')
+    plt.xlim([xmin,xmax])
+    plt.ylim([0,ymax])
+    plt.legend()
+    plt.show()
+    fig.savefig(plot_name+'.pdf', format='pdf')
+        
+def plot_metagene_tss(sample_names, metagene_dict, color_list=None, plot_name='Yay', window=220):
+    if color_list is None:
+        color_list = ['0.5','orange','navy','skyblue']
+    fig = plt.figure(figsize=(8, 6))
+    ax = fig.add_subplot(111)
+    ymax_list = []
+    xmin_list = []
+    xmax_list = []
+    n=0
+    for n in range(len(sample_names)):
+        sample = sample_names[n]
+        x = [x+(window-220) for x in metagene_dict[sample][0]][1:]
+        y = metagene_dict[sample][1][1:]
+        ymax_list.append(max(y))
+        xmin_list.append(min(x))
+        xmax_list.append(max(x))
         plt.plot(x, y, color_list[n], label=sample)
         
-    ymax = max(ymax_list)+0.1* max(ymax_list)
+    ymax = max(ymax_list)+0.5
     xmin = max(xmin_list)+3
     xmax = min(xmax_list)-3
     plt.plot([0, 0], [0, ymax], color='0.7', linestyle='--', linewidth=2)
@@ -198,5 +334,4 @@ def plot_metagenes(sample_names, metagene_dict, color_list=None, plot_name='Yay'
     plt.ylim([0,ymax])
     plt.legend()
     plt.show()
-    fig.savefig(plot_name+'.pdf', format='pdf')
-        
+    fig.savefig(plot_name+'.pdf', format='pdf')        

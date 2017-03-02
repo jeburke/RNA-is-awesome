@@ -121,6 +121,7 @@ def make_fasta_dict(fasta_file):
 def get_sequence(coord_dict, gff3_file, fasta_file):
     if 'pombe' in gff3_file:
         organism = 'pombe'
+        #rom_lat = {'chr1':'I','chr2':'II','chr3':'III'}
     else: organism = None
     
     transcript_dict = SP.build_transcript_dict(gff3_file, organism=organism)
@@ -136,6 +137,7 @@ def get_sequence(coord_dict, gff3_file, fasta_file):
     for transcript, coord_sets in coord_dict.iteritems():
         seq_dict[transcript] = []
         chrom = transcript_dict[transcript][3]
+        #if chrom in rom_lat: chrom = rom_lat[chrom]
         strand = transcript_dict[transcript][2]
         for coord in coord_sets[0]:
             seq_type = 'other'

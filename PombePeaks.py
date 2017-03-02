@@ -112,7 +112,7 @@ def find_peaks(s, use_robust=True, min_z=2, use_log=True):
     return marker_list
 
 ### Pick peaks in NET-seq data. Also consolidates clusters of peaks into a single center (must be within 10 bp). Returns a peak dictionary. Keys are transcripts (or regions) and values are a tuple. The first position is a read series for the region for plotting. The second position is a pair of lists that are the x and y values for each peak picked (+10% for easy plotting).
-def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2, use_log=True):
+def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2, use_log=True, scramble=False):
     peak_dict = {}
     bam_reader = pysam.Samfile(bam_file)
     chrom_convert = {'chr1':'I','chr2':'II','chr3':'III'}
@@ -125,6 +125,8 @@ def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2,
         strand = info[2]
         iterator = bam_reader.fetch(chrom, start, end)
         s = generate_read_series(iterator, chrom, start, end, strand)
+        if scramble is True:
+            s = s
         marker_list = find_peaks(s, use_robust=use_robust, min_z=min_z, use_log=use_log)
         if len(marker_list[0]) > 0:
             new_markers = [[],[]]
@@ -159,11 +161,12 @@ def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2,
         peak_dict[tx] = (s,marker_list)
     return peak_dict
 
+
 ### Find all peaks in PARALYZER output. Returns a peak dictionary. Keys are transcripts or regions and values are read series
 def PARCLIP_peaks(bam_file, transcript_dict):
     peak_dict = {}
     bam_reader = pysam.Samfile(bam_file)
-    chrom_convert = {'I':'chr1','II':'chr2','III':'chr3'}
+    chrom_convert = {'chr1':'I','chr2':'II','chr3':'III'}
     for tx, info in transcript_dict.iteritems():
         chrom = info[3]
         if chrom in chrom_convert:
@@ -218,10 +221,10 @@ def compare_peak_overlap(wt_NS, mut_NS, PC_dict, transcript_dict):
                     mut_peaks[tx][0].append(peak)
     return mut_peaks
                 
-def plot_overlap(sample_names, region1_NS, region1_PC, transcript_dict, region2_NS=None, region2_PC=None, transcript_dict2=None):
+def plot_overlap(sample_names, region1_NS, region1_PC, transcript_dict, region2_NS=None, region2_PC=None, transcript_dict2=None, fig_name='PAR_NET_peak_overlap'):
+    contingency = pd.DataFrame(index=sample_names, columns=['Matched','Unmatched'])
     x = np.arange(len(sample_names))
     y = []
-    
     n=0
     for n in range(len(region1_NS)):
         print '---------------------------------------------------------------------------------------'
@@ -233,19 +236,27 @@ def plot_overlap(sample_names, region1_NS, region1_PC, transcript_dict, region2_
             overlap = compare_peak_overlap(region1_NS[0], region1_NS[n], region1_PC, transcript_dict)
     
         matched = [len(v[0]) for k,v in overlap.items() if v[0] > 0]
-        print "\nNumber of NET-seq peaks adjacent to a PAR-ClIP peak: "+str(sum(matched))
+        #print "\nNumber of NET-seq peaks adjacent to a PAR-ClIP peak: "+str(sum(matched))
         all_NS = [len(v[1]) for k,v in overlap.items()]
         all_NS = sum(all_NS)
-        print "\nTotal number of NET-seq peaks: "+str(all_NS)
-        print str(float(sum(matched))/all_NS*100)+'%'
+        unmatched = all_NS-sum(matched)
+        #print "\nTotal number of NET-seq peaks: "+str(all_NS)
+        #print str(float(sum(matched))/all_NS*100)+'%'
         y.append(float(sum(matched))/all_NS)
+        contingency.loc[sample_names[n],'Matched'] = sum(matched)
+        contingency.loc[sample_names[n],'Unmatched'] = unmatched
         
+    print contingency
     fig, ax = plt.subplots()
     width=0.35
     rects1 = ax.bar(x, y, width, color='darkslateblue',label='Coding genes')
     autolabel(rects1, ax)
+    chi2, p, dof, expected = stats.chi2_contingency(contingency)
+    print "p-value for region1: "+str(p)
+    
     
     if region2_NS is not None:
+        contingency2 = pd.DataFrame(index=sample_names, columns=['Matched','Unmatched'])
         y2 = []
         n=0
         for n in range(len(region2_NS)):
@@ -257,31 +268,40 @@ def plot_overlap(sample_names, region1_NS, region1_PC, transcript_dict, region2_
                 overlap = compare_peak_overlap(region2_NS[0], region2_NS[n], region2_PC, transcript_dict2)
 
             matched = [len(v[0]) for k,v in overlap.items() if v[0] > 0]
-            print "\nNumber of NET-seq peaks adjacent to a PAR-ClIP peak: "+str(sum(matched))
+            #print "\nNumber of NET-seq peaks adjacent to a PAR-ClIP peak: "+str(sum(matched))
             all_NS = [len(v[1]) for k,v in overlap.items()]
             all_NS = sum(all_NS)
-            print "\nTotal number of NET-seq peaks: "+str(all_NS)
-            print str(float(sum(matched))/all_NS*100)+'%'
+            unmatched = all_NS-sum(matched)
+            #print "\nTotal number of NET-seq peaks: "+str(all_NS)
+            #print str(float(sum(matched))/all_NS*100)+'%'
             y2.append(float(sum(matched))/all_NS)
+            contingency2.loc[sample_names[n],'Matched'] = sum(matched)
+            contingency2.loc[sample_names[n],'Unmatched'] = unmatched
             
         rects2 = ax.bar(width+x, y2, width, color='skyblue', label='Centromeres')
         ax.set_xticks(x + width/2)
         autolabel(rects2, ax)
+        
+        print contingency2
+        chi2, p, dof, expected = stats.chi2_contingency(contingency2)
+        print "p-value for region2: "+str(p)
     
     ax.set_ylim([0,1])
     ax.set_ylabel('Proportion NET-seq peaks with upstream PAR-ClIP peak')
     ax.set_xticklabels(sample_names)
+    fig.savefig(fig_name+'.pdf', format='pdf')
 
 
-def autolabel(rects, ax):
+def autolabel(rects, ax, sci_not=False):
     """
     Attach a text label above each bar displaying its height
     """
     for rect in rects:
         height = rect.get_height()
-        ax.text(rect.get_x() + rect.get_width()/2., 1.05*height,
-                '%.2f' % height,
-                ha='center', va='bottom')
+        if sci_not is False:
+            ax.text(rect.get_x() + rect.get_width()/2., 1.05*height, '%.2f' % height, ha='center', va='bottom')
+        else:
+            ax.text(rect.get_x() + rect.get_width()/2., 1.05*height, '%.2E' % height, ha='center', va='bottom')
 
 def plot_NETvsPAR(region_dict, PC_dict, NS_dict, save_dir='.', filt=None):
     if not os.path.exists(save_dir):
@@ -292,7 +312,7 @@ def plot_NETvsPAR(region_dict, PC_dict, NS_dict, save_dir='.', filt=None):
         region_dict = {k:v for k, v in region_dict.items() if k.startswith(filt)}
     
     for frag in region_dict:
-        if float(sum(NS_dict[frag][0]))/len(NS_dict[frag][0]) >= 1.5:
+        if sum(NS_dict[frag][0]) >= 50:
             fig = plt.figure(figsize=(8, 6))
             ax = fig.add_subplot(311)
                 
@@ -337,7 +357,7 @@ def plot_NETseq(region_dict, NS_dict, save_dir='.', NS_dict2=None, bam1=None, ba
         print mill_reads2
         
     for frag in region_dict:
-        if float(sum(NS_dict[frag][0]))/len(NS_dict[frag][0]) >= 1.5:
+        if sum(NS_dict[frag][0]) >= 50:
             fig = plt.figure(figsize=(8, 6))
             ax = fig.add_subplot(311)
                 
@@ -366,3 +386,55 @@ def plot_NETseq(region_dict, NS_dict, save_dir='.', NS_dict2=None, bam1=None, ba
             plt.show()
             fig.savefig('{0}/{1}_NETseq.pdf'.format(save_dir, frag), format='pdf')
             plt.clf()
+            
+def net_seq_near_PAR(sample_names, bam_list, region1_NS, region1_PC, transcript_dict, region2_NS=None, region2_PC=None, transcript_dict2=None, fig_name='PAR_NET_peak_overlap'):
+    mill_reads_list = []
+    for m, bam in enumerate(bam_list):
+        mill_reads = check_output(['samtools','view','-F 0x04','-c',bam]).strip()
+        mill_reads = float(mill_reads)/1000000.
+        print mill_reads
+        mill_reads_list.append(mill_reads)
+
+    y=[]
+    n=0
+    for n, NS in enumerate(region1_NS):
+        y.append(0)
+        for tx, s in region1_PC.iteritems():
+            for index, value in s.iteritems():
+                par_range = range(index-50, index+50)
+                ns_signal = NS[tx][0]
+                ns_in_range = sum(ns_signal[ns_signal.index.isin(par_range)])
+                y[n] += float(ns_in_range)/mill_reads_list[n]
+        print y[n]
+    
+    y =[v/y[0] for v in y]
+    x = np.arange(len(sample_names))  
+    fig, ax = plt.subplots()
+    width=0.35
+    rects1 = ax.bar(x, y, width, color='darkslateblue',label='Coding genes')
+    #autolabel(rects1, ax, sci_not=True)
+    
+    if region2_NS is not None:
+        y2 = []
+        ns_near_par2 = {}
+        n=0
+        for n, NS in enumerate(region2_NS):
+            y2.append(0)
+            for tx, s in region2_PC.iteritems():
+                for index, value in s.iteritems():
+                    par_range = range(index-50, index+50)
+                    ns_signal = NS[tx][0]
+                    ns_in_range = sum(ns_signal[ns_signal.index.isin(par_range)])
+                    y2[n] += float(ns_in_range)/mill_reads_list[n]
+            print y2[n]
+    
+        y2 =[v/y2[0] for v in y2]
+        rects2 = ax.bar(width+x, y2, width, color='skyblue', label='Centromeres')
+        ax.set_xticks(x + width/2)
+        #autolabel(rects2, ax, sci_not=True)
+    
+    #ax.set_ylim([0,1])
+    ax.set_ylabel('NET-seq signal surrounding PAR-ClIP peak')
+    ax.set_xticklabels(sample_names)
+    fig.savefig(fig_name+'.pdf', format='pdf')
+                
