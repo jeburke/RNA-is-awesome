@@ -1987,6 +1987,7 @@ def count_peak_types(df):
     other = other[~other['sequence'].str[3:7].str.contains('AC')]
     print 'Other sequences:'
     print len(other[other['looks like'] == ''])
+    return other
     
 def compare_peak_junc_df(peak_df, junc_df, organism = None):
     print "Unpredicted peaks: "+str(len(peak_df[peak_df['type'] == 'intronic']))

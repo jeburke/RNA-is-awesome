@@ -21,23 +21,27 @@ def build_transcript_dict(gff3="/home/jordan/GENOMES/POMBE/schizosaccharomyces_p
         for tx, info in transcript_dict.iteritems():
             new_start = info[0]-220
             new_end = info[1]+220
-            expanded_dict[tx] = [new_start, new_end, info[2], info[3]]
+            expanded_dict[tx] = [new_start, new_end, info[2], info[3], info[4], info[5]]
         transcript_dict = expanded_dict
     
     return transcript_dict
 
-def find_polyA_sites(transcript_dict, window=600):
+def find_polyA_sites(transcript_dict, window=220):
     polyA_bg = SP.read_CNAGsort_bedgraph2('/home/jordan/GENOMES/POMBE/polyA_sites_CNAGsort.bedgraph', transcript_dict, organism='pombe')
     pA_dict = {}
     for tx, s in polyA_bg.iteritems():
         s = s[s > 0]
         if len(s) > 0:
             if transcript_dict[tx][2] == '+':
-                pA_site = max(s.index)
-                pA_dict[tx] = [pA_site-window, pA_site+220, transcript_dict[tx][2], transcript_dict[tx][3]]
+                #pA_site = max(s.index)
+                s.sort_values(ascending=False, inplace=True)
+                pA_site = s.index[0]
+                pA_dict[tx] = [pA_site-window, pA_site+window, transcript_dict[tx][2], transcript_dict[tx][3]]
             elif transcript_dict[tx][2] == '-':
-                pA_site = min(s.index)
-                pA_dict[tx] = [pA_site-220, pA_site+window, transcript_dict[tx][2], transcript_dict[tx][3]]
+                #pA_site = min(s.index)
+                s.sort_values(ascending=False, inplace=True)
+                pA_site = s.index[0]
+                pA_dict[tx] = [pA_site-window, pA_site+window, transcript_dict[tx][2], transcript_dict[tx][3]]
     return pA_dict
 
 def build_tss_dict(gff3="/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3", window=220):
@@ -46,12 +50,12 @@ def build_tss_dict(gff3="/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.ch
     tss_dict = {}
     for tx, info in transcript_dict.iteritems():
         if info[2] == '+':
-            start = info[0]-220
+            start = info[0]-window
             end = info[0]+window
             tss_dict[tx] = [start, end, info[2], info[3]]
         elif info[2] == '-':
             start = info[1]-window
-            end = info[1]+220
+            end = info[1]+window
             tss_dict[tx] = [start, end, info[2], info[3]]
     return tss_dict
 
@@ -73,7 +77,7 @@ def count_aligned_reads(bam_file):
     total = float(total)/1000000.
     return total
 
-def rpkm_from_bam(transcript_dict, bam_file):
+def rpkm_from_bam(transcript_dict, bam_file, fiveprime_only=False):
     bam = pysam.Samfile(bam_file)
     total = count_aligned_reads(bam_file)
     rpkm_tuples = []
@@ -87,9 +91,14 @@ def rpkm_from_bam(transcript_dict, bam_file):
         start = info[0]
         if start < 0: start = 0
         end = info[1]
-        length = abs(info[1]-info[0])
+        if fiveprime_only is True:
+            if strand == '+':
+                end = start+200
+            elif strand == '-':
+                start = end-200
+        length = abs(end-start)
         read_count = count_reads_in_window(bam, chrom, start, end, strand)
-        if length > 200:
+        if length >= 200:
             rpkm = float(read_count)/(length*total)
             rpkm_tuples.append((tx,rpkm))
     return rpkm_tuples
@@ -116,13 +125,7 @@ def remove_overlapping_transcripts(transcript_dict):
 def refine_transcript_dict(transcript_dict, rpkm_tuples, cutoff=10):
     abundant = find_abundant(rpkm_tuples, transcript_dict, cutoff=cutoff)
     no_overlap = remove_overlapping_transcripts(abundant)
-    
-    refined_tx_dict = {}
-    for tx, info in no_overlap.iteritems():
-        new_start = info[0]-220
-        new_end = info[1]+220
-        refined_tx_dict[tx] = [new_start, new_end, info[2], info[3]]
-    return refined_tx_dict
+    return no_overlap
 
 def sort_bedgraphs(directory, transcript_dict):
     bedgraph_list = []
@@ -148,16 +151,19 @@ def read_sorted_bedgraphs(directory, transcript_dict):
                 stranded_bedgraphs[file.split('_minus')[0]][1] = SP.read_CNAGsort_bedgraph2(file, transcript_dict, organism='pombe')
     return stranded_bedgraphs
 
-def build_metagene(tx_dict, bedgraph_dict_tuple, bam_file, window=600):
-    metagene = np.zeros([1,window+220])[0]
+def build_metagene(tx_dict, bedgraph_dict_tuple, bam_file, window=440):
+    metagene = np.zeros([1,window+1])[0]
     #aligned_reads_million = count_aligned_reads(bam_file)
     aligned_reads_million = 1
     
     for tx, data in bedgraph_dict_tuple[0].iteritems():
         if tx in tx_dict and tx_dict[tx][2] == '+':
             total = sum(data)
-            region1 = data[-window-220:-220]
-            region2 = data[-220:]
+            start = tx_dict[tx][0]
+            end = tx_dict[tx][1]
+            middle = (end-start)/2+start
+            region1 = data.ix[start:middle]
+            region2 = data.ix[middle:end]
             n = 0
             for index, value in region1.iteritems():
                 metagene[n] += float(value)/aligned_reads_million/total
@@ -173,8 +179,11 @@ def build_metagene(tx_dict, bedgraph_dict_tuple, bam_file, window=600):
         if tx in tx_dict and tx_dict[tx][2] == '-':
             data = data.sort_index(ascending=False)
             total = sum(data)
-            region1 = data[-window-220:-220]
-            region2 = data[-220:]
+            start = tx_dict[tx][1]
+            end = tx_dict[tx][0]
+            middle = (start-end)/2+end
+            region1 = data[start:middle]
+            region2 = data[middle:end]
             n = 0
             for index, value in region1.iteritems():
                 metagene[n] += float(value)/aligned_reads_million/total
@@ -185,11 +194,11 @@ def build_metagene(tx_dict, bedgraph_dict_tuple, bam_file, window=600):
                     n+=1
                 except IndexError:
                     pass
-    x = range(-window,220)
+    x = range(len(metagene))
     
-    x_smooth = np.linspace(min(x), max(x), 100)
-    y_smooth = spline(x, metagene, x_smooth)
-    return (x_smooth, y_smooth)
+    #x_smooth = np.linspace(min(x), max(x), 100)
+    #y_smooth = spline(x, metagene, x_smooth)
+    return (x, metagene)
 
 def mean_confidence_interval(data, confidence=0.99):
     a = 1.0*np.array(data)
@@ -258,14 +267,14 @@ def metagene_confidence_intervals(tx_dict, wt_bedgraph_dict_tuple, mut_bedgraph_
             above_CI.append(-window+m)
     return below_CI, above_CI                 
                     
-def metagenes_from_bedgraph(stranded_bedgraphs, transcript_dict, original_directory='./', window=600):
+def metagenes_from_bedgraph(stranded_bedgraphs, transcript_dict, original_directory='./', window=440):
     metagene_dict = {}
     for sample in stranded_bedgraphs:
         bam_file = original_directory+sample+'_primed_sorted.bam'
         metagene_dict[sample] = build_metagene(transcript_dict, stranded_bedgraphs[sample], bam_file, window=window)
     return metagene_dict
 
-def plot_metagenes(sample_names, metagene_dict, CI_lists=None, color_list=None, plot_name='Yay', ymax=None, xlabel=None):
+def plot_metagenes(sample_names, metagene_dict, CI_lists=None, color_list=None, plot_name='Yay', ymax=None, xlabel=None, title=None):
     if color_list is None:
         color_list = ['0.5','orange','navy','skyblue']
     fig = plt.figure(figsize=(8, 6))
@@ -276,15 +285,20 @@ def plot_metagenes(sample_names, metagene_dict, CI_lists=None, color_list=None, 
     n=0
     for n in range(len(sample_names)):
         sample = sample_names[n]
-        x = metagene_dict[sample][0]
-        y = metagene_dict[sample][1]
+        half = (len(metagene_dict[sample][1])+1)/2
+        x = range(3-half,0+half)
+        print len(x)
+        y = metagene_dict[sample][1][2:]
+        print len(y)
+        x_smooth = np.linspace(min(x), max(x), 100)
+        y_smooth = spline(x, y, x_smooth)
         ymax_list.append(max(y))
         xmin_list.append(min(x))
         xmax_list.append(max(x))
-        ax.plot(x, y, color_list[n], label=sample)
+        ax.plot(x_smooth, y_smooth, color_list[n], label=sample)
     
     if ymax is None:
-        ymax = max(ymax_list)+0.5
+        ymax = max(ymax_list)+0.1*max(ymax_list)
     xmin = max(xmin_list)+3
     xmax = min(xmax_list)-3
     if CI_lists is not None:
@@ -299,9 +313,11 @@ def plot_metagenes(sample_names, metagene_dict, CI_lists=None, color_list=None, 
         
 
     ax.plot([0, 0], [0, ymax], color='0.7', linestyle='--', linewidth=2)
-    if xlabel is None: ax.set_xlabel('Distance from polyA site')
+    if xlabel is None: ax.set_xlabel('Distance from gene feature')
     else: ax.set_xlabel(xlabel)
     ax.set_ylabel('Total normalized reads')
+    if title is not None:
+        ax.set_title(title)
     plt.xlim([xmin,xmax])
     plt.ylim([0,ymax])
     plt.legend()
