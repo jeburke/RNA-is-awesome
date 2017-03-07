@@ -3,10 +3,12 @@ import math
 import numpy as np
 import pandas as pd
 sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/')
+sys.path.insert(0, '/home/jordan/RNA-is-awesome/')
 sys.path.insert(0, '/Users/jordanburke/CodeBase/RNA-is-awesome/')
 import GeneUtility
 sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/SP_ANALYSIS/')
 sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/SP_ANALYSIS/')
+sys.path.insert(0, '/home/jordan/RNA-is-awesome/SP_ANALYSIS/')
 import SPTools as SP
 from collections import OrderedDict
 import csv
