@@ -612,11 +612,37 @@ def cdf_for_n_lists(list_of_lists, label_list=None, color_list=None, x_title='Le
     if color_list is None:
         color_list = ['0.3','cornflowerblue','orangered','0.7','limegreen','mediumvioletred']
     
+    all_cdfs = []
     n = 0 
     for n in range(len(list_of_lists)):
         cumulative, base = cdf_values(list_of_lists[n])
         ax.plot(base[:-1], cumulative, c=color_list[n], linewidth=3.0, label=label_list[n])
+        all_cdfs.append(cumulative)
         
+    n=0
+    for n in range(len(list_of_lists)-1):
+        print "Sample "+str(label_list[n])+" vs. sample "+str(label_list[n+1])
+        print "%0.1e" % ks_2samp(list_of_lists[n], list_of_lists[n+1])[1]
+        if n == 1:
+            print "Sample "+str(label_list[n-1])+" vs. sample "+str(label_list[n+1])
+            print "%0.1e" % ks_2samp(all_cdfs[n-1], list_of_lists[n+1])[1]
+        elif n == 2:
+            print "Sample "+str(label_list[n-1])+" vs. sample "+str(label_list[n+1])
+            print "%0.1e" % ks_2samp(list_of_lists[n-1], list_of_lists[n+1])[1]
+            print "Sample "+str(label_list[n-2])+" vs. sample "+str(label_list[n+1])
+            print "%0.1e" % ks_2samp(list_of_lists[n-2], list_of_lists[n+1])[1]
+        elif n == 3:
+            print "Sample "+str(label_list[n-1])+" vs. sample "+str(label_list[n+1])
+            print "%0.1e" % ks_2samp(list_of_lists[n-1], list_of_lists[n+1])[1]
+            print "Sample "+str(label_list[n-2])+" vs. sample "+str(label_list[n+1])
+            print "%0.1e" % ks_2samp(list_of_lists[n-2], list_of_lists[n+1])[1]
+            print "Sample "+str(label_list[n-2])+" vs. sample "+str(label_list[n])
+            print "%0.1e" % ks_2samp(list_of_lists[n-2], list_of_lists[n])[1]
+            print "Sample "+str(label_list[n-3])+" vs. sample "+str(label_list[n+1])
+            print "%0.1e" % ks_2samp(list_of_lists[n-3], list_of_lists[n+1])[1]
+            print "Sample "+str(label_list[n-3])+" vs. sample "+str(label_list[n])
+            print "%0.1e" % ks_2samp(list_of_lists[n-3], list_of_lists[n])[1]
+    
     #ax.legend(bbox_to_anchor=(1, 0), loc='lower left', fontsize=14)
     ax.legend(fontsize=14)
     plt.ylabel(y_title, fontsize=16)

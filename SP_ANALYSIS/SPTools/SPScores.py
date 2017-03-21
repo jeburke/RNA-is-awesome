@@ -374,6 +374,39 @@ def generate_consensus_matrix(gff3, fasta_dict, PSSM=False):
     return (pos_matrix_5prime, pos_matrix_3prime)
 
 
+def generate_PSSM(seq_list, fasta_dict):
+    #Populate gene dictionary and build genome
+    genome = fasta_dict
+    nuc_prob = gc_content(fasta_dict)
+
+    base_dict = {"A":0, "C":1, "T":2, "G":3}
+    
+    #First generate a consensus matrix for the sequence, where 1st row is A counts, second row is C, third row is T, fourth row is G.
+    PSSM = np.zeros([4,len(seq_list[0])])
+
+    counter = 0
+    for seq in seq_list:
+        counter += 1
+        for a, base in enumerate(seq):
+            PSSM[base_dict[base],a] += 1
+
+    float_formatter = lambda x: "%.1f" % x
+    np.set_printoptions(formatter={'float_kind':float_formatter})
+    
+    a = 0
+    while a < 4:
+        b = 0
+        while b < len(seq_list[0]):
+            if PSSM[a,b] == 0: PSSM[a,b] += 1
+            PSSM[a,b] = np.log2((PSSM[a,b]/float(counter))/nuc_prob[a])
+            b += 1
+        a += 1
+        
+    print sum(PSSM)        
+    print PSSM
+    
+    return PSSM
+
 def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime, PSSM=False):
     #Compare each splice site and add scores to dataframe - needs columns named 'coord_1', 'coord_2', 'sequence1', 'sequence2'
     df['5p score'] = ''

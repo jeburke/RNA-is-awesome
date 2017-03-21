@@ -4,12 +4,14 @@ from subprocess import check_output
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+import matplotlib.patches as patches
 import pysam
 from scipy import stats
 from statsmodels import robust
 sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/SP_ANALYSIS/')
 sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/SP_ANALYSIS/')
 import SPTools as SP
+import random
 
 
 ### Transcript dictionary where key is transcript name and values are [start, stop, strand, chromosome, list of cds starts, list  of cds ends]. Can provide a different gff3 file if desired.
@@ -67,6 +69,23 @@ def build_centromere_dict(gtf='/home/jordan/GENOMES/POMBE/Centromere_annotations
     print len(cen_dict)
     return cen_dict
     
+#Function to grab all transcript information including exons from transcript dict
+def tx_info(tx, tx_dict):
+    strand = tx_dict[tx][2]
+    start = tx_dict[tx][0]
+    end = tx_dict[tx][1]
+    exons = None
+    if len(tx_dict[tx]) > 4 and len(tx_dict[tx][4]) > 0:
+        CDS_start = min(tx_dict[tx][4])
+        CDS_end = max(tx_dict[tx][5])
+        exons = zip(tx_dict[tx][4],tx_dict[tx][5])
+    else:
+        CDS_start = start
+        CDS_end = end
+        
+    return start, end, strand, CDS_start, CDS_end, exons
+    
+    
 ### Method for determining Z scores on somewhat skewed distributions
 def robust_z(x, med, mad):
     z = abs(x-med)/mad
@@ -96,7 +115,8 @@ def find_peaks(s, use_robust=True, min_z=2, use_log=True):
     if use_log is True:
         new_s = s.apply(np.log)
     else:
-        new_s = s
+        #new_s = s
+        new_s = s[s <= s.quantile(0.95)]
     if use_robust is False:
         s_Z = pd.Series(stats.mstats.zscore(new_s), index=new_s.index)
     elif use_robust is True:
@@ -107,12 +127,13 @@ def find_peaks(s, use_robust=True, min_z=2, use_log=True):
     marker_list = [[],[]]
     for pos, score in s_Z.iteritems():
         if score > min_z and s[pos] > 10:
+        #if score > min_z:
             marker_list[0].append(pos)
             marker_list[1].append(s[pos]+0.01*s[pos])
     return marker_list
 
 ### Pick peaks in NET-seq data. Also consolidates clusters of peaks into a single center (must be within 10 bp). Returns a peak dictionary. Keys are transcripts (or regions) and values are a tuple. The first position is a read series for the region for plotting. The second position is a pair of lists that are the x and y values for each peak picked (+10% for easy plotting).
-def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2, use_log=True, scramble=False):
+def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2, use_log=True, scramble=False, collapse=False):
     peak_dict = {}
     bam_reader = pysam.Samfile(bam_file)
     chrom_convert = {'chr1':'I','chr2':'II','chr3':'III'}
@@ -125,28 +146,19 @@ def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2,
         strand = info[2]
         iterator = bam_reader.fetch(chrom, start, end)
         s = generate_read_series(iterator, chrom, start, end, strand)
+        
         if scramble is True:
-            s = s
+            s.index = random.sample(range(min(s.index),max(s.index)),len(s))
+        
         marker_list = find_peaks(s, use_robust=use_robust, min_z=min_z, use_log=use_log)
-        if len(marker_list[0]) > 0:
-            new_markers = [[],[]]
-            prox = [[],[]]
-            n=0
-            while n < len(marker_list[0]):
-                if n == len(marker_list[0])-1:
-                    if len(prox[0]) == 0:
-                        new_markers[0].append(marker_list[0][n])
-                        new_markers[1].append(marker_list[1][n])
-                    else:
-                        prox[0].append(marker_list[0][n])
-                        prox[1].append(marker_list[1][n])
-                        new_markers[0].append(sum(prox[0])/len(prox[0]))
-                        new_markers[1].append(max(prox[1]))
-                else:
-                    if marker_list[0][n+1]-marker_list[0][n] < 10:
-                        prox[0].append(marker_list[0][n])
-                        prox[1].append(marker_list[1][n])
-                    else:
+        
+        if collapse is True:
+            if len(marker_list[0]) > 0:
+                new_markers = [[],[]]
+                prox = [[],[]]
+                n=0
+                while n < len(marker_list[0]):
+                    if n == len(marker_list[0])-1:
                         if len(prox[0]) == 0:
                             new_markers[0].append(marker_list[0][n])
                             new_markers[1].append(marker_list[1][n])
@@ -155,9 +167,22 @@ def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2,
                             prox[1].append(marker_list[1][n])
                             new_markers[0].append(sum(prox[0])/len(prox[0]))
                             new_markers[1].append(max(prox[1]))
-                        prox = [[],[]]
-                n += 1
-            marker_list = new_markers
+                    else:
+                        if marker_list[0][n+1]-marker_list[0][n] < 10:
+                            prox[0].append(marker_list[0][n])
+                            prox[1].append(marker_list[1][n])
+                        else:
+                            if len(prox[0]) == 0:
+                                new_markers[0].append(marker_list[0][n])
+                                new_markers[1].append(marker_list[1][n])
+                            else:
+                                prox[0].append(marker_list[0][n])
+                                prox[1].append(marker_list[1][n])
+                                new_markers[0].append(sum(prox[0])/len(prox[0]))
+                                new_markers[1].append(max(prox[1]))
+                            prox = [[],[]]
+                    n += 1
+                marker_list = new_markers
         peak_dict[tx] = (s,marker_list)
     return peak_dict
 
@@ -437,4 +462,173 @@ def net_seq_near_PAR(sample_names, bam_list, region1_NS, region1_PC, transcript_
     ax.set_ylabel('NET-seq signal surrounding PAR-ClIP peak')
     ax.set_xticklabels(sample_names)
     fig.savefig(fig_name+'.pdf', format='pdf')
-                
+
+
+#Function for finding overlapping peaks in data sets. If from_reps is True, averages the data between the two sets    
+def compare_NETseq_peak_counts(wt, mut, from_reps=False):
+    total1 = 0
+    for tx, info in wt.iteritems():
+        total1 += sum(info[0])
+        #print total1
+    total2 = 0
+    for tx, info in mut.iteritems():
+        total2 += sum(info[0])
+    
+    total1 = total1/1000000.
+    total2 = total2/1000000.
+    
+    in_both = {}
+    both_count = 0
+    only_WT = {}
+    only_WT_count = 0
+    only_mut = {}
+    only_mut_count = 0
+    for tx, info in wt.iteritems():
+        peaks = info[1][0]
+        heights = info[1][1]
+        try:
+            mut_peaks = mut[tx][1][0]
+            #mut_heights = mut[tx][1][1]
+        except KeyError:
+            mut_peaks = []
+            #mut_heights = []
+            
+        if from_reps is False:
+            s = info[0]
+            try:
+                s2 = mut[tx][0]
+                ratio = float(sum(s))/sum(s2)
+                #print ratio
+            except ZeroDivisionError:
+                ratio = 0
+            except KeyError:
+                ratio = 0
+        elif from_reps is True:
+            s = (info[0]/total1+mut[tx][0]/total2)/2.
+            s = s.fillna(0)
+            s2 = s
+            ratio = 1
+        
+        in_both[tx] = [s,([],[])]
+        only_WT[tx] = [s,([],[])]
+        only_mut[tx] = [s,([],[])]
+        if len(peaks) > 0 and ratio <= 5 and ratio >= 0.2:
+            for mut_peak in mut_peaks:
+                #index = mut_peaks.index(mut_peak)
+                if mut_peak not in peaks:
+                    only_mut[tx][1][0].append(mut_peak) 
+                    only_mut[tx][1][1].append(s2[mut_peak])
+                    only_mut_count += 1
+                else:
+                    both_count += 1
+                    in_both[tx][1][0].append(mut_peak) 
+                    in_both[tx][1][1].append(s2[mut_peak])
+                                
+            for wt_peak in peaks:
+                index = peaks.index(wt_peak)
+                if wt_peak not in mut_peaks:    
+                    only_WT[tx][1][0].append(wt_peak)
+                    only_WT[tx][1][1].append(s[wt_peak])
+                    only_WT_count += 1
+
+    print "Peaks in both samples:"
+    print both_count
+    print "Peaks only in 1st sample:"
+    print only_WT_count
+    print "Peaks only in 2nd sample:"
+    print only_mut_count
+    return in_both, only_WT, only_mut
+    
+#This function makes the little gene diagrams for each transcript    
+def gene_patches3(tx, tx_dict, ax):
+    start, end, strand, CDS_start, CDS_end, exons = tx_info(tx, tx_dict)
+    tx_patch = patches.Rectangle((start,0.8),end-start,0.02,edgecolor='0.1',facecolor='0.1')
+    ax.add_patch(tx_patch)
+    if exons is not None:
+        exon_patches = []
+        for exon_start, exon_stop in exons:
+            exon_patches.append(patches.Rectangle((exon_start, 0.76),exon_stop-exon_start,0.09,edgecolor='0.1',facecolor='0.1'))
+        for patch in exon_patches:
+            ax.add_patch(patch)
+    else:
+        CDS_patch = patches.Rectangle((CDS_start, 0.76),CDS_end-CDS_start, 0.09,edgecolor='0.1',facecolor='0.1')
+        ax.add_patch(CDS_patch)
+    ax.get_yaxis().set_ticks([])
+    return strand    
+
+#Plot normalized WT and mutant
+def plot_peak_differences(set1, set2, only1, only2, tx_dict, save_dir=None, use_max_y=False, tx_list=None):
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+        
+    if tx_list is None:
+        tx_list = [tx for tx in only1.keys() if len(only1[tx][1][0]) > 0]
+    for tx in tx_list:     
+        s1 = set1[tx][0]
+        s2 = set2[tx][0]
+        
+        #Plot WT on top with markers for peaks only in WT
+        fig, ax = plt.subplots(3, figsize=(12,6), sharex=True)
+        ax[0].bar(s1.index, s1)
+        ax[0].plot(only1[tx][1][0], only1[tx][1][1], 'o', color='orangered')
+        
+        #Plot mutant on the bottom (inverted) with markers for peaks only in mutant
+        ax[1].bar(s2.index, s2, color='teal', edgecolor='teal')
+        ax[1].plot(only2[tx][1][0], only2[tx][1][1], 'o', color='darkorange')
+
+        fig.subplots_adjust(hspace=0)
+        
+        #Determine y_max - use the highest peak in either if use_max_y is True, otherwise use highest peak in lower
+        if use_max_y is False:
+            max_y = min([max(set1[tx][0]),max(set2[tx][0])])+0.2*min([max(set1[tx][0]),max(set2[tx][0])])
+        else:
+            max_y = max([max(set1[tx][0]),max(set2[tx][0])])+0.2*max([max(set1[tx][0]),max(set2[tx][0])])
+        ax[0].set_ylim(0,max_y)
+        ax[1].set_ylim(0,max_y)
+        
+        #Add the diagram of the gene
+        ax3 = plt.subplot
+        strand = gene_patches3(tx, tx_dict, ax[2])
+
+        #Add title and plot
+        ax[0].set_title(tx+" ("+strand+" strand)")
+        ax[1].invert_yaxis()
+        plt.show()
+        
+        #Save in sav_dir
+        if save_dir is not None:
+            fig.savefig(save_dir+tx+'.pdf', format='pdf')
+        plt.clf()
+        
+#Pipeline to read bam files, call peaks, compare reproducibility between replicates and then compare wt and mut. Outputs plots as pdf. If you don't want all the plots in this directory, change save_dir
+def compare_NETseq_pipeline(WTbam1, WTbam2, MUTbam1, MUTbam2, save_dir='./', gff3=None, tx_list=None):
+    if gff3 is not None:
+        tx_dict = build_transcript_dict(gff3)
+    else: tx_dict = build_transcript_dict()
+    tx_dict.update(build_centromere_dict())
+    
+    #Generate information from BAM files
+    WT1 = NETseq_peaks(WTbam1, tx_dict, use_robust=False)
+    WT2 = NETseq_peaks(WTbam2, tx_dict, use_robust=False)
+    MUT1 = NETseq_peaks(MUTbam1, tx_dict, use_robust=False)
+    MUT2 = NETseq_peaks(MUTbam2, tx_dict, use_robust=False)
+    
+    #Find reproducible peaks and average replicates
+    WT_set, rep1, rep2 = compare_NETseq_peak_counts(WT1, WT2, from_reps=True)
+    MUT_set, rep1, rep2 = compare_NETseq_peak_counts(MUT1, MUT2, from_reps=True)
+    
+    #Compare mutant and wild type
+    WT_MUT_both, only_WT, only_MUT = compare_NETseq_peak_counts(WT_set, MUT_set)
+    
+    #Gather most abundant transcripts
+    if tx_list is None:
+        tx_list = []
+        count = 0
+        for tx, info in WT_set.iteritems():
+            if len(info[0]) > 0:
+                if sum(info[0])/len(info[0]) > .07 and 'RNA' not in tx and tx in new_tx_dict:
+                    count += 1
+                    spliced_list.append(tx)
+        print count
+        
+    plot_peak_differences(WT_set, MUT_set, only_WT, only_MUT, tx_dict, save_dir=save_dir, tx_list=tx_list)
