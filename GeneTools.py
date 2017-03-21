@@ -185,25 +185,31 @@ def seq_simple(chrom, start, end, strand, fasta_dict):
 def get_peak_sequence(input_file, fasta_file, gff3_file, window=1000):
     #File where 1st column is transcript (3P prefix sometimes), 2nd column is chr, 3rd column is peak center
     tx_dict = SP.build_transcript_dict(gff3_file)
-    fa_dict = SP.make_fasta_dict(fasta_file)
+    if type(fasta_file) == dict:
+	fa_dict = fasta_file
+    else:
+        fa_dict = SP.make_fasta_dict(fasta_file)
     seq_list = []
-    csv_file = csv.reader(input_file, dialect=csv.excel)
-    with open(csv_file,'r') as f:
+    with open(input_file,'r') as csv_file:
+        f = csv.reader(csv_file, dialect=csv.excel)
         for row in f:
             tx = row[0]+'T0'
             if tx.startswith('3P'): tx = tx.split('3P')[1]
             chrom = 'chr'+row[1]
-            center = int(row[2])
-            if tx in tx_dict:
-                strand = tx_dict[tx][2]
-                start = center-window/2
-                end = center+window/2
-                seq = seq_simple(chrom, start, end, strand, fasta_dict)
-                seq_list.append(seq)
-            else:
-                print tx+" not in GFF3 file"
+            try:
+                center = int(row[2])
+                if tx in tx_dict:
+                    strand = tx_dict[tx][2]
+                    start = center-window/2
+                    end = center+window/2
+                    seq = seq_simple(chrom, start, end, strand, fa_dict)
+                    seq_list.append((tx,seq))
+                else:
+                    print tx+" not in GFF3 file"
+            except ValueError:
+		pass
     with open('{0}_peak_sequences.fa'.format(input_file.split('/')[-1].split('.')[0]),'w') as fout:
-        fout.write('\n'.join(seq_list))
+        for tx, seq in seq_list:
+	    fout.write('>'+tx+'\n')
+	    fout.write(seq+'\n')
     return seq_list
-  
-            
