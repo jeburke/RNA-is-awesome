@@ -159,6 +159,63 @@ def read_fasta(fasta_file):
                 cds_dict[cds] = cds_dict[cds]+line.strip()
     return cds_dict
 
+
+def build_transcript_dict(gff3_file, organism=None):
+    with open(gff3_file,"r") as gff3:
+        transcript_dict = {}
+        for line in gff3:
+            columns = re.split(r'\t+', line)
+            
+            if organism == 'pombe' and len(columns) > 1:
+                chr_rom = columns[0]
+                rom_lat = {'I':'chr1','II':'chr2','III':'chr3','MT':'MT'}
+                chrom = rom_lat[chr_rom]
+                transcript_types = ['transcript','pseudogene','rRNA','snoRNA','tRNA','snRNA']
+                if columns[2] in transcript_types:
+                    if columns[8].split(':')[0].split('=')[1] == 'gene': continue
+                    transcript = columns[8].split(';')[0].split(':')[1]
+                    #if transcript[-2] != 'T': transcript = transcript[:-1]+'T1'
+                    transcript_dict[transcript] = [int(columns[3]), int(columns[4]), columns[6], chrom, [], []]
+                elif columns[2] == 'CDS':
+                    transcript = columns[8].split(':')[1]
+                    #if transcript[-2] != 'T': transcript = transcript[:-1]+'T1'
+                    transcript_dict[transcript][4].append(int(columns[3]))
+                    transcript_dict[transcript][5].append(int(columns[4]))
+                        
+            if len(columns) == 9 and organism is None:
+                if columns[2] == "mRNA" or columns[2] == "snoRNA_gene" or columns[2] == "tRNA_gene":
+                    transcript = columns[8]
+                    transcript = transcript.split("=")[1]
+                    transcript = transcript.split(";")[0]
+                    if transcript.endswith("mRNA"): transcript = transcript.split("_")[0]
+                    if transcript[-2] != 'T': transcript = transcript+'T0'
+                    #Transcript dictionary: keys are transcript, values are [start, end, strand, chromosome, CDS start, CDS end]
+                    if transcript not in transcript_dict:
+                        transcript_dict[transcript] = [int(columns[3]), int(columns[4]), columns[6], columns[0], [], []]
+                    else:
+                        transcript_dict[transcript][0] = int(columns[3])
+                        transcript_dict[transcript][1] = int(columns[4])
+                        transcript_dict[transcript][2] = columns[6]
+                        transcript_dict[transcript][3] = columns[0]
+                elif columns[2] == "CDS":
+                    transcript = columns[8].split("=")[1].split(".")[0].split(';')[0]
+                    if 'mRNA' in transcript: transcript = transcript.split("_")[0]
+                    if transcript[-2] != 'T': transcript = transcript+'T0'
+                    if transcript not in transcript_dict:
+                        strand = columns[6]
+                        chrom = columns[0]
+                        transcript_dict[transcript] = [0,0,strand,chrom,[],[]]
+                    transcript_dict[transcript][4].append(int(columns[3]))
+                    transcript_dict[transcript][5].append(int(columns[4]))
+    
+    for tx in transcript_dict:
+        if transcript_dict[tx][0] == 0:
+            transcript_dict[tx][0] = transcript_dict[tx][4][0]
+            transcript_dict[tx][1] = transcript_dict[tx][5][0]
+    
+    transcript_dict = collections.OrderedDict(sorted(transcript_dict.items()))
+    return transcript_dict
+
 def split_cds(cds_dict, end, number_nts):
     split_dict = {}
     for cds, seq in cds_dict.iteritems():
