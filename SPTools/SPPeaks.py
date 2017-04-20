@@ -1782,6 +1782,7 @@ def CP_peaks_by_gene(fin, transcript_dict, cutoff=5):
                                 peaks_by_gene[tx] = []
                             peaks_by_gene[tx].append([peak,peak_height,strand])
                             
+                            ## Bit of code to check for a neighboring peak and remove it if there is a neighbor.
                             #else:
                             #    n=0
                             #    neighbor=False
@@ -1990,11 +1991,18 @@ def count_peak_types(df):
     return other
     
 def compare_peak_junc_df(peak_df, junc_df, organism = None):
-    print "Unpredicted peaks: "+str(len(peak_df[peak_df['type'] == 'intronic']))
-    print "Unpredicted junctions: "+str(len(junc_df[junc_df['type'] == 'Nested']))
-    peak_df = peak_df[peak_df['type'] == 'intronic']
-    junc_df = junc_df[junc_df['type'] != 'Annotated']
-    junc_df = junc_df[junc_df['type'] != 'Other']
+    #print "Unpredicted peaks: "+str(len(peak_df[peak_df['type'] == 'intronic']))
+    #print "Unpredicted junctions: "+str(len(junc_df[junc_df['type'] == 'Nested']))
+    #peak_df = peak_df[peak_df['type'] == 'other']
+    #peak_df = peak_df[peak_df['type'] != '5prime']
+    #peak_df = peak_df[peak_df['type'] != '3prime']
+    #peak_df = peak_df[peak_df['type'] == 'intronic']
+    #junc_df = junc_df[junc_df['type'] != 'Annotated']
+    #junc_df = junc_df[junc_df['type'] != 'Other']
+    
+    print str(len(peak_df))+' peaks'
+    print str(len(junc_df))+' junctions'
+
     match_count = 0
     for tx in list(set(peak_df['transcript'].tolist())):
         tx_peak = peak_df[peak_df['transcript'] == tx]
@@ -2005,17 +2013,19 @@ def compare_peak_junc_df(peak_df, junc_df, organism = None):
         for index, row in tx_peak.iterrows():
             match_flag = False
             #print tx_junc['start']
-            peak_range = range(row['position']-5,row['position']+5)
+            peak_range = range(row['position']-1,row['position']+1)
             for pos in peak_range:
                 if match_flag is False:
                     if pos in tx_junc['start'].tolist():
                         match_count += 1
                         match_flag = True
-                        tx_junc = tx_junc[tx_junc['start'] != pos]
+                        break
+                        #tx_junc = tx_junc[tx_junc['start'] != pos]
                     elif pos in tx_junc['end'].tolist():
                         match_count += 1
                         match_flag = True
-                        tx_junc = tx_junc[tx_junc['end'] != pos]
+                        break
+                        #tx_junc = tx_junc[tx_junc['end'] != pos]
                     
     print "Overlap:"
     print match_count

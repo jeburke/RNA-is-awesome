@@ -11,6 +11,7 @@ import GeneUtility
 import SPTools as SP
 from collections import OrderedDict
 import csv
+import json
 
 def build_transcript_dict(gff3_file, organism=None):
     with open(gff3_file,"r") as gff3:
@@ -70,6 +71,9 @@ def build_transcript_dict(gff3_file, organism=None):
 
 
 def seq_simple(chrom, start, end, strand, fasta_dict):
+    if type(fasta_dict) == str:
+        with open(fasta_dict, 'r') as f:
+            fasta_dict = json.load(f)
     seq = fasta_dict[chrom][start:end+1]
     if strand == '-':
         seq = SP.reverse_complement(seq)
@@ -153,3 +157,8 @@ def read_bg_dict(bedgraph_dict_output, transcript_dict):
                     bg_dict[tx] = entry
     return bg_dict
 
+def seq_file_from_df(df, column_name, file_name):
+    with open(file_name,'w') as fout:
+        seq_list = df[column_name].tolist()
+        for seq in seq_list:
+            fout.write(seq+'\n')

@@ -239,7 +239,17 @@ def build_junction_df(junction_bed, gff3_file, fasta, organism=None):
     
     return junc_seq_df
             
-
+def combine_junctions(junc_df1, junc_df2):
+    print len(junc_df1)
+    print len(junc_df2)
+    junc_df1['genome coord'] = junc_df1['chromosome'].str.cat(junc_df1['start'].values.astype(str), sep=':').str.cat(junc_df1['end'].values.astype(str), sep='-')
+    junc_df2['genome coord'] = junc_df2['chromosome'].str.cat(junc_df2['start'].values.astype(str), sep=':').str.cat(junc_df2['end'].values.astype(str), sep='-')
+    new_df = junc_df1.append(junc_df2[~junc_df2['genome coord'].isin(junc_df1['genome coord'].tolist())])
+    new_df.drop('genome coord', inplace=True)
+    print len(new_df)
+    return new_df
+    
+    
 def junction_v_peak(junction_dict, peak_pipeline_out):
     new_dict = {}
     peaks_df = pd.read_csv(peak_pipeline_out, sep='\t')
@@ -529,3 +539,76 @@ def make_seq_df(jct_dict, transcript_dict, fasta_dict):
     df_ann = df_ann.reset_index()
     df_ann = df_ann.drop('index', axis=1)
     return df, df_ann
+
+def add_int_levels(junction_df, int_levels_df, gff3, organism=None):
+    ss_dict, flag = SPPeaks.list_splice_sites(gff3, organism=organism)
+    tx_dict = SPPeaks.build_transcript_dict(gff3, organism=organism)
+    intron_sizes = {}
+    for transcript, sites in ss_dict.iteritems():
+        if len(sites[0]) > 0:
+            intron_sizes[transcript] = []
+            if tx_dict[transcript][2] == '+':
+                n=0
+                for n in range(len(sites[0])):
+                    intron_sizes[transcript].append((n+1,sites[1][n]-sites[0][n]))
+            elif tx_dict[transcript][2] == '-':
+                n=0
+                for n in range(len(sites[0])):
+                    intron_sizes[transcript].append((len(sites[0])-n,sites[0][n]-sites[1][n]))
+    
+    int_level_columns = {}
+    for entry in int_levels_df.columns:
+        if entry[1] == '5prime Normalized':
+            #print entry
+            int_level_columns[entry] = []
+    
+    for index, row in junction_df.iterrows():
+        tx = row['intron tuple'][0]
+        intron_size = row['intron tuple'][1]
+        if intron_size == 0:
+            for sample in int_level_columns:
+                int_level_columns[sample].append(np.NaN)
+        else:
+            try:
+                intron_ix = zip(*intron_sizes[tx])[1].index(intron_size)
+                intron_num = zip(*intron_sizes[tx])[0][intron_ix]
+                
+                for sample in int_level_columns:
+                    int_level_columns[sample].append(int_levels_df.loc[(tx,intron_num)][sample])
+                    
+            except ValueError:
+                for sample in int_level_columns:
+                    int_level_columns[sample].append(np.NaN)
+            except KeyError:
+                for sample in int_level_columns:
+                    int_level_columns[sample].append(np.NaN)
+    for sample in int_level_columns:
+        junction_df[sample] = int_level_columns[sample]
+    
+    junction_df = junction_df.dropna(how='any')
+    return junction_df
+
+def add_occupancy(junction_df, occupancy_df):
+    occ_columns = {}
+    for entry in occupancy_df.columns:
+        if entry[1] == 'Normalized to mature':
+            occ_columns[entry] = []
+    
+    for index, row in junction_df.iterrows():
+        tx = row['transcript']
+        try:
+            for sample in occ_columns:
+                occ_columns[sample].append(occupancy_df.loc[tx][sample])
+
+        #except ValueError:
+        #    for sample in int_level_columns:
+        #        int_level_columns[sample].append(np.NaN)
+        except KeyError:
+            for sample in occ_columns:
+                occ_columns[sample].append(np.NaN)
+    
+    for sample in occ_columns:
+        junction_df[sample] = occ_columns[sample]
+        
+    junction_df = junction_df.dropna(how='any')
+    return junction_df
