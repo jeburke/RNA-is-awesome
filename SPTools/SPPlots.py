@@ -616,7 +616,7 @@ def cdf_for_n_lists(list_of_lists, label_list=None, color_list=None, x_title='Le
     n = 0 
     for n in range(len(list_of_lists)):
         cumulative, base = cdf_values(list_of_lists[n])
-        ax.plot(base[:-1], cumulative, c=color_list[n], linewidth=3.0, label=label_list[n])
+        ax.plot(base[1:], cumulative, c=color_list[n], linewidth=3.0, label=label_list[n])
         all_cdfs.append(cumulative)
         
     n=0

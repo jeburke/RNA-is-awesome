@@ -464,6 +464,51 @@ def score_new_sites(df, pos_matrix_5prime, pos_matrix_3prime, PSSM=False):
         
     return df
 
+def score_peaks(df, gff3, fasta_dict):
+    pos_matrix_5prime, pos_matrix_3prime = generate_consensus_matrix(gff3, fasta_dict, PSSM=True)
+    score = []
+    ann_score5 = []
+    ann_score3 = []
+    
+    base_dict = {"A":0, "C":1, "T":2, "G":3}
+    
+    for ix, r in df.iterrows():
+        strand = r['strand']
+        seq = r['sequence']
+        ann_seq3 = r['annotated sequence2']
+        ann_seq5 = r['annotated sequence1']
+
+        r_score = 0
+        r_ann_score5 = 0
+        r_ann_score3 = 0
+        if r['looks like'] != 'AG' and r['looks like'] != '3prime':
+            for a, base in enumerate(seq[4:]):
+                r_score += pos_matrix_5prime[base_dict[base],a]
+        else:
+            for b, base in enumerate(seq[:8]):
+                r_score += pos_matrix_3prime[base_dict[base],b]
+        score.append(r_score)
+        
+        if ann_seq5 is not None:
+            for a, base in enumerate(ann_seq5):
+                r_ann_score5 += pos_matrix_5prime[base_dict[base],a]
+            ann_score5.append(r_ann_score5)
+        else:
+            ann_score5.append(np.NaN)
+                
+        if ann_seq3 is not None:
+            for a, base in enumerate(ann_seq3):
+                r_ann_score3 += pos_matrix_3prime[base_dict[base],a]
+            ann_score3.append(r_ann_score3)
+        else:
+            ann_score3.append(np.NaN)
+    
+    df['score'] = score
+    df['annotated 5p score'] = ann_score5
+    df['annotated 3p score'] = ann_score3
+        
+    return df
+
 def reformat_df(df, sample_list):
     new_columns1=['Gene', 'as_event_type', 'chr', 'coord_1', 'coord_2', 'sequence1', 'sequence2', 'intron length', 'intron sequence', '5p score', '3p score', 'strand', 'intron', '#Contains_Novel_or_Only_Known(Annotated)_Junctions', 'contained in']
     new_df1 = df[new_columns1]
@@ -491,3 +536,56 @@ def write_seq_list_to_file(df, prefix):
     with open('{0}_3pseq_list.txt'.format(prefix),'w') as f:
         for seq in df['sequence2'].tolist():
             f.write(seq+'\n')
+            
+def percent_py(seq):
+    py_dict = {'A':0,'G':0,'T':1,'C':1}
+    score = 0
+    for base in seq:
+        score += py_dict[base]
+    score = float(score)/len(seq)
+    return score
+        
+def score_PyTract(df, fa_dict, alt_column_name=None, from_branches=False):
+    py_score1 = []
+    py_score2 = []
+    alt_py1 = []
+    alt_py2 = []
+    
+    for ix, r in df.iterrows():
+        strand = r['strand']
+        chrom = r['chromosome']
+        coord = r['annotated intron coords'][1]
+        alt_coord = r['junction coords'][1]
+        if strand == '+':
+            if coord is not None:
+                seq1 = fa_dict[chrom][coord-15:coord]
+                seq2 = fa_dict[chrom][coord-30:coord-15]
+            alt1 = fa_dict[chrom][alt_coord-15:alt_coord]
+            alt2 = fa_dict[chrom][alt_coord-30:alt_coord-15]
+        if strand == '-':
+            if coord is not None:
+                seq1 = fa_dict[chrom][coord:coord+15]
+                seq2 = fa_dict[chrom][coord+15:coord+30]
+                seq1 = SP.reverse_complement(seq1)
+                seq2 = SP.reverse_complement(seq2)
+            alt1 = fa_dict[chrom][alt_coord:alt_coord+15]
+            alt2 = fa_dict[chrom][alt_coord+15:alt_coord+30]
+            alt1 = SP.reverse_complement(alt1)
+            alt2 = SP.reverse_complement(alt2)
+
+        alt_py1.append(percent_py(alt1))
+        alt_py2.append(percent_py(alt2))
+        
+        if coord is not None:
+            py_score1.append(percent_py(seq1))
+            py_score2.append(percent_py(seq2))
+        else:
+            py_score1.append(np.NaN)
+            py_score2.append(np.NaN)
+    
+    df['Py score annotated -15:0'] = py_score1
+    df['Py score annotated -30:-15'] = py_score2
+    df['Py score alternative -15:0'] = alt_py1
+    df['Py score alternative -30:-15'] = alt_py2
+    return df
+            

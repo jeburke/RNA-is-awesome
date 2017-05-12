@@ -16,9 +16,11 @@ import itertools
 from multiprocessing import Pool
 from functools import partial
 import os
+from itertools import izip,islice,tee
+import re
 
 ### Collect all 5p splice sites of interest and get 20 nt of sequence before splice site - pass in splice site dict
-def collect_intron_seq(gff3_file, fasta_file, ss_dict=None, junction_bed=None, gene_list=None, organism=None):
+def collect_intron_seq(gff3_file, fasta_file, ss_dict=None, junction_bed=None, gene_list=None, peak_df=None, organism=None):
     transcript_dict = SP.build_transcript_dict(gff3_file, organism=organism)
     if type(fasta_file) == dict:
         fasta_dict = fasta_file
@@ -31,10 +33,23 @@ def collect_intron_seq(gff3_file, fasta_file, ss_dict=None, junction_bed=None, g
         ss_dict=ss_dict
     elif junction_bed is not None:
         ss_dict = SP.build_junction_dict(junction_bed, gff3_file, transcript_dict, organism=organism)
+    elif peak_df is not None:
+        ss_dict = {}
+        peak_df = peak_df[~peak_df['type'].str.contains('prime')]
+        for ix, r in peak_df.iterrows():
+            if r['transcript'] not in ss_dict:
+                ss_dict[r['transcript']] = []
+            if r['strand'] == '+':
+                ss_dict[r['transcript']].append((r['position'],r['position']+50))
+            elif r['strand'] == '-':
+                ss_dict[r['transcript']].append((r['position'],r['position']-50))
+                
     else:
         ss_dict, intron_flag = SP.list_splice_sites(gff3_file, gene_list=gene_list, organism=organism)
         ss_dict = SP.collapse_ss_dict(ss_dict)
+    
     print len(ss_dict)
+    
     seq_dict = {}
     for transcript, introns in ss_dict.iteritems():
         if junction_bed is None:
@@ -48,31 +63,81 @@ def collect_intron_seq(gff3_file, fasta_file, ss_dict=None, junction_bed=None, g
         n = 0
         for n in range(len(introns)):
             if strand == '+':
-                seq_dict[transcript+'-'+chrom+':'+str(introns[n][0]+1)] = fasta_dict[chrom][introns[n][0]+1:introns[n][0]+16]
+                seq_dict[transcript+'-'+chrom+':'+str(introns[n][0]+1)] = fasta_dict[chrom][introns[n][0]+2:introns[n][0]+17]
             elif strand == '-':
-                seq = fasta_dict[chrom][introns[n][0]-15:introns[n][0]]
+                seq = fasta_dict[chrom][introns[n][0]-16:introns[n][0]-1]
                 seq_dict[transcript+'-'+chrom+':'+str(introns[n][0])] = SP.reverse_complement(seq)
     return seq_dict
 
 ### Samtools view and grep for each sequence
-def process_reads((fastq_file, seq_dict), prefix=None):
+def sub_findre(s,substring,diffnumber):
+    sublen=len(substring)
+    zip_gen=(izip(substring,islice(s,i,i+sublen)) for i in xrange(len(s)))
+    for z in zip_gen:
+        l,z=tee(z)
+        if sum(1 for i,j in l if i==j)>=sublen-diffnumber:
+            new=izip(*z)
+            next(new)
+            yield ''.join(next(new))
+            
+def sub_findre2(s,substring):
+    if substring not in sub_findre2.cache:
+        sub_findre2.cache[substring] = [
+            re.compile('.'.join((substring[:x], substring[x+1:])))
+            for x in range(len(substring))]
+    for regex in sub_findre2.cache[substring]:
+        for match in regex.findall(s):
+            yield match
+sub_findre2.cache = {}
+
+def a_rich(string):
+    a_count = 0
+    for char in string:
+        if char == 'A':
+            a_count += 1
+    perc_A = float(a_count)/len(string)
+    if perc_A >= 0.4:
+        high_a = True
+    else:
+        high_a = False
+    return high_a
+            
+def process_reads((fastq_file, seq_dict), prefix=None, mismatches=0):
     if prefix is None:
         prefix = fastq_file
-    fa_list = []
     fa_line_list = []
-    fastq = HTSeq.FastqReader(fastq_file, "solexa")
+    unsplit_fa_line_list = []
+    
+    if '.fastq' in fastq_file or '.fq0' in fastq_file or '.fq1' in fastq_file or fastq_file.endswith('fq'):
+        fastq = HTSeq.FastqReader(fastq_file, "solexa")
+    elif '.fasta' in fastq_file or '.fa0' in fastq_file or '.fa1' in fastq_file or fastq_file.endswith('fa'):
+        fastq = HTSeq.FastaReader(fastq_file)
+    
+    if '_unsplit' in fastq_file:
+        mismatches = 1
+    
     for read in fastq:
         new_read = None
         for intron, seq in seq_dict.iteritems():
             if seq in read.seq:
                 read_seq = read.seq.split(seq)[0]
                 new_length = len(read_seq)
-                read_qual = read.qual[:new_length+1]
-                new_read = [read.name+':'+intron, read_seq, read_qual]
+                new_read = [read.name+':'+intron, read_seq]
+                break
+            elif seq not in read.seq and mismatches > 0:
+                in_read = list(sub_findre2(read.seq, seq))
+                if len(in_read) > 0:
+                    for n, subseq in enumerate(in_read):
+                        read_seq = read.seq.split(subseq)[0]
+                        new_length = len(read_seq)
+                        new_read = [read.name+':'+intron+'-'+str(n), read_seq]
+                    break
         
         if new_read is not None and len(new_read[1]) > 15:
-            fa_list.append('{}_split.fa'.format(prefix))
             fa_line_list.append(('>'+new_read[0]+'\n',new_read[1]+'\n'))
+        
+        if new_read is None and a_rich(read.seq) is False:
+            unsplit_fa_line_list.append(('>'+read.name+'\n',read.seq+'\n'))
         
         if len(fa_line_list) == 5000:
             with open('{}_split.fa'.format(prefix), 'a') as fout:
@@ -80,14 +145,30 @@ def process_reads((fastq_file, seq_dict), prefix=None):
                     fout.write(pair[0])
                     fout.write(pair[1])
             fa_line_list = []
+        
+        if len(unsplit_fa_line_list) == 5000:
+            with open('{}_unsplit.fa'.format(prefix), 'a') as fout:
+                for pair in unsplit_fa_line_list:
+                    fout.write(pair[0])
+                    fout.write(pair[1])
+            unsplit_fa_line_list = []            
             
     with open('{}_split.fa'.format(prefix), 'a') as fout:
         for pair in fa_line_list:
             fout.write(pair[0])
             fout.write(pair[1])
             
-    with open('fa_list.json','w') as f:
-        json.dump(fa_list, f)
+    with open('{}_unsplit.fa'.format(prefix), 'a') as fout:
+        for pair in unsplit_fa_line_list:
+            fout.write(pair[0])
+            fout.write(pair[1]) 
+            
+    with open('fa_list.txt','a') as f:
+        f.write('{}_split.fa\n'.format(prefix))
+        
+    with open('unsplit_fa_list.txt','a') as f:
+        f.write('{}_unsplit.fa\n'.format(prefix))
+        
 
 def find_split_reads(fastq_file, seq_dict, prefix, threads=0):
     if threads > 0:
@@ -100,20 +181,39 @@ def find_split_reads(fastq_file, seq_dict, prefix, threads=0):
         p.close()
         p.join()
         
-        with open('fa_list.json','r') as f:
-            fa_list = json.load(f)
+        fa_list = []
+        with open('fa_list.txt','r') as f:
+            for line in f:
+                fa_list.append(line.strip())
 
-        call_list = ["cat","*_split.fa",">","{0}_split.fa".format(prefix)]
+        unsplit_fa_list = []
+        with open('unsplit_fa_list.txt','r') as f:
+            for line in f:
+                unsplit_fa_list.append(line.strip())                
+
+        call_list = ["cat",fastq_file+"*_split.fa",">","{0}_split.fa".format(prefix)]
         script = ' '.join(call_list)
+        print script
+        call(script, shell=True)
+        
+        call_list = ["cat",fastq_file+"*_unsplit.fa",">","{0}_unsplit.fa".format(prefix)]
+        script = ' '.join(call_list)
+        print script
         call(script, shell=True)
         
         for fastq in fastq_list:
             os.remove(fastq)
-        
-        #for fa in fa_list:
-        #    os.remove(fa)
+        try:
+            for fa in fa_list:
+                os.remove(fa)
+
+            for fa in unsplit_fa_list:
+                os.remove(fa)
+        except OSError:
+            pass
             
-        os.remove('fa_list.json')
+        os.remove('fa_list.txt')
+        os.remove('unsplit_fa_list.txt')
         
     else:
         process_reads((fastq_file, seq_dict), prefix=prefix)
@@ -123,23 +223,12 @@ def split_fastq_file(fastq_file, threads):
         for i, l in enumerate(f):
             pass
     file_len = i + 1
-        
-    #num_reads = file_len/4
     num_files = file_len/20000
-    #reads_per_t = num_reads/(threads)
-    #lines_per_t = reads_per_t*4
-    #remaining = num_reads%threads
-    #rem_lines = remaining*4
-    #print num_reads
-    #print reads_per_t
-    #print remaining
     print num_files
     
     call(["split", "-d", "-l 20000" , "-a 5", fastq_file, fastq_file])
     
     n=0
-    #if remaining > 0:
-    #    threads += 1
     fastq_list = []
     for n in range(num_files):
         fastq_list.append(fastq_file+format(n, '05'))

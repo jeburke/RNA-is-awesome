@@ -19,7 +19,9 @@ sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/SP_ANALYSIS/SPTools')
 import SPTables
 import SPPlots
 import SPScores
+import SPJunctions
 from math import log
+from matplotlib import pyplot as plt
 
 
 ######################################################################################################
@@ -1837,15 +1839,24 @@ def CP_compare_to_annotation(peaks, ss_dict, transcript_dict):
                 for peak, height, strand in peaks[tx]:
                     if strand is None:
                         strand = transcript_dict[tx][2]
+                    peak_range = range(peak-3,peak+3)
                     try:
-                        if peak-1 in info[0] or peak in info[0] or peak+1 in info[0]:
-                            five_count += 1
-                            compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "5prime"]
+                        annotated = False
+                        for pos in peak_range:
+                        #if peak-1 in info[0] or peak in info[0] or peak+1 in info[0]:
+                            if pos in info[0]:
+                                five_count += 1
+                                compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "5prime"]
+                                annotated = True
+                                break
                             #print [tx[:-2], chrom, strand, peak, height, "5prime"]
-                        elif peak-1 in info[1] or peak in info[1] or peak+1 in info[1]:
-                            three_count += 1
-                            compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "3prime"]
-                        else:
+                        #elif peak-1 in info[1] or peak in info[1] or peak+1 in info[1]:
+                            elif pos in info[1]:
+                                three_count += 1
+                                compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "3prime"]
+                                annotated = True
+                                break
+                        if annotated is False:
                             other_count += 1
                             intron_flag = False
                             m=0
@@ -1968,41 +1979,49 @@ def count_peak_types(df):
     other = other[other['looks like'] == '']
     print 'GT:'
     print len(df[df['looks like'] == 'GT'])
-    print len(other[other['sequence'].str[5:9].str.contains('GT')])
-    other = other[~other['sequence'].str[5:9].str.contains('GT')]
+    print len(other[other['sequence'].str[5:7].str.contains('GT')])
+    other = other[~other['sequence'].str[5:7].str.contains('GT')]
     print 'GC:'
     print len(df[df['looks like'] == 'GC'])
-    print len(other[other['sequence'].str[5:9].str.contains('GC')])
-    other = other[~other['sequence'].str[5:9].str.contains('GC')]
+    print len(other[other['sequence'].str[5:7].str.contains('GC')])
+    other = other[~other['sequence'].str[5:7].str.contains('GC')]
     print 'AT:'
     print len(df[df['looks like'] == 'AT'])
-    print len(other[other['sequence'].str[5:9].str.contains('AT')])
-    other = other[~other['sequence'].str[5:9].str.contains('AT')]
+    print len(other[other['sequence'].str[5:7].str.contains('AT')])
+    other = other[~other['sequence'].str[5:7].str.contains('AT')]
     print 'AG:'
     print len(df[df['looks like'] == 'AG'])
-    print len(other[other['sequence'].str[3:7].str.contains('AG')])
-    other = other[~other['sequence'].str[3:7].str.contains('AG')]
+    print len(other[other['sequence'].str[3:5].str.contains('AG')])
+    other = other[~other['sequence'].str[3:5].str.contains('AG')]
     print 'AC:'
     print len(df[df['looks like'] == 'AC'])
-    print len(other[other['sequence'].str[3:7].str.contains('AC')])
-    other = other[~other['sequence'].str[3:7].str.contains('AC')]
+    print len(other[other['sequence'].str[3:5].str.contains('AC')])
+    other = other[~other['sequence'].str[3:5].str.contains('AC')]
+
+    print (len(other[other['sequence'].str[6:8].str.contains('AG')]))
+    print (len(other[other['sequence'].str[6:8].str.contains('AC')]))
+    print (len(other[other['sequence'].str[6:8].str.contains('TT')]))
+    print (len(other[other['sequence'].str[6:8].str.contains('TA')]))
+
+
+
     print 'Other sequences:'
     print len(other[other['looks like'] == ''])
     return other
     
 def compare_peak_junc_df(peak_df, junc_df, organism = None):
-    #print "Unpredicted peaks: "+str(len(peak_df[peak_df['type'] == 'intronic']))
-    #print "Unpredicted junctions: "+str(len(junc_df[junc_df['type'] == 'Nested']))
-    #peak_df = peak_df[peak_df['type'] == 'other']
-    #peak_df = peak_df[peak_df['type'] != '5prime']
-    #peak_df = peak_df[peak_df['type'] != '3prime']
-    #peak_df = peak_df[peak_df['type'] == 'intronic']
-    #junc_df = junc_df[junc_df['type'] != 'Annotated']
-    #junc_df = junc_df[junc_df['type'] != 'Other']
-    
     print str(len(peak_df))+' peaks'
     print str(len(junc_df))+' junctions'
+    
+    new_df = pd.DataFrame(columns=peak_df.columns)
 
+    junc_type = []
+    ann_seq1 = []
+    ann_seq2 = []
+    junc_size = []
+    ann_size = []
+    junc_coords = []
+    ann_coords = []
     match_count = 0
     for tx in list(set(peak_df['transcript'].tolist())):
         tx_peak = peak_df[peak_df['transcript'] == tx]
@@ -2016,16 +2035,129 @@ def compare_peak_junc_df(peak_df, junc_df, organism = None):
             peak_range = range(row['position']-1,row['position']+1)
             for pos in peak_range:
                 if match_flag is False:
-                    if pos in tx_junc['start'].tolist():
-                        match_count += 1
-                        match_flag = True
-                        break
-                        #tx_junc = tx_junc[tx_junc['start'] != pos]
-                    elif pos in tx_junc['end'].tolist():
-                        match_count += 1
-                        match_flag = True
-                        break
-                        #tx_junc = tx_junc[tx_junc['end'] != pos]
+                    tx_juncA = tx_junc[tx_junc['type'] != '5p tethered']
+                    tx_juncB = tx_junc[tx_junc['type'] != '3p tethered']
                     
+                    if pos in tx_juncA['start'].tolist():
+                        match_count += 1
+                        match_flag = True
+                        for junc_index, junc_row in tx_juncA[tx_juncA['start'] == pos].iterrows():
+                            junc_type.append(junc_row['type'])
+                            ann_seq1.append(junc_row['annotated sequence1'])
+                            ann_seq2.append(junc_row['annotated sequence2'])
+                            junc_size.append(junc_row['size'])
+                            ann_size.append(junc_row['annotated intron size'])
+                            junc_coords.append((junc_row['start'],junc_row['end']))
+                            ann_coords.append((junc_row['annotated intron start'],junc_row['annotated intron end']))
+                            new_df = new_df.append(row)
+                        break
+        
+                    elif pos in tx_juncB['end'].tolist():
+                        match_count += 1
+                        match_flag = True
+                        for junc_index, junc_row in tx_juncB[tx_juncB['end'] == pos].iterrows():
+                            junc_type.append(junc_row['type'])
+                            ann_seq1.append(junc_row['annotated sequence1'])
+                            ann_seq2.append(junc_row['annotated sequence2'])
+                            junc_size.append(junc_row['size'])
+                            ann_size.append(junc_row['annotated intron size'])
+                            junc_coords.append((junc_row['start'],junc_row['end']))
+                            ann_coords.append((junc_row['annotated intron start'],junc_row['annotated intron end']))
+                            new_df = new_df.append(row)
+                        break                   
     print "Overlap:"
     print match_count
+    
+    new_df['junction type'] = junc_type
+    new_df['annotated sequence1'] = ann_seq1
+    new_df['annotated sequence2'] = ann_seq2
+    new_df['junction size'] = junc_size
+    new_df['annotated intron size'] = ann_size
+    new_df['junction coords'] = junc_coords
+    new_df['annotated intron coords'] = ann_coords
+    return new_df
+
+def peak_seq_enrichment(df, AorT, GorC):
+    unpeaks = df[df['type'] == 'other']
+    unpeaks = unpeaks.append(df[df['type'] == 'intronic'])
+    print "Number of unpredicted peaks:"
+    print len(unpeaks)
+    nucs = ['G','A','C','T']
+    dinucs = set()
+    for nuc in nucs:
+        for nuc2 in nucs:
+            dinucs.add(nuc+nuc2)
+    
+    five = {}
+    three = {}
+    for dinuc in dinucs:
+        five[dinuc] = len(unpeaks[unpeaks['sequence'].str[6:8].str.contains(dinuc)])
+        three[dinuc] = len(unpeaks[unpeaks['sequence'].str[4:6].str.contains(dinuc)])
+
+    p_dict = {'A':AorT, 'T':AorT, 'C':GorC, 'G':GorC}
+    five_LO = {}
+    three_LO = {}
+    for dinuc in five.keys():
+        p_dinuc = p_dict[dinuc[0]]*p_dict[dinuc[1]]
+        phat_dinuc = five[dinuc]/float(len(unpeaks))
+        phat_dinuc2 = three[dinuc]/float(len(unpeaks))
+
+        SE = numpy.sqrt(phat_dinuc*(1-phat_dinuc)/len(unpeaks))
+        SE2 = numpy.sqrt(phat_dinuc2*(1-phat_dinuc2)/len(unpeaks))
+        Z = (phat_dinuc-p_dinuc)/SE
+        Z2 = (phat_dinuc2-p_dinuc)/SE2
+
+        pvalue = stats.norm.sf(Z)
+        pvalue2 = stats.norm.sf(Z2)
+        LO = numpy.log((1-pvalue)/pvalue)
+        LO2 = numpy.log((1-pvalue2)/pvalue2)
+
+        five_LO[dinuc] = LO
+        three_LO[dinuc] = LO2
+
+    fig, ax = plt.subplots(figsize=(12,6))
+    width = 0.35
+    ind = numpy.arange(len(five_LO.keys()))
+    rects2 = ax.bar(ind, three_LO.values(), width, color='turquoise', label='Before peak')
+    rects1 = ax.bar(ind + width, five_LO.values(), width, color='coral', label='After peak')
+    ax.plot([-1,17],[0,0],'-', color='black')
+    ax.plot([-1,17],[2.94,2.94], '--', color='0.7', label='95% CI')
+    ax.plot([-1,17],[-2.94,-2.94], '--', color='0.7')
+
+    ax.set_xlim([-1,17])
+    ax.set_xticklabels(five_LO.keys())
+    ax.set_xticks(ind + width / 2)
+    ax.set_ylabel('Log odds dinucleotide enrichment')
+    ax.set_title('Unpredicted peaks')
+    ax.legend()
+    
+    return fig
+
+def add_intron_size(peaks_df, gff3, organism=None):
+    ss_dict, flag = list_splice_sites(gff3, organism=organism)
+    ss_dict = SPJunctions.collapse_ss_dict(ss_dict)
+    no_peaks = ss_dict
+    intron_sizes = []
+    for index, row in peaks_df.iterrows():
+        if row['type'] != 'intronic':
+            intron_sizes.append(numpy.NaN)
+        else:
+            sites = ss_dict[row['transcript']]
+            assigned=False
+            for pair in sites:
+                if pair[0] > pair[1]:
+                    if row['position'] >= pair[1] and row['position'] <= pair[0]:
+                        intron_sizes.append(pair[0]-pair[1])
+                        assigned=True
+                        no_peaks[row['transcript']].remove(pair)
+                        break
+                else:
+                    if row['position'] >= pair[0] and row['position'] <= pair[1]:
+                        intron_sizes.append(pair[1]-pair[0])
+                        assigned=True
+                        no_peaks[row['transcript']].remove(pair)
+                        break
+            if assigned is False:
+                intron_sizes.append(numpy.NaN)
+    peaks_df['intron size'] = intron_sizes
+    return peaks_df,  no_peaks
