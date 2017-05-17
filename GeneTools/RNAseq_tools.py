@@ -167,10 +167,10 @@ def load_DESeq2_results(csv_list):
     for n, file in enumerate(csv_list):
         if n == 0:
             df = pd.read_csv(file, index_col=0)
-            df = add_col_level(df, file.split('.csv')[0])
+            df = add_col_level(df, file.split('/')[-1].split('.csv')[0])
         else:
             new_df = pd.read_csv(file, index_col=0)
-            new_df = add_col_level(new_df, file.split('.csv')[0])
+            new_df = add_col_level(new_df, file.split('/')[-1].split('.csv')[0])
             df = df.merge(new_df, left_index=True, right_index=True)
     return df
 
@@ -215,10 +215,10 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     # Plot data as heatmap
     data_min = min(all_data)
     data_max = max(all_data)
+    both_max = max(data_min*-1, data_max)
     fig = plt.figure(figsize=(3,12))
     ax = fig.add_subplot(111)
-    pcm = ax.pcolor(range(len(data.columns)), range(len(data.index)), data[data.columns[:-1]], cmap='PuOr', vmin=data_min, vmax=data_max, 
-              norm=colors.Normalize(vmin=data_min, vmax=data_max))
+    pcm = ax.pcolor(range(len(data.columns)), range(len(data.index)), data[data.columns[:-1]], cmap='PuOr_r', norm=colors.Normalize(vmin=both_max*-1, vmax=both_max))
     ax.yaxis.set_ticks(cluster_sizes)
     ax.yaxis.set_ticklabels(range(len(cluster_sizes)))
     plt.xticks([x+0.5 for x in range(len(data.columns))], column_names, rotation="vertical")
@@ -231,5 +231,18 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     plt.show()
     
     return data
-        
+
+def list_of_genes_in_cluster(data, cluster_index, name=None):
+    in_cluster = data[data['cluster'] == cluster_index]
+    gene_list = in_cluster.index.tolist()
+    print len(gene_list)
+    
+    if name is None:
+        name = 'cluster'+str(cluster_index)
+    
+    with open(name+'_genes.txt', 'w') as fout:
+        for gene in gene_list:
+            fout.write(gene+'\n')
+    
+    return gene_list
         
