@@ -187,7 +187,10 @@ def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False):
     total_aligned = []
     for bam in bam_list:
         command = 'samtools view -F 0x904 -c {0}'.format(bam)
-        total_aligned.append(check_output(command.split(), shell=False))
+	aligned_reads = check_output(command.split(), shell=False)
+	total_aligned.append(aligned_reads)
+	print "Total aligned reads in "+bam
+	print aligned_reads
     
     ratio_list = []
     n=0

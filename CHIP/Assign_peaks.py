@@ -115,7 +115,7 @@ def find_best_peaks(df, tx_dict, max_genes=None):
             new_df.loc[tx] = best_row
     new_df = new_df.dropna()
     if max_genes is not None:
-        new_df = new_df.sort_values('fold_enrichment', ascending=False)
+        new_df = new_df.sort_values('-log10(pvalue)', ascending=False)
         new_df = df.iloc[:max_genes]
     return new_df
 
@@ -175,7 +175,7 @@ def main():
     int_dict = make_promoter_dict(tx_dict, chrom_lengths)
     peak_df = assign_peak_to_tx(tx_by_chrom, int_dict, sys.argv[1], cutoff=2)
     #peak_df = assign_peak_to_tx(tx_by_chrom, int_dict, sys.argv[1])
-    peak_df = find_best_peaks(peak_df, int_dict, max_genes=None)
+    peak_df = find_best_peaks(peak_df, int_dict, max_genes=300)
     if len(sys.argv) == 3:
         gene_list_file = sys.argv[2]
         in_list, other = split_by_gene(peak_df, gene_list_file)

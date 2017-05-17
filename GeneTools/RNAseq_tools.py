@@ -41,10 +41,11 @@ def align_fastq(directory, threads=1, organism='crypto'):
         
         print '\n'
         print prefix
-        with open(prefix+'/align_summary.txt','r') as f:
-            for line in f:
-                print line
-            print '\n'
+	if 'align_summary.txt' in os.listdir(prefix):
+            with open(prefix+'/align_summary.txt','r') as f:
+                for line in f:
+                    print line
+                print '\n'
             
     print 'Finished'
 
@@ -74,7 +75,7 @@ def sort_index_bam_files(base_dir):
         name = names[n]
         args = 'samtools sort {0} -o {1}'.format(tophat_out[n], name+'_sorted.bam')
         if version == 'old':
-            args = 'samtools sort {0} {1}'.format(tophat_out[n], name+'_sorted.bam')
+            args = 'samtools sort {0} {1}'.format(tophat_out[n], name+'_sorted')
         print args
         p = subprocess.Popen(args.split(' '), stdout=subprocess.PIPE)
         p.wait()
