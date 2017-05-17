@@ -29,6 +29,7 @@ from matplotlib import pyplot as plt
 ######################################################################################################
 
 def build_transcript_dict(gff3_file, organism=None):
+    rom_lat = {'I':'chr1','II':'chr2','III':'chr3','IV':'chr4','V':'chr5','VI':'chr6','VII':'chr7','VIII':'chr8','IX':'chr9','X':'chr10','XI':'chr11','XII':'chr12','XIII':'chr13','XIV':'chr14','XV':'chr15','XVI':'chr16','MT':'MT'}
     with open(gff3_file,"r") as gff3:
         transcript_dict = {}
         for line in gff3:
@@ -36,7 +37,6 @@ def build_transcript_dict(gff3_file, organism=None):
             
             if organism == 'pombe' and len(columns) > 1:
                 chr_rom = columns[0]
-                rom_lat = {'I':'chr1','II':'chr2','III':'chr3','MT':'MT'}
                 chrom = rom_lat[chr_rom]
                 transcript_types = ['transcript','pseudogene','rRNA','snoRNA','tRNA','snRNA']
                 if columns[2] in transcript_types:
@@ -58,8 +58,14 @@ def build_transcript_dict(gff3_file, organism=None):
                     if transcript.endswith("mRNA"): transcript = transcript.split("_")[0]
                     if transcript[-2] != 'T': transcript = transcript+'T0'
                     #Transcript dictionary: keys are transcript, values are [start, end, strand, chromosome, CDS start, CDS end]
+                    
+                    chrom = columns[0]
+                    if chrom in rom_lat: chrom = rom_lat[chrom]
+                    elif chrom not in rom_lat.keys():
+                        if chrom[3:] in rom_lat: chrom = rom_lat[chrom[3:]]
+                            
                     if transcript not in transcript_dict:
-                        transcript_dict[transcript] = [int(columns[3]), int(columns[4]), columns[6], columns[0], [], []]
+                        transcript_dict[transcript] = [int(columns[3]), int(columns[4]), columns[6], chrom, [], []]
                     else:
                         transcript_dict[transcript][0] = int(columns[3])
                         transcript_dict[transcript][1] = int(columns[4])
@@ -75,7 +81,7 @@ def build_transcript_dict(gff3_file, organism=None):
                         transcript_dict[transcript] = [0,0,strand,chrom,[],[]]
                     transcript_dict[transcript][4].append(int(columns[3]))
                     transcript_dict[transcript][5].append(int(columns[4]))
-    
+                    
     for tx in transcript_dict:
         if transcript_dict[tx][0] == 0:
             transcript_dict[tx][0] = transcript_dict[tx][4][0]

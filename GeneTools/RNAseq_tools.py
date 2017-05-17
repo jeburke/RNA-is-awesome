@@ -1,6 +1,11 @@
 import sys
 import os
 import subprocess
+import pandas as pd
+from sklearn import cluster
+from matplotlib import pyplot as plt
+from matplotlib import colors
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 def align_fastq(directory, threads=1, organism='crypto'):
     if directory[-1] != '/':
@@ -140,3 +145,91 @@ def main():
     
 if __name__ == "__main__":
     main()
+
+    
+def add_col_level(df, new_name):
+    new_col_tuples = []
+    for column in df:
+        print column
+        new_col_tuples.append((new_name,column))
+    new_cols = pd.MultiIndex.from_tuples(new_col_tuples)
+    df.columns = new_cols
+    return df
+    
+def load_DESeq2_results(csv_list):
+    if csv_list == 'all':
+        csv_list = []
+        cwd = os.getcwd()
+        for file in os.listdir(cwd):
+            if file.endswith('.csv'):
+                csv_list.append(file)
+    n=0
+    for n, file in enumerate(csv_list):
+        if n == 0:
+            df = pd.read_csv(file, index_col=0)
+            df = add_col_level(df, file.split('.csv')[0])
+        else:
+            new_df = pd.read_csv(file, index_col=0)
+            new_df = add_col_level(new_df, file.split('.csv')[0])
+            df = df.merge(new_df, left_index=True, right_index=True)
+    return df
+
+def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
+    column_names = []
+    if sample_names is not None:
+        for name in sample_names:
+            column_names.append((name,'log2FoldChange'))
+    else:
+        for column in dataframe.columns:
+            if column[1] == 'log2FoldChange':
+                column_names.append(column)
+        
+    data = dataframe[column_names]
+    data = data.dropna(how='any')
+
+    # Convert DataFrame to matrix
+    mat = data.as_matrix()
+
+    # Using sklearn
+    km = cluster.KMeans(n_clusters=n_clusters)
+    km.fit(mat)
+
+    # Get cluster assignment labels
+    labels = km.labels_
+
+    # Format results as a DataFrame
+    data['cluster'] = labels
+    data = data.sort_values('cluster')
+    cluster_sizes = []
+    base=0
+    for index in set(data['cluster'].tolist()):
+        cluster_sizes.append(len(data[data['cluster'] == index])+base)
+        base += len(data[data['cluster'] == index])
+        
+        
+    # Get sizes of clusters
+    all_data = []
+    for column in data[data.columns[:-1]].columns:
+        all_data = all_data + data[column].tolist()
+
+    # Plot data as heatmap
+    data_min = min(all_data)
+    data_max = max(all_data)
+    fig = plt.figure(figsize=(3,12))
+    ax = fig.add_subplot(111)
+    pcm = ax.pcolor(range(len(data.columns)), range(len(data.index)), data[data.columns[:-1]], cmap='PuOr', vmin=data_min, vmax=data_max, 
+              norm=colors.Normalize(vmin=data_min, vmax=data_max))
+    ax.yaxis.set_ticks(cluster_sizes)
+    ax.yaxis.set_ticklabels(range(len(cluster_sizes)))
+    plt.xticks([x+0.5 for x in range(len(data.columns))], column_names, rotation="vertical")
+    for size in cluster_sizes:
+        ax.plot([0,len(data.columns)-1], [size,size], '-', color='0.5')
+        
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(pcm, cax=cax)
+    plt.show()
+    
+    return data
+        
+        
