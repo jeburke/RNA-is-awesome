@@ -238,6 +238,7 @@ def split_fastq_file(fastq_file, threads):
     
 def list_branch_points(sorted_bam_file, gff3_file, fasta_dict, organism=None):
     transcript_dict = SP.build_transcript_dict(gff3_file, organism=organism)
+
     if type(fasta_dict) == str:
         with open(fasta_dict, 'r') as f:
             fasta_dict = json.load(f)
@@ -248,8 +249,8 @@ def list_branch_points(sorted_bam_file, gff3_file, fasta_dict, organism=None):
     bam_reader = HTSeq.BAM_Reader(sorted_bam_file)
     for a in bam_reader:
         read_counter += 1
-        transcript = a.read.name.split('-')[0].split(':')[-1]
-        splice_site = a.read.name.split('-')[1]
+        transcript = a.read.name.split('-')[-2].split(':')[-1]
+        splice_site = a.read.name.split('-')[-1]
         if transcript not in branch_dict:
             branch_dict[transcript] = {}
         if splice_site not in branch_dict[transcript]:
@@ -315,11 +316,11 @@ def list_branch_points(sorted_bam_file, gff3_file, fasta_dict, organism=None):
                     if abs(end-start) > 2000:
                         #print intron
                         pass
-                    elif abs(end-start) > 5:
+                    elif abs(end-start) > 5 and value >= 5:
                         #[seqname] [start] [end] [id] [score] [strand] [thickStart] [thickEnd] [r,g,b][block_count] [block_sizes] [block_locations]
                         read_id = intron[0]+'-'+str(n)
                         block_size = '0,'+str(size)
-                        line_list = [chrom, str(start-30), str(end+30), read_id, str(value), strand, str(start-30), str(end+30), '75,196,213', '2', '30,30', block_size, '\n']
+                        line_list = [chrom, str(start-1), str(end+1), read_id, str(value), strand, str(start-1), str(end+1), '75,196,213', '2', '1,1', block_size, '\n']
                         line = '\t'.join(line_list)
                         fout.write(line)
     
@@ -329,6 +330,103 @@ def list_branch_points(sorted_bam_file, gff3_file, fasta_dict, organism=None):
     return new_branch_dict
             
 
+def create_branch_df(branch_dict, gff3, fa_dict, organism=None):
+    tx_dict = SP.build_transcript_dict(gff3, organism=organism)
+    chroms = []
+    fives = []
+    transcripts = []
+    branches = []
+    depths = []
+    strands = []
+    distances = []
+    for tx, five_sites in branch_dict.iteritems():
+        for five_site in five_sites:
+            chrom = five_site[0].split(':')[0]
+            pos = int(five_site[0].split(':')[1])
+            n=0
+            for n in range(len(five_site[1])):
+                if abs(five_site[1][n]-pos) > 5 and abs(five_site[1][n]-pos) <= 1000 and five_site[2][n] >= 5:
+                    chroms.append(chrom)
+                    fives.append(pos)
+                    transcripts.append(tx)
+                    branches.append(five_site[1][n])
+                    depths.append(five_site[2][n])
+                    strands.append(tx_dict[tx][2])
+                    if tx_dict[tx][2] == '+':
+                        distances.append(five_site[1][n]-pos)
+                    elif tx_dict[tx][2] == '-':
+                        distances.append(pos-five_site[1][n])
+    branch_df = pd.DataFrame(index = range(len(fives)))
+    branch_df['transcript'] = transcripts
+    branch_df['chromosome'] = chroms
+    branch_df['5p splice site'] = fives
+    branch_df['branch site'] = branches
+    branch_df['depth'] = depths
+    branch_df['distance'] = distances
+    branch_df['strand'] = strands
+    
+    branch_df = branch_df[branch_df['distance'] > 0]
+    branch_df['genome coord'] = branch_df['chromosome'].str.cat(branch_df['5p splice site'].apply(int).apply(str), sep=':')
+    
+    branch_df = add_seq(branch_df, fa_dict)
+    return branch_df
+
+def add_seq(branch_df, fa_dict):
+    five_seqs = []
+    branch_seqs = []
+    for ix, r in branch_df.iterrows():
+        five = fa_dict[r['chromosome']][r['5p splice site']-8:r['5p splice site']+8]
+        branch = fa_dict[r['chromosome']][r['branch site']-8:r['branch site']+8]
+        if r['strand'] == '-':
+            five = SP.reverse_complement(five)
+            branch = SP.reverse_complement(branch)
+        if 'GT' in five[4:11]:
+            ix = five.index('GT')
+            five = five[ix-2:ix+6]
+        else:
+            five = five[4:12]
+        if 'AG' in branch[4:11]:
+            ix = branch.index('AG')
+            branch = branch[ix-4:ix+4]
+        elif 'AA' in branch[4:11]:
+            ix = branch.index('AA')
+            branch = branch[ix-4:ix+4]
+        elif 'GA' in branch[4:11]:
+            ix = branch.index('GA')
+            branch = branch[ix-4:ix+4]
+        else:
+            branch = branch[4:13]
+        five_seqs.append(five)
+        branch_seqs.append(branch)
+    branch_df['5p seq'] = five_seqs
+    branch_df['Branch seq'] = branch_seqs
+    
+    receptors = ['AG', 'AA', 'GA']
+    branch_df = branch_df[branch_df['Branch seq'].str[4:6].isin(receptors)]
+    return branch_df
+
+def find_3p_site(branch_df, gff3, organism=None):
+    ss_dict, flag = SP.list_splice_sites(gff3, organism=organism)
+    ss_dict = SP.collapse_ss_dict(ss_dict)
+    print ss_dict['CNAG_05375']
+    print ss_dict['CNAG_05377']
+    
+    three_coord = []
+    for ix, r in branch_df.iterrows():
+        introns = ss_dict[r['transcript'][:-2]]
+        for intron in introns:
+            if r['5p splice site'] in range(intron[0]-1,intron[0]+2):
+                three_coord.append(intron[1])
+                break
+    
+    branch_df['3p splice site'] = three_coord
+    branch_df['intron size'] = branch_df['5p splice site']-branch_df['3p splice site']
+    branch_df['intron size'] = branch_df['intron size'].apply(abs)
+    branch_df['Branch to 3p distance'] = branch_df['branch site']-branch_df['3p splice site']
+    branch_df['Branch to 3p distance'] = branch_df['Branch to 3p distance'].apply(abs)
+    
+    return branch_df
+    
 def find_multibranch_introns(branch_dict, df_size):
     columns = ['transcript','chromosome','5p splice site','branch site','reads']
     df = pd.DataFrame(columns=columns, index= range(df_size))
@@ -346,6 +444,7 @@ def find_multibranch_introns(branch_dict, df_size):
                     n += 1
     df = df.dropna()
     return df       
+
 
 
 ###Maybe remove this function. Takes too long.
@@ -406,12 +505,12 @@ def best_bp_seq(branch_dict, df_size, fasta_dict, transcript_dict):
             bp_seq_list.append(bp_seq)
         elif strand == '-':
             five_seq = fasta_dict[chrom][five_site-6:five_site+2]
-            five_seq_list.append(SPPeaks.reverse_complement(five_seq))
+            five_seq_list.append(SP.reverse_complement(five_seq))
             bp_seq = fasta_dict[chrom][bp:bp+5]
-            bp_seq = SPPeaks.reverse_complement(bp_seq)
+            bp_seq = SP.reverse_complement(bp_seq)
             if bp_seq.endswith('A'):
                 bp_seq = fasta_dict[chrom][bp-1:bp+4]
-                bp_seq = SPPeaks.reverse_complement(bp_seq)
+                bp_seq = SP.reverse_complement(bp_seq)
             bp_seq_list.append(bp_seq)
     branch_seq_df['5p sequence'] = pd.Series(five_seq_list, index = branch_seq_df.index)
     branch_seq_df['Branch sequence'] = pd.Series(bp_seq_list, index = branch_seq_df.index)

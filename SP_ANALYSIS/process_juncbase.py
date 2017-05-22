@@ -16,8 +16,8 @@ prefix = sys.argv[4]
 fasta_dict =  SP.make_fasta_dict(fasta_file)
 junc_df, sample_list = SP.read_juncbase_output(juncbase_output)
 seq_df = SP.get_junction_sequence(junc_df, gff3_file, fasta_dict)
-pos_matrix_5prime, pos_matrix_3prime = SP.generate_consensus_matrix(fasta_dict)
-scored_df = SP.score_new_sites(seq_df, pos_matrix_5prime, pos_matrix_3prime)
+pos_matrix_5prime, pos_matrix_3prime = SP.generate_consensus_matrix(gff3_file, fasta_dict, PSSM=True)
+scored_df = SP.score_new_sites(seq_df, pos_matrix_5prime, pos_matrix_3prime, PSSM=True)
 filt_df1, filt_df2 = SP.reformat_df(scored_df, sample_list)
 
 #intron_ret_df = filt_df[filt_df['as_event_type'] == 'intron_retention']

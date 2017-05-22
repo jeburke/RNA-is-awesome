@@ -6,8 +6,12 @@ from sklearn import cluster
 from matplotlib import pyplot as plt
 from matplotlib import colors
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import numpy as np
+sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/GeneTools/')
+import Annotation_tools
 
 def align_fastq(directory, threads=1, organism='crypto'):
+    '''Automatically aligns all fastq.gz files in a drectory using TopHat'''
     if directory[-1] != '/':
         directory = directory+'/'
         
@@ -55,6 +59,7 @@ def align_fastq(directory, threads=1, organism='crypto'):
     print 'Finished'
 
 def sort_index_bam_files(base_dir):
+    '''Finds all TopHat output files and sorts and indexes BAM files'''
     try:
         check_samtools = subprocess.check_output(['samtools','--version'])
         version = check_samtools.split('\n')[0].split(' ')[1]
@@ -98,6 +103,7 @@ def sort_index_bam_files(base_dir):
         p.wait()
         
 def count_with_HTseq(base_dir, organism='crypto'):
+    '''Counts reads in every transcript with HTseq'''
     if base_dir[-1] != '/':
         base_dir = base_dir+'/'
     
@@ -126,6 +132,7 @@ def count_with_HTseq(base_dir, organism='crypto'):
             fout.write(out)
         
 def main():
+    '''Runs the first part of this module to align, sort, index and count reads'''
     # Input will be RNAseq_tools.py directory number_of_threads_tophat organism
     # Current organism options: 'crypt', 'pombe', 'cerevisiae'
     if len(sys.argv) == 3:
@@ -150,19 +157,23 @@ if __name__ == "__main__":
 def add_col_level(df, new_name):
     new_col_tuples = []
     for column in df:
-        print column
+        #print column
         new_col_tuples.append((new_name,column))
     new_cols = pd.MultiIndex.from_tuples(new_col_tuples)
     df.columns = new_cols
     return df
     
 def load_DESeq2_results(csv_list):
+    '''This function loads DESeq2 output csv files into a dataframe.
+    csv_list can be either a list of the csv files - ["file1.csv","file2.csv"] or "all".'''
     if csv_list == 'all':
         csv_list = []
         cwd = os.getcwd()
         for file in os.listdir(cwd):
             if file.endswith('.csv'):
                 csv_list.append(file)
+        print csv_list
+    
     n=0
     for n, file in enumerate(csv_list):
         if n == 0:
@@ -175,14 +186,20 @@ def load_DESeq2_results(csv_list):
     return df
 
 def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
+    '''Generates a clustered heatmap using kmeans clustering and returns a dataframe with cluster indeces.
+    If no sample names are provided, clusters across all samples in the dataframe.
+    n_clusters is the number of clusters'''
+    
     column_names = []
     if sample_names is not None:
         for name in sample_names:
             column_names.append((name,'log2FoldChange'))
     else:
+        sample_names = []
         for column in dataframe.columns:
             if column[1] == 'log2FoldChange':
                 column_names.append(column)
+                sample_names.append(column[0])
         
     data = dataframe[column_names]
     data = data.dropna(how='any')
@@ -190,7 +207,7 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     # Convert DataFrame to matrix
     mat = data.as_matrix()
 
-    # Using sklearn
+    # Using sklearn, cluster data
     km = cluster.KMeans(n_clusters=n_clusters)
     km.fit(mat)
 
@@ -221,7 +238,7 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     pcm = ax.pcolor(range(len(data.columns)), range(len(data.index)), data[data.columns[:-1]], cmap='PuOr_r', norm=colors.Normalize(vmin=both_max*-1, vmax=both_max))
     ax.yaxis.set_ticks(cluster_sizes)
     ax.yaxis.set_ticklabels(range(len(cluster_sizes)))
-    plt.xticks([x+0.5 for x in range(len(data.columns))], column_names, rotation="vertical")
+    plt.xticks([x+0.5 for x in range(len(data.columns))], sample_names, rotation="vertical")
     for size in cluster_sizes:
         ax.plot([0,len(data.columns)-1], [size,size], '-', color='0.5')
         
@@ -230,19 +247,103 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     fig.colorbar(pcm, cax=cax)
     plt.show()
     
-    return data
+    new_df = dataframe.merge(pd.DataFrame(data[('cluster',)]), right_index=True, left_index=True)
+    
+    return new_df
 
-def list_of_genes_in_cluster(data, cluster_index, name=None):
+def list_of_genes_in_cluster(data, cluster_index, name=None, annotate=False, organism=None):
+    '''Pull out a cluster from RNAseq_clustered_heatmap.
+    Generates a csv file with annotation of those genes.
+    data: output from RNAseq_clustered_heatmap
+    cluster_index: the number at the top of the cluster on the heatmap display
+    name: prefix for the file name
+    annotate: True if you want to generate a csv file with annotation
+    organism: "pombe" or "crypto" to apply the correct annotation'''
+    
     in_cluster = data[data['cluster'] == cluster_index]
-    gene_list = in_cluster.index.tolist()
-    print len(gene_list)
     
     if name is None:
         name = 'cluster'+str(cluster_index)
     
-    with open(name+'_genes.txt', 'w') as fout:
-        for gene in gene_list:
-            fout.write(gene+'\n')
+    in_cluster.to_csv(name+'_genes.csv')
+            
+    if annotate is True:
+        if organism is None:
+            print "Must include the organism!"
+        elif 'crypto' in organism.lower():
+            Annotation_tools.crypto_annotate(name+'_genes.csv')
+        elif 'pombe' in organism.lower():
+            Annotation_tools.pombe_annotate(name+'_genes.csv')
+        else:
+            print "Organism not recognized. Only 'pombe' and 'crypto' supported at this time"
+
+def volcano_plot(df, sample_names=None, annotate=False, organism=None):
+    '''Generates volcano plots and csv files of significantly changed transcripts for each sample.
+    df: output from load_DESeq2_results
+    sample_names: a list of names if you don't want to analyze all the samples
+    annotate: True if you want to generate a csv file with annotation
+    organism: "pombe" or "crypto" to apply the correct annotation'''
     
-    return gene_list
+    # Find all sample names
+    if sample_names is None:
+        sample_names = []
+        for column in df.columns:
+            if column[1] == 'log2FoldChange':
+                sample_names.append(column[0])
+
+    for name in sample_names:
+        
+        ## Find significantly changed transcripts
+        sig = df[df[(name,'pvalue')] <= 0.01][name]
+        sig = sig[sig['log2FoldChange'] >= 1]
+        sig2 = df[df[(name,'pvalue')] <= 0.01][name]
+        sig2 = sig2[sig2['log2FoldChange'] <= -1]
+        print name
+        print "Increased:"
+        print len(sig)
+        print "Decreased:"
+        print len(sig2)
+        
+        #Build plot
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.scatter(df[(name,'log2FoldChange')], df[(name,'pvalue')].apply(np.log).multiply(-1), color='0.5')
+        ax.scatter(sig['log2FoldChange'], sig['pvalue'].apply(np.log).multiply(-1), color='orange')
+        ax.scatter(sig2['log2FoldChange'], sig2['pvalue'].apply(np.log).multiply(-1), color='darkslateblue')
+        xmin = min(df[(name,'log2FoldChange')])-0.1*min(df[(name,'log2FoldChange')])
+        xmax = max(df[(name,'log2FoldChange')])-0.1*max(df[(name,'log2FoldChange')])
+        x_all = max([xmin*-1,xmax])
+        xmin= -1*x_all
+        xmax= x_all
+        
+        ymed = np.percentile(df[(name,'pvalue')].apply(np.log).multiply(-1).dropna(how='any'), 99)
+        ymax = ymed + 1.5*ymed
+        
+        ax.set_ylim([-5,ymax])
+        ax.set_xlim([xmin,xmax])
+        ax.plot([xmin,xmax],[2,2], '--', color='0.7')
+        ax.plot([1,1], [-5,ymax], '--', color='0.7')
+        ax.plot([-1,-1], [-5,ymax], '--', color='0.7')
+        ax.set_xlabel("log2 fold change")
+        ax.set_ylabel("-log10 pvalue")
+        ax.set_title(name)
+        plt.show()
+
+        fig.savefig(name+'_volcano.pdf',format='pdf')
+        plt.clf()
+        
+        new_sig = sig.append(sig2)
+        print len(new_sig)
+        new_sig.to_csv(name+'_sig_changed.csv')
+        
+        if annotate is True:
+            if organism is None:
+                print "Must include the organism!"
+            elif 'crypto' in organism.lower():
+                Annotation_tools.crypto_annotate(name+'_sig_changed.csv')
+            elif 'pombe' in organism.lower():
+                Annotation_tools.pombe_annotate(name+'_sig_changed.csv')
+            else:
+                print "Organism not recognized. Only 'pombe' and 'crypto' supported at this time"
+                
         
