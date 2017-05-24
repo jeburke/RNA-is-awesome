@@ -10,8 +10,8 @@ def crypto_annotate(text_file, sep=','):
     if df.index[0][-2] == 'T':
         df.index = [x[:-2] for x in df.index]
     
-    df = df.merge(hiten, right_index=True, left_index=True)
-    df = df.merge(yi, right_index=True, left_index=True)
+    df = df.merge(hiten, right_index=True, left_index=True, how='outer')
+    df = df.merge(yi, right_index=True, left_index=True, how='outer')
     
     print text_file.split('.')[-2]+'_annotated.csv'
     df.to_csv(text_file.split('.')[-2]+'_annotated.csv')
@@ -20,7 +20,7 @@ def pombe_annotate(text_file, sep=','):
     pombase = pd.read_csv('/home/jordan/GENOMES/POMBE/gene_association.pombase', sep='\t', skiprows=42, index_col=0, usecols=[1,2,9,10,11])
     
     df = pd.read_csv(text_file, sep=sep, index_col=0)
-    df = df.merge(pombase, right_index=True, left_index=True)
+    df = df.merge(pombase, right_index=True, left_index=True, how='outer')
     df = df.drop_duplicates()
     
     print text_file.split('.csv')[0]+'_annotated.csv'

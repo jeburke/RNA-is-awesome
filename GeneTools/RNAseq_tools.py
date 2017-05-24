@@ -5,10 +5,21 @@ import pandas as pd
 from sklearn import cluster
 from matplotlib import pyplot as plt
 from matplotlib import colors
+from matplotlib_venn import venn2, venn2_circles
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
+sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/')
+import SPTools as SP
 sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/GeneTools/')
 import Annotation_tools
+from math import factorial
+from decimal import Decimal
+
+font = {'family': 'sans-serif',
+        'color':  'black',
+        'weight': 'normal',
+        'size': 12,
+        }
 
 def align_fastq(directory, threads=1, organism='crypto'):
     '''Automatically aligns all fastq.gz files in a drectory using TopHat'''
@@ -345,5 +356,122 @@ def volcano_plot(df, sample_names=None, annotate=False, organism=None):
                 Annotation_tools.pombe_annotate(name+'_sig_changed.csv')
             else:
                 print "Organism not recognized. Only 'pombe' and 'crypto' supported at this time"
-                
+
+def NchooseR(n,r):
+    ''' Called by gene_venn'''
+    c = factorial(n)/Decimal(factorial(r)*factorial(n-r))
+    return c
+
+def hypergeometric(N, n, K, J, k):
+    '''Called by gene_venn'''
+    K = min(K,J)
+    p = (NchooseR(K,k)*NchooseR(N-K,n-k))/NchooseR(N,n)
+    x = n*k/N
+    return p, x
+
+def venn_2sample(n,K,k,J, name1, name2, colors, p, x):
+    A_only = K-k
+    B_only = J-k
+    AB = k
+    s = (A_only, B_only, AB)
+
+    v = venn2(subsets=s, set_labels=(name1, name2))
+
+    # Subset colors
+    v.get_patch_by_id('10').set_color(colors[0])
+    v.get_patch_by_id('01').set_color(colors[1])
+    if AB > 0:
+        v.get_patch_by_id('11').set_color(colors[2])
+
+    # Subset alphas
+    v.get_patch_by_id('10').set_alpha(0.8)
+    v.get_patch_by_id('01').set_alpha(0.8)
+    if AB > 0:
+        v.get_patch_by_id('11').set_alpha(0.9)
+
+    # Border styles
+    c = venn2_circles(subsets=s, linestyle='solid')
+    for sub_c in c:
+        sub_c.set_lw(1.0)       # Line width
+
+    p = '%.1E' % p
+    if x >= 5: x = 'Enriched'
+    else: x = 'De-enriched'
+    
+    plt.title(name1+' vs. '+name2+'\n p-value: '+p+', '+x, fontdict=font)
+    plt.show()
+    plt.savefig(name1+'_'+name2+'_venn.pdf', format='pdf')
+    plt.clf()
+    
+def gene_venn(csv_files, organism):
+    '''Finds overlap between 2 or 3 lists of genes.
+    csv_files: list of 2 or 3 csv files where the first column is the gene name (make sure the gene name format matches).
+    organism: 'crypto', 'cerevisiae' or 'pombe'
+    Output: PDF files of venn diagrams (pairwise) and merged csv files containing the overlapping genes.'''
         
+    if 'pombe' in organism.lower():
+        gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
+        organism = 'pombe'
+    elif 'crypto' in organism.lower() or 'h99' in organism.lower():
+        organism = None
+        gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
+    elif 'cerev' in organism.lower():
+        organism = None
+        gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
+    
+    tx_dict = SP.build_transcript_dict(gff3, organism=organism)
+    transcripts = tx_dict.keys()
+    genes = set([x[:-2] for x in transcripts])
+    
+    df_dict = {}
+    names = []
+    for csv in csv_files:
+        name = csv.split('/')[-1].split('.')[0]
+        df_dict[name] = pd.read_csv(csv, index_col=0)
+        df_dict[name] = add_col_level(df_dict[name], name)
+        names.append(name)
+    
+    # N = genome size
+    # n = number of genes in analysis (so len(a)+len(b))
+    # K = number of genes in group 1 (len(a))
+    # k = overlap(len(a&b))
+    
+    N = len(genes)
+    n = len(df_dict[names[0]]) + len(df_dict[names[1]])
+    K = len(df_dict[names[0]])
+    overlap = set(df_dict[names[0]].index).intersection(df_dict[names[1]].index)
+    k = len(overlap)
+    J = len(df_dict[names[1]])
+    
+    p_ab, x_ab = hypergeometric(N,n,K,J,k)
+    venn_2sample(n,K,k,J, names[0], names[1], ['crimson','deepskyblue','darkorchid'], p_ab, x_ab)
+    
+    
+    df_ab = df_dict[names[0]].merge(df_dict[names[1]], right_index=True, left_index=True)
+    df_ab.to_csv('{0}_{1}_overlap.csv'.format(names[0], names[1]))
+
+    if len(names) == 3:
+        n_ac = len(df_dict[names[0]]) + len(df_dict[names[2]])
+        overlap_ac = set(df_dict[names[0]].index).intersection(df_dict[names[2]].index)
+        k_ac = len(overlap_ac)
+        J_ac = len(df_dict[names[2]])
+        
+        venn_2sample(n_ac,K,k_ac,J_ac, names[0], names[2], ['crimson','gold','darkorange'])
+        p_ac = hypergeometric(N,n_ac,K,J_ac,k_ac)
+        print "p-value: "+'%.1E' % p_ac
+        
+        df_ac = df_dict[names[0]].merge(df_dict[names[2]], right_index=True, left_index=True)
+        df_ac.to_csv('{0}_{1}_overlap.csv'.format(names[0], names[2]))
+
+        n_bc = len(df_dict[names[1]]) + len(df_dict[names[2]])
+        overlap_bc = set(df_dict[names[1]].index).intersection(df_dict[names[2]].index)
+        k_bc = len(overlap_bc)
+        J_bc = len(df_dict[names[2]])
+        K_bc = len(df_dict[names[1]])
+        
+        venn_2sample(n_bc,K_bc,k_bc,J_bc, names[1], names[2], ['deepskyblue','gold','forestgreen'])
+        p_bc = hypergeometric(N,n_bc,K_bc,J_bc,k_bc)
+        print "p-value: "+'%.1E' % p_bc
+        
+        df_bc = df_dict[names[1]].merge(df_dict[names[2]], right_index=True, left_index=True)
+        df_bc.to_csv('{0}_{1}_overlap.csv'.format(names[1], names[2]))
