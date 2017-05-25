@@ -446,10 +446,10 @@ def gene_venn(csv_files, organism):
     # k = overlap(len(a&b))
     
     N = len(genes)
-    n = len(df_dict[names[0]]) + len(df_dict[names[1]])
     K = len(df_dict[names[0]])
     overlap = set(df_dict[names[0]].index).intersection(df_dict[names[1]].index)
     k = len(overlap)
+    n = len(df_dict[names[0]]) + len(df_dict[names[1]]) - k
     J = len(df_dict[names[1]])
     
     p_ab, x_ab = hypergeometric(N,n,K,J,k)
@@ -460,9 +460,9 @@ def gene_venn(csv_files, organism):
 
     if len(names) == 3:
         ## Compare sample 1 to sample 3
-        n_ac = len(df_dict[names[0]]) + len(df_dict[names[2]])
         overlap_ac = set(df_dict[names[0]].index).intersection(df_dict[names[2]].index)
         k_ac = len(overlap_ac)
+        n_ac = len(df_dict[names[0]]) + len(df_dict[names[2]]) - k_ac
         J_ac = len(df_dict[names[2]])
         
         p_ac, x_ac = hypergeometric(N,n_ac,K,J_ac,k_ac)
@@ -472,9 +472,9 @@ def gene_venn(csv_files, organism):
             df_ac.to_csv('{0}_{1}_overlap.csv'.format(names[0], names[2]))
             
         ## Compare sample 2 to sample 3
-        n_bc = len(df_dict[names[1]]) + len(df_dict[names[2]])
         overlap_bc = set(df_dict[names[1]].index).intersection(df_dict[names[2]].index)
         k_bc = len(overlap_bc)
+        n_bc = len(df_dict[names[1]]) + len(df_dict[names[2]]) - k_bc
         J_bc = len(df_dict[names[2]])
         K_bc = len(df_dict[names[1]])
         
