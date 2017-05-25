@@ -427,9 +427,14 @@ def gene_venn(csv_files, organism):
     names = []
     for csv in csv_files:
         name = csv.split('/')[-1].split('.')[0]
-        df_dict[name] = pd.read_csv(csv, index_col=0)
-        df_dict[name] = add_col_level(df_dict[name], name)
         names.append(name)
+	line = next(open(csv))
+	if len(line.split(',')) > 1:
+            df_dict[name] = pd.read_csv(csv, index_col=0)
+            df_dict[name] = add_col_level(df_dict[name], name)
+	else:
+	    df_dict[name] = pd.read_csv(csv, index_col=0, sep='\t')
+	    df_dict[name] = add_col_level(df_dict[name], name)
     
     # N = genome size
     # n = number of genes in analysis (so len(a)+len(b))
