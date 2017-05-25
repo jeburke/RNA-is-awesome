@@ -365,8 +365,12 @@ def NchooseR(n,r):
 def hypergeometric(N, n, K, J, k):
     '''Called by gene_venn'''
     K = min(K,J)
-    p = (NchooseR(K,k)*NchooseR(N-K,n-k))/NchooseR(N,n)
-    x = n*k/N
+    if N-K < 0:
+        print "Too many genes in your spreadsheet! Check your formatting."
+        return None, None
+    else:
+        p = (NchooseR(K,k)*NchooseR(N-K,n-k))/NchooseR(N,n)
+        x = n*k/N
     return p, x
 
 def venn_2sample(n,K,k,J, name1, name2, colors, p, x):
@@ -444,34 +448,33 @@ def gene_venn(csv_files, organism):
     J = len(df_dict[names[1]])
     
     p_ab, x_ab = hypergeometric(N,n,K,J,k)
-    venn_2sample(n,K,k,J, names[0], names[1], ['crimson','deepskyblue','darkorchid'], p_ab, x_ab)
-    
-    
-    df_ab = df_dict[names[0]].merge(df_dict[names[1]], right_index=True, left_index=True)
-    df_ab.to_csv('{0}_{1}_overlap.csv'.format(names[0], names[1]))
+    if p_ab is not None:
+        venn_2sample(n,K,k,J, names[0], names[1], ['crimson','deepskyblue','darkorchid'], p_ab, x_ab)
+        df_ab = df_dict[names[0]].merge(df_dict[names[1]], right_index=True, left_index=True)
+        df_ab.to_csv('{0}_{1}_overlap.csv'.format(names[0], names[1]))
 
     if len(names) == 3:
+        ## Compare sample 1 to sample 3
         n_ac = len(df_dict[names[0]]) + len(df_dict[names[2]])
         overlap_ac = set(df_dict[names[0]].index).intersection(df_dict[names[2]].index)
         k_ac = len(overlap_ac)
         J_ac = len(df_dict[names[2]])
         
-        venn_2sample(n_ac,K,k_ac,J_ac, names[0], names[2], ['crimson','gold','darkorange'])
-        p_ac = hypergeometric(N,n_ac,K,J_ac,k_ac)
-        print "p-value: "+'%.1E' % p_ac
-        
-        df_ac = df_dict[names[0]].merge(df_dict[names[2]], right_index=True, left_index=True)
-        df_ac.to_csv('{0}_{1}_overlap.csv'.format(names[0], names[2]))
-
+        p_ac, x_ac = hypergeometric(N,n_ac,K,J_ac,k_ac)
+        if p_ac is not None:
+            venn_2sample(n_ac,K,k_ac,J_ac, names[0], names[2], ['crimson','gold','darkorange'], p_ac, x_ac)
+            df_ac = df_dict[names[0]].merge(df_dict[names[2]], right_index=True, left_index=True)
+            df_ac.to_csv('{0}_{1}_overlap.csv'.format(names[0], names[2]))
+            
+        ## Compare sample 2 to sample 3
         n_bc = len(df_dict[names[1]]) + len(df_dict[names[2]])
         overlap_bc = set(df_dict[names[1]].index).intersection(df_dict[names[2]].index)
         k_bc = len(overlap_bc)
         J_bc = len(df_dict[names[2]])
         K_bc = len(df_dict[names[1]])
         
-        venn_2sample(n_bc,K_bc,k_bc,J_bc, names[1], names[2], ['deepskyblue','gold','forestgreen'])
-        p_bc = hypergeometric(N,n_bc,K_bc,J_bc,k_bc)
-        print "p-value: "+'%.1E' % p_bc
-        
-        df_bc = df_dict[names[1]].merge(df_dict[names[2]], right_index=True, left_index=True)
-        df_bc.to_csv('{0}_{1}_overlap.csv'.format(names[1], names[2]))
+        p_bc, x_bc = hypergeometric(N,n_bc,K_bc,J_bc,k_bc)
+        if p_bc is not None:
+            venn_2sample(n_bc,K_bc,k_bc,J_bc, names[1], names[2], ['deepskyblue','gold','forestgreen'], p_bc, x_bc)
+            df_bc = df_dict[names[1]].merge(df_dict[names[2]], right_index=True, left_index=True)
+            df_bc.to_csv('{0}_{1}_overlap.csv'.format(names[1], names[2]))
