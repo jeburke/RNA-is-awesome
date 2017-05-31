@@ -14,6 +14,9 @@ sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/GeneTools/')
 import Annotation_tools
 from math import factorial
 from decimal import Decimal
+import json
+import matplotlib.patches as patches
+from collections import OrderedDict
 
 font = {'family': 'sans-serif',
         'color':  'black',
@@ -176,7 +179,17 @@ def add_col_level(df, new_name):
     
 def load_DESeq2_results(csv_list):
     '''This function loads DESeq2 output csv files into a dataframe.
-    csv_list can be either a list of the csv files - ["file1.csv","file2.csv"] or "all".'''
+    
+    Parameters
+    -----------
+    csv_list : list or str
+             Either a list of the csv files - ["file1.csv","file2.csv"] or "all".
+             If "all", will read all csv files in the current working directory.
+    
+    Returns
+    -------
+    pandas.core.frame.DataFrame : a Pandas dataframe with data from all samples'''
+    
     if csv_list == 'all':
         csv_list = []
         cwd = os.getcwd()
@@ -198,8 +211,22 @@ def load_DESeq2_results(csv_list):
 
 def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     '''Generates a clustered heatmap using kmeans clustering and returns a dataframe with cluster indeces.
-    If no sample names are provided, clusters across all samples in the dataframe.
-    n_clusters is the number of clusters'''
+    
+    Parameters
+    ----------
+    dataframe : pandas.core.frame.DataFrame
+              Return from load_DESeq2_results
+    sample_names : list, default ``None``
+              Provide a list of sample names. Please use dataframe.columns to ensure the sample names are correctly formatted.
+              If no sample names are provided, clusters across all samples in the dataframe.
+    n_clusters : int, default 10 
+              Number of clusters to create
+    
+    Returns
+    -------
+    clustered_results : pandas.core.frame.DataFrame
+              The same dataframe with cluster indeces added as an additional column
+              '''
     
     column_names = []
     if sample_names is not None:
@@ -263,13 +290,25 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     return new_df
 
 def list_of_genes_in_cluster(data, cluster_index, name=None, annotate=False, organism=None):
-    '''Pull out a cluster from RNAseq_clustered_heatmap.
-    Generates a csv file with annotation of those genes.
-    data: output from RNAseq_clustered_heatmap
-    cluster_index: the number at the top of the cluster on the heatmap display
-    name: prefix for the file name
-    annotate: True if you want to generate a csv file with annotation
-    organism: "pombe" or "crypto" to apply the correct annotation'''
+    '''Extracts the indicatedcluster from RNAseq_clustered_heatmap and generates a new csv file with/out annotation.
+    
+    Parameters
+    ---------
+    data : pandas.core.frame.DataFrame
+        Dataframe returned by RNAseq_clustered_heatmap
+    cluster_index : int
+        The number at the top of the cluster on the heatmap display
+    name : str, default ``None``
+        Name for csv file
+    annotate : bool, default ``False``
+        Choose whether or not to annotate the csv file
+    organism : str, default ``None``
+        Required if annotate is True. "pombe" or "crypto" to apply the correct annotation
+    
+    Output
+    ------
+    csv_file : csv formatted file with genes in cluster
+        '''
     
     in_cluster = data[data['cluster'] == cluster_index]
     
@@ -290,10 +329,27 @@ def list_of_genes_in_cluster(data, cluster_index, name=None, annotate=False, org
 
 def volcano_plot(df, sample_names=None, annotate=False, organism=None):
     '''Generates volcano plots and csv files of significantly changed transcripts for each sample.
-    df: output from load_DESeq2_results
-    sample_names: a list of names if you don't want to analyze all the samples
-    annotate: True if you want to generate a csv file with annotation
-    organism: "pombe" or "crypto" to apply the correct annotation'''
+    
+    Parameters
+    ----------
+    df : pandas.core.frame.DataFrame
+         Output from load_DESeq2_results
+    sample_names : list, default ``None``
+         List of names if you don't want to analyze all the samples in the dataframe
+    annotate : bool, default ``False``
+        True if you want to generate a csv file with annotation
+    organism : str, default ``None``
+        Required if annotate is True. "pombe" or "crypto" to apply the correct annotation
+        
+    Output
+    ------
+    csv files : 3 comma separated value files
+              1. All significantly changed transcripts
+              2. Transcripts with increased expression
+              3. Transcripts with decreased expression
+              **Note if you use the annotate option, there will be 3 more files with annotation.
+    volcano plots : PDF formated images of the volcano plots
+        '''
     
     # Find all sample names
     if sample_names is None:
@@ -346,17 +402,32 @@ def volcano_plot(df, sample_names=None, annotate=False, organism=None):
         new_sig = sig.append(sig2)
         print len(new_sig)
         new_sig.to_csv(name+'_sig_changed.csv')
+        split_DE_genes(name+'_sig_changed.csv')
         
         if annotate is True:
             if organism is None:
                 print "Must include the organism!"
             elif 'crypto' in organism.lower():
                 Annotation_tools.crypto_annotate(name+'_sig_changed.csv')
+                Annotation_tools.crypto_annotate(name+'_increased.csv')
+                Annotation_tools.crypto_annotate(name+'_decreased.csv')
             elif 'pombe' in organism.lower():
                 Annotation_tools.pombe_annotate(name+'_sig_changed.csv')
+                Annotation_tools.pombe_annotate(name+'_increased.csv')
+                Annotation_tools.pombe_annotate(name+'_decreased.csv')
             else:
                 print "Organism not recognized. Only 'pombe' and 'crypto' supported at this time"
 
+def split_DE_genes(csv):
+    csv_df = pd.read_csv(csv, index_col=0)
+    
+    #Split dataframe
+    down_df = csv_df[csv_df['log2FoldChange'] < 0]
+    up_df = csv_df[csv_df['log2FoldChange'] > 0]
+    
+    down_df.to_csv(csv.split('sig_changed.csv')[0]+'decreased.csv')
+    up_df.to_csv(csv.split('sig_changed.csv')[0]+'increased.csv')
+                             
 def NchooseR(n,r):
     ''' Called by gene_venn'''
     c = factorial(n)/Decimal(factorial(r)*factorial(n-r))
@@ -409,9 +480,17 @@ def venn_2sample(n,K,k,J, name1, name2, colors, p, x):
     
 def gene_venn(csv_files, organism):
     '''Finds overlap between 2 or 3 lists of genes.
-    csv_files: list of 2 or 3 csv files where the first column is the gene name (make sure the gene name format matches).
-    organism: 'crypto', 'cerevisiae' or 'pombe'
-    Output: PDF files of venn diagrams (pairwise) and merged csv files containing the overlapping genes.'''
+    
+    Parameters
+    ----------
+    csv_files : list
+               2 or 3 csv files where the first column is the gene name (make sure the gene name format matches).
+    organism : str
+               Options are 'crypto', 'cerevisiae' or 'pombe'
+    
+    Output
+    ------
+    PDF files of venn diagrams (pairwise) and merged csv files containing the overlapping genes.'''
         
     if 'pombe' in organism.lower():
         gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
@@ -483,3 +562,27 @@ def gene_venn(csv_files, organism):
             venn_2sample(n_bc,K_bc,k_bc,J_bc, names[1], names[2], ['deepskyblue','gold','forestgreen'], p_bc, x_bc)
             df_bc = df_dict[names[1]].merge(df_dict[names[2]], right_index=True, left_index=True)
             df_bc.to_csv('{0}_{1}_overlap.csv'.format(names[1], names[2]))
+            
+def map_to_chromosomes(csv, organism):
+    df = pd.read_csv(csv)
+    
+    if organism == 'crypto': 
+        fa_json = '/home/jordan/GENOMES/H99_fa.json'
+    elif organism == 'pombe': fa_json = '/home/jordan/GENOMES/POMBE/Sp_fasta_dict.json'
+    elif 'cerev' in organism.lower(): fa_json = '/home/jordan/GENOMES/S288C/S288C_genome.fa'
+        
+    with open(fa_json) as f:
+        fa_dict = json.load(f)
+
+    chrom_sizes = {k:len(v) for k, v in fa_dict.items()}
+    chrom_sizes = OrderedDict(sorted(chrom_sizes.items(), key=lambda t: t[0]))
+
+    f, ax = plt.subplots(len(chrom_sizes), figsize=(4,10), sharex=True, sharey=True)
+    for n, chrom in enumerate(chrom_sizes.keys()):
+        ax[n].add_patch(patches.Rectangle((0.1, 0.1), chrom_sizes[chrom]/3000000., 0.6, fill=False, linewidth=1.5))
+        ax[n].set_xticks([])
+        ax[n].set_yticks([0.5])
+        ax[n].axis('off')
+        #ax[n].set_title(chrom, loc='left')
+        
+        ax[n].text(0.08, 0.4, chrom, horizontalalignment='right', verticalalignment='center', transform=ax[n].transAxes)
