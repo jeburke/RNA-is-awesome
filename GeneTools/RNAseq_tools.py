@@ -12,6 +12,7 @@ sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/')
 import SPTools as SP
 sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/GeneTools/')
 import Annotation_tools
+import SeqTools
 from math import factorial
 from decimal import Decimal
 import json
@@ -563,26 +564,97 @@ def gene_venn(csv_files, organism):
             df_bc = df_dict[names[1]].merge(df_dict[names[2]], right_index=True, left_index=True)
             df_bc.to_csv('{0}_{1}_overlap.csv'.format(names[1], names[2]))
             
-def map_to_chromosomes(csv, organism):
-    df = pd.read_csv(csv)
+def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
+    '''Maps a list of transcripts onto chromosomes. If log2FoldChange column is in csv file, 
+    will color code by increased or decreased.
+    
+    Parameters
+    ----------
+    csv : str
+         File in csv format. Can also just be a list of genes in a text file.
+    organism : str
+         Options are 'crypto' or 'pombe'
+    fig_name : str, default "chrom_map"
+         Provide a name for the output file.
+    
+    Output
+    ------
+    PDF file of chromosome diagrams'''
+    
+    df = pd.read_csv(csv, index_col=0)
+    #print df.columns
+    #print df.index
     
     if organism == 'crypto': 
         fa_json = '/home/jordan/GENOMES/H99_fa.json'
-    elif organism == 'pombe': fa_json = '/home/jordan/GENOMES/POMBE/Sp_fasta_dict.json'
-    elif 'cerev' in organism.lower(): fa_json = '/home/jordan/GENOMES/S288C/S288C_genome.fa'
+        gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
+    elif organism == 'pombe': 
+        fa_json = '/home/jordan/GENOMES/POMBE/Sp_fasta_dict.json'
+        gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
+    elif 'cerev' in organism.lower(): 
+        fa_json = '/home/jordan/GENOMES/S288C/S288C_genome.fa'
+        gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
         
     with open(fa_json) as f:
         fa_dict = json.load(f)
 
     chrom_sizes = {k:len(v) for k, v in fa_dict.items()}
     chrom_sizes = OrderedDict(sorted(chrom_sizes.items(), key=lambda t: t[0]))
-
-    f, ax = plt.subplots(len(chrom_sizes), figsize=(4,10), sharex=True, sharey=True)
+    
+    if organism != 'pombe': organism = None
+    tx_dict = SeqTools.build_transcript_dict(gff3, organism=organism)
+    
+    tx_by_chrom = {k:set() for k, v in fa_dict.items()}
+    for tx, info in tx_dict.iteritems():
+        tx_by_chrom[info[3]].add(tx[:-2])
+        
+    divis = max(chrom_sizes.values())/0.85
+    #print divis
+    
+    f, ax = plt.subplots(len(chrom_sizes), figsize=(12,10), sharex=True, sharey=True)
     for n, chrom in enumerate(chrom_sizes.keys()):
-        ax[n].add_patch(patches.Rectangle((0.1, 0.1), chrom_sizes[chrom]/3000000., 0.6, fill=False, linewidth=1.5))
+        ax[n].add_patch(patches.Rectangle((0.1, 0.1), chrom_sizes[chrom]/divis, 0.6, fill=False, linewidth=1.5))
         ax[n].set_xticks([])
         ax[n].set_yticks([0.5])
         ax[n].axis('off')
         #ax[n].set_title(chrom, loc='left')
         
         ax[n].text(0.08, 0.4, chrom, horizontalalignment='right', verticalalignment='center', transform=ax[n].transAxes)
+        
+        chrom_df = df[df.index.isin(tx_by_chrom[chrom])]
+        starts = []
+        stops = []
+        for gene in chrom_df.index:
+            tx = gene + 'T0'
+            if organism == 'pombe': tx = gene+'.1'
+            
+            starts.append(tx_dict[tx][0])
+            if tx_dict[tx][1] <= chrom_sizes[chrom]:
+                stops.append(tx_dict[tx][1])
+            else:
+                stops.append(chrom_sizes[chrom])
+        
+        chrom_df['start'] = starts
+        chrom_df['stop'] = stops
+        chrom_df = chrom_df.sort_values('start')
+        
+        chrom_patches = []
+        for gene, r in chrom_df.iterrows():
+            if 'log2FoldChange' in chrom_df.columns:
+                if r['log2FoldChange'] > 0:
+                    color = 'darkorange'
+                else:
+                    color = 'navy'
+            else:
+                color = '0.3'
+            x = 0.1+r['start']/divis
+            width = (r['stop']-r['start'])/divis
+            chrom_patches.append((patches.Rectangle((x, 0.1), width, 0.6, fill=False, edgecolor=color)))
+       
+        for p in chrom_patches:
+            ax[n].add_patch(p)
+            
+    f.savefig(fig_name+'.pdf', format='pdf')
+
+    plt.show()
+    plt.clf()
