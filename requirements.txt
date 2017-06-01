@@ -2,6 +2,7 @@ numpy
 scipy
 pandas
 matplotlib
-python-hm
-primer3-py
 HTSeq
+scipy
+sklearn
+pysam
