@@ -28,7 +28,7 @@ def plot_min_max(lists, ax):
     ax.plot([all_min,all_max],[all_min,all_max],color='black')
     return ax
 
-def ChIP_rpkm_scatter(WCE1_bam, WCE2_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, Z_change=False, cen_tel=False):
+def ChIP_rpkm_scatter(WCE1_bam, WCE2_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_name, Z_change=False, cen_tel=False):
     tx_dict = GT.build_transcript_dict(gff3)
     tx_dict = Compare_RPKM.make_promoter_dict(tx_dict, '/home/jordan/GENOMES/H99_chrom_lengths.json')
     
@@ -101,6 +101,9 @@ def ChIP_rpkm_scatter(WCE1_bam, WCE2_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, 
         ax[1,1].plot(cen_df[for_plot[1]], cen_df[for_plot[3]], 'o', alpha=0.8, color='crimson')
         ax[1,1].plot(tel_df[for_plot[1]], tel_df[for_plot[3]], 'o', alpha=0.8, color='mediumblue')
 
+    f.savefig(plot_name+'.eps', format='eps')
+    print "Saved as "+plot_name+'.eps'
+    
     plt.show()
     plt.clf()
     
