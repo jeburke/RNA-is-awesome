@@ -588,15 +588,20 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
     if organism == 'crypto': 
         fa_json = '/home/jordan/GENOMES/H99_fa.json'
         gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
+        cen_dict = '/home/jordan/GENOMES/H99_centromeres.json'
     elif organism == 'pombe': 
         fa_json = '/home/jordan/GENOMES/POMBE/Sp_fasta_dict.json'
         gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
-    elif 'cerev' in organism.lower(): 
-        fa_json = '/home/jordan/GENOMES/S288C/S288C_genome.fa'
-        gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
+        cen_dict = '/home/jordan/GENOMES/POMBE/Sp_centromeres.json'
+    #elif 'cerev' in organism.lower(): 
+    #    fa_json = '/home/jordan/GENOMES/S288C/S288C_genome.fa'
+    #    gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
         
     with open(fa_json) as f:
         fa_dict = json.load(f)
+        
+    with open(cen_dict) as f:
+        cen_dict = json.load(f)
 
     chrom_sizes = {k:len(v) for k, v in fa_dict.items()}
     chrom_sizes = OrderedDict(sorted(chrom_sizes.items(), key=lambda t: t[0]))
@@ -639,17 +644,24 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
         chrom_df = chrom_df.sort_values('start')
         
         chrom_patches = []
+        
+        #Draw centromere
+        cen_start = 0.1+cen_dict[chrom][0]/divis
+        cen_width = (cen_dict[chrom][1]-cen_dict[chrom][0])/divis
+        ax[n].add_patch(patches.Rectangle((cen_start, 0.1), cen_width, 0.6, color='0.1', edgecolor='0.1'))
+        
+        #Draw affected transcripts
         for gene, r in chrom_df.iterrows():
             if 'log2FoldChange' in chrom_df.columns:
                 if r['log2FoldChange'] > 0:
-                    color = 'darkorange'
+                    color = 'orange'
                 else:
-                    color = 'navy'
+                    color = 'slateblue'
             else:
                 color = '0.3'
             x = 0.1+r['start']/divis
             width = (r['stop']-r['start'])/divis
-            chrom_patches.append((patches.Rectangle((x, 0.1), width, 0.6, fill=False, edgecolor=color)))
+            chrom_patches.append((patches.Rectangle((x, 0.1), width, 0.6, color=color, edgecolor=color)))
        
         for p in chrom_patches:
             ax[n].add_patch(p)
