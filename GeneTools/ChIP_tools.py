@@ -70,11 +70,11 @@ def ChIP_rpkm_scatter(WCE1_bam, WCE2_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, 
     
     ax[0,0].set_xlabel(for_plot[0])
     ax[0,0].set_ylabel(for_plot[1])
-    ax[0,0].plot(df[for_plot[0]],df[for_plot[1]],'o', alpha=0.5, color='0.4')
+    ax[0,0].plot(df[for_plot[0]],df[for_plot[1]],'o', alpha=0.8, color='0.4')
     
     ax[0,1].set_xlabel(for_plot[2])
     ax[0,1].set_ylabel(for_plot[3])
-    ax[0,1].plot(df[for_plot[2]],df[for_plot[3]],'o', alpha=0.5, color='0.4')
+    ax[0,1].plot(df[for_plot[2]],df[for_plot[3]],'o', alpha=0.8, color='0.4')
     
     ax[1,0].set_xlabel(for_plot[0])
     ax[1,0].set_ylabel(for_plot[2])
