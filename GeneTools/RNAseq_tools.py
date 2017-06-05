@@ -58,7 +58,7 @@ def align_fastq(directory, threads=1, organism='crypto'):
     
     for fastq in fastq_list:
         prefix = fastq.split('.fastq')[0]
-        args = 'tophat2 --read-mismatches 3 --read-gap-length 2 --read-edit-dist 3 --min-anchor-length 8 --splice-mismatches 1 --min-intron-length 20 --max-intron-length 2000 --max-insertion-length 3 --max-deletion-length 3 --num-threads {0} --max-multihits 100 --library-type fr-firststrand --segment-mismatches 3 --no-coverage-search --segment-length 20 --min-coverage-intron 10 --max-coverage-intron 100000 --min-segment-intron 50 --max-segment-intron 500000 --b2-sensitive --bowtie1 -G {1} -o {2} {3} {4}'.format(str(threads), gff3, prefix, bowtie_ix, fastq)
+        args = 'tophat2 --read-mismatches 3 --read-gap-length 2 --read-edit-dist 3 --min-anchor-length 8 --splice-mismatches 1 --min-intron-length 20 --max-intron-length 2000 --max-insertion-length 3 --max-deletion-length 3 --num-threads {0} --max-multihits 2 --library-type fr-firststrand --segment-mismatches 3 --no-coverage-search --segment-length 20 --min-coverage-intron 10 --max-coverage-intron 100000 --min-segment-intron 50 --max-segment-intron 500000 --b2-sensitive --bowtie1 -G {1} -o {2} {3} {4}'.format(str(threads), gff3, prefix, bowtie_ix, fastq)
         #print args
         p = subprocess.Popen(args.split(' '), stdout=subprocess.PIPE)
         p.wait()
@@ -254,13 +254,13 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     labels = km.labels_
 
     # Format results as a DataFrame
-    data['cluster'] = labels
-    data = data.sort_values('cluster')
+    data[('cluster','cluster')] = labels
+    data = data.sort_values(('cluster','cluster'))
     cluster_sizes = []
     base=0
-    for index in set(data['cluster'].tolist()):
-        cluster_sizes.append(len(data[data['cluster'] == index])+base)
-        base += len(data[data['cluster'] == index])
+    for index in set(data[('cluster','cluster')].tolist()):
+        cluster_sizes.append(len(data[data[('cluster','cluster')] == index])+base)
+        base += len(data[data[('cluster','cluster')] == index])
         
         
     # Get sizes of clusters
@@ -286,7 +286,7 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     fig.colorbar(pcm, cax=cax)
     plt.show()
     
-    new_df = dataframe.merge(pd.DataFrame(data[('cluster',)]), right_index=True, left_index=True)
+    new_df = dataframe.merge(pd.DataFrame(data[('cluster','cluster')]), right_index=True, left_index=True)
     
     return new_df
 
@@ -311,10 +311,14 @@ def list_of_genes_in_cluster(data, cluster_index, name=None, annotate=False, org
     csv_file : csv formatted file with genes in cluster
         '''
     
-    in_cluster = data[data['cluster'] == cluster_index]
+    in_cluster = data[data[('cluster','cluster')] == cluster_index]
     
     if name is None:
         name = 'cluster'+str(cluster_index)
+    
+    multi_index = False
+    if type(in_cluster.columns) == pd.indexes.multi.MultiIndex: 
+        multi_index = True
     
     in_cluster.to_csv(name+'_genes.csv')
             
@@ -322,9 +326,9 @@ def list_of_genes_in_cluster(data, cluster_index, name=None, annotate=False, org
         if organism is None:
             print "Must include the organism!"
         elif 'crypto' in organism.lower():
-            Annotation_tools.crypto_annotate(name+'_genes.csv')
+            Annotation_tools.crypto_annotate(name+'_genes.csv', multi_index=multi_index)
         elif 'pombe' in organism.lower():
-            Annotation_tools.pombe_annotate(name+'_genes.csv')
+            Annotation_tools.pombe_annotate(name+'_genes.csv', multi_index=multi_index)
         else:
             print "Organism not recognized. Only 'pombe' and 'crypto' supported at this time"
 
@@ -359,12 +363,13 @@ def volcano_plot(df, sample_names=None, annotate=False, organism=None):
             if column[1] == 'log2FoldChange':
                 sample_names.append(column[0])
 
+    df = df.dropna(how='any')
     for name in sample_names:
         
         ## Find significantly changed transcripts
-        sig = df[df[(name,'pvalue')] <= 0.01][name]
+        sig = df[df[(name,'padj')] <= 0.01][name]
         sig = sig[sig['log2FoldChange'] >= 1]
-        sig2 = df[df[(name,'pvalue')] <= 0.01][name]
+        sig2 = df[df[(name,'padj')] <= 0.01][name]
         sig2 = sig2[sig2['log2FoldChange'] <= -1]
         print name
         print "Increased:"
@@ -375,17 +380,21 @@ def volcano_plot(df, sample_names=None, annotate=False, organism=None):
         #Build plot
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.scatter(df[(name,'log2FoldChange')], df[(name,'pvalue')].apply(np.log).multiply(-1), color='0.5')
-        ax.scatter(sig['log2FoldChange'], sig['pvalue'].apply(np.log).multiply(-1), color='orange')
-        ax.scatter(sig2['log2FoldChange'], sig2['pvalue'].apply(np.log).multiply(-1), color='darkslateblue')
+        ax.scatter(df[(name,'log2FoldChange')], df[(name,'padj')].apply(np.log).multiply(-1), color='0.5')
+        ax.scatter(sig['log2FoldChange'], sig['padj'].apply(np.log).multiply(-1), color='orange')
+        ax.scatter(sig2['log2FoldChange'], sig2['padj'].apply(np.log).multiply(-1), color='darkslateblue')
         xmin = min(df[(name,'log2FoldChange')])-0.1*min(df[(name,'log2FoldChange')])
-        xmax = max(df[(name,'log2FoldChange')])-0.1*max(df[(name,'log2FoldChange')])
+        xmax = max(df[(name,'log2FoldChange')])+0.1*max(df[(name,'log2FoldChange')])
         x_all = max([xmin*-1,xmax])
+        print x_all
         xmin= -1*x_all
         xmax= x_all
         
-        ymed = np.percentile(df[(name,'pvalue')].apply(np.log).multiply(-1).dropna(how='any'), 99)
+        ymed = np.percentile(df[(name,'padj')].apply(np.log).multiply(-1).dropna(how='any'), 99)
         ymax = ymed + 1.5*ymed
+        
+        if ymax < 4:
+            ymax = 20
         
         ax.set_ylim([-5,ymax])
         ax.set_xlim([xmin,xmax])
@@ -582,8 +591,8 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
     PDF file of chromosome diagrams'''
     
     df = pd.read_csv(csv, index_col=0)
-    #print df.columns
-    #print df.index
+    if df.index[0].startswith('gene'):
+        df.index = [x.split('gene:')[1] for x in df.index]
     
     if organism == 'crypto': 
         fa_json = '/home/jordan/GENOMES/H99_fa.json'
@@ -603,10 +612,14 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
     with open(cen_dict) as f:
         cen_dict = json.load(f)
 
-    chrom_sizes = {k:len(v) for k, v in fa_dict.items()}
+    chrom_sizes = {k:len(v) for k, v in fa_dict.items() if k.startswith('chr')}
     chrom_sizes = OrderedDict(sorted(chrom_sizes.items(), key=lambda t: t[0]))
     
-    if organism != 'pombe': organism = None
+    if organism != 'pombe': 
+        organism = None
+        figsize = (10,12)
+    else:
+        figsize = (15,3)
     tx_dict = SeqTools.build_transcript_dict(gff3, organism=organism)
     
     tx_by_chrom = {k:set() for k, v in fa_dict.items()}
@@ -616,7 +629,7 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
     divis = max(chrom_sizes.values())/0.85
     #print divis
     
-    f, ax = plt.subplots(len(chrom_sizes), figsize=(12,10), sharex=True, sharey=True)
+    f, ax = plt.subplots(len(chrom_sizes), figsize=figsize, sharex=True, sharey=True)
     for n, chrom in enumerate(chrom_sizes.keys()):
         ax[n].add_patch(patches.Rectangle((0.1, 0.1), chrom_sizes[chrom]/divis, 0.6, fill=False, linewidth=1.5))
         ax[n].set_xticks([])
@@ -627,11 +640,13 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
         ax[n].text(0.08, 0.4, chrom, horizontalalignment='right', verticalalignment='center', transform=ax[n].transAxes)
         
         chrom_df = df[df.index.isin(tx_by_chrom[chrom])]
+        
         starts = []
         stops = []
         for gene in chrom_df.index:
             tx = gene + 'T0'
-            if organism == 'pombe': tx = gene+'.1'
+            if organism == 'pombe': 
+                tx = gene+'.1'
             
             starts.append(tx_dict[tx][0])
             if tx_dict[tx][1] <= chrom_sizes[chrom]:
@@ -648,7 +663,7 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
         #Draw centromere
         cen_start = 0.1+cen_dict[chrom][0]/divis
         cen_width = (cen_dict[chrom][1]-cen_dict[chrom][0])/divis
-        ax[n].add_patch(patches.Rectangle((cen_start, 0.1), cen_width, 0.6, color='0.1', edgecolor='0.1'))
+        ax[n].add_patch(patches.Rectangle((cen_start, 0.1), cen_width, 0.6, color='0.1'))
         
         #Draw affected transcripts
         for gene, r in chrom_df.iterrows():
@@ -661,7 +676,7 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
                 color = '0.3'
             x = 0.1+r['start']/divis
             width = (r['stop']-r['start'])/divis
-            chrom_patches.append((patches.Rectangle((x, 0.1), width, 0.6, color=color, edgecolor=color)))
+            chrom_patches.append((patches.Rectangle((x, 0.13), width, 0.57, color=color, linewidth=1, alpha=0.6)))
        
         for p in chrom_patches:
             ax[n].add_patch(p)

@@ -28,12 +28,13 @@ def plot_min_max(lists, ax):
     ax.plot([all_min,all_max],[all_min,all_max],color='black')
     return ax
 
-def ChIP_rpkm_scatter(WCE1_bam, WCE2_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_name, Z_change=False, cen_tel=False):
+def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_name, Z_change=False, cen_tel=False):
     tx_dict = GT.build_transcript_dict(gff3)
     tx_dict = Compare_RPKM.make_promoter_dict(tx_dict, '/home/jordan/GENOMES/H99_chrom_lengths.json')
     
     df = pd.DataFrame(index=tx_dict.keys())
-    bam_list = [WCE1_bam, WCE2_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam]
+    bam_list = [WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam]
+    
     for bam in bam_list:
         df = prep_bam(df, bam, tx_dict)
     
@@ -41,23 +42,24 @@ def ChIP_rpkm_scatter(WCE1_bam, WCE2_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, 
         df[column] = pd.to_numeric(df[column])
     
     names = df.columns
+    df[names[1]+' Normalized'] = df[names[1]]/df[names[0]]
     df[names[2]+' Normalized'] = df[names[2]]/df[names[0]]
-    df[names[3]+' Normalized'] = df[names[3]]/df[names[1]]
+    df[names[3]+' Normalized'] = df[names[3]]/df[names[0]]
     df[names[4]+' Normalized'] = df[names[4]]/df[names[0]]
-    df[names[5]+' Normalized'] = df[names[5]]/df[names[1]]
     
-    df['Enrichment 1'] = df[names[4]+' Normalized']/df[names[2]+' Normalized']
-    df['Enrichment 2'] = df[names[5]+' Normalized']/df[names[3]+' Normalized']
+    df['Enrichment 1'] = df[names[3]+' Normalized']/df[names[1]+' Normalized']
+    df['Enrichment 2'] = df[names[4]+' Normalized']/df[names[2]+' Normalized']
     
     df = df[(df[names[2]] > 0) & (df[names[3]] > 0)]
     
     for_plot = []
+    for_plot2 = []
     Z_scores = []
     for column in df:
         if 'Normalized' in column:
-            print column
-            df['log2 '+column.split(' ')[0]] = df[column].apply(np.log2)
-            for_plot.append('log2 '+column.split(' ')[0])
+            for_plot2.append(column)
+            df['log2 RPKM '+column.split(' ')[0]] = df[column].apply(np.log2)
+            for_plot.append('log2 RPKM '+column.split(' ')[0])
         elif 'Enrichment' in column:
             df['Z-score '+column] = pd.Series(stats.mstats.zscore(df[column]), index=df.index)
             Z_scores.append('Z-score '+column)
@@ -95,11 +97,13 @@ def ChIP_rpkm_scatter(WCE1_bam, WCE2_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, 
     if cen_tel is True:
         cen_df = df[df.index.str.contains('Cen')]
         tel_df = df[df.index.str.contains('tel')]
-        ax[1,0].plot(cen_df[for_plot[0]], cen_df[for_plot[2]], 'o', alpha=0.8, color='crimson')
-        ax[1,0].plot(tel_df[for_plot[0]], tel_df[for_plot[2]], 'o', alpha=0.8, color='mediumblue')
+        ax[1,0].plot(cen_df[for_plot[0]], cen_df[for_plot[2]], 'o', alpha=0.8, color='crimson', label='Centromeres')
+        ax[1,0].plot(tel_df[for_plot[0]], tel_df[for_plot[2]], 'o', alpha=0.8, color='mediumblue', label='Telomeres')
+        ax[1,0].legend()
         
-        ax[1,1].plot(cen_df[for_plot[1]], cen_df[for_plot[3]], 'o', alpha=0.8, color='crimson')
-        ax[1,1].plot(tel_df[for_plot[1]], tel_df[for_plot[3]], 'o', alpha=0.8, color='mediumblue')
+        ax[1,1].plot(cen_df[for_plot[1]], cen_df[for_plot[3]], 'o', alpha=0.8, color='crimson', label='Centromeres')
+        ax[1,1].plot(tel_df[for_plot[1]], tel_df[for_plot[3]], 'o', alpha=0.8, color='mediumblue', label='Telomeres')
+        ax[1,1].legend()
 
     f.savefig(plot_name+'.eps', format='eps')
     print "Saved as "+plot_name+'.eps'
@@ -107,4 +111,46 @@ def ChIP_rpkm_scatter(WCE1_bam, WCE2_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, 
     plt.show()
     plt.clf()
     
+    if cen_tel is True:
+        cen_df = cen_df.sort_index()
+        tel_df = tel_df.sort_index()
+        
+        cen_df['WT avg'] = (cen_df[for_plot2[0]] + cen_df[for_plot2[1]]).divide(2)
+        cen_df['WT range'] = (cen_df[for_plot2[0]] - cen_df[for_plot2[1]]).apply(abs).divide(2)
+        cen_df['Mut avg'] = (cen_df[for_plot2[2]] + cen_df[for_plot2[3]]).divide(2)
+        cen_df['Mut range'] = (cen_df[for_plot2[2]] - cen_df[for_plot2[3]]).apply(abs).divide(2)
+        
+        tel_df['WT avg'] = (tel_df[for_plot2[0]] + tel_df[for_plot2[1]]).divide(2)
+        tel_df['WT range'] = (tel_df[for_plot2[0]] - tel_df[for_plot2[1]]).apply(abs).divide(2)
+        tel_df['Mut avg'] = (tel_df[for_plot2[2]] + tel_df[for_plot2[3]]).divide(2)
+        tel_df['Mut range'] = (tel_df[for_plot2[2]] - tel_df[for_plot2[3]]).apply(abs).divide(2)
+        
+        f2, ax2 = plt.subplots(2, 1, figsize=(10,10))
+        width = 0.35
+        
+        ind_cen = np.arange(len(cen_df))
+        ax2[0].bar(ind_cen, cen_df['WT avg'], width, color='mediumblue', yerr=cen_df['WT range'], label="WT")
+        ax2[0].bar(ind_cen + width, cen_df['Mut avg'], width, color='crimson', yerr=cen_df['Mut range'], label="Mutant")
+        
+        ax2[0].set_ylabel('RPKM')
+        ax2[0].set_title('Centromeres')
+        ax2[0].set_xticks(ind_cen + width / 2)
+        ax2[0].set_xticklabels(cen_df.index)
+        ax2[0].legend()
+        
+        ind_tel = np.arange(len(tel_df))
+        ax2[1].bar(ind_tel, tel_df['WT avg'], width, color='mediumblue', yerr=tel_df['WT range'], label="WT" )
+        ax2[1].bar(ind_tel + width, tel_df['Mut avg'], width, color='crimson', yerr=tel_df['Mut range'], label="Mutant")
+        
+        ax2[1].set_ylabel('RPKM')
+        ax2[1].set_title('Telomeres')
+        ax2[1].set_xticks(ind_tel + width / 2)
+        ax2[1].set_xticklabels(tel_df.index, rotation='vertical')
+        ax2[1].legend()
+
+        f2.savefig(plot_name+'_bar.eps', format='eps')
+        print "Saved as "+plot_name+'_bar.eps'
+
+        plt.show()
+        plt.clf()
 
