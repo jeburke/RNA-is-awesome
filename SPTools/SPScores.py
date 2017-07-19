@@ -9,10 +9,9 @@ import math
 import numpy as np
 import pandas as pd
 sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/')
-sys.path.insert(0, '/Users/jordanburke/CodeBase/RNA-is-awesome/')
 import GeneUtility
-sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/SP_ANALYSIS/')
-sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/SP_ANALYSIS/')
+sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/')
+sys.path.insert(0, '/home/jordan/RNA-is-awesome/')
 import SPTools as SP
 import collections
 from math import log
@@ -165,8 +164,8 @@ def get_sequence(coord_dict, gff3_file, fasta_file):
                 counter3 += 1
             seq_dict[transcript].append((sequence, seq_type))
     
-    print str(counter5)+" 5' splice sites"
-    print str(counter3)+" 3' splice sites"
+    #print str(counter5)+" 5' splice sites"
+    #print str(counter3)+" 3' splice sites"
     
     return seq_dict
         
@@ -238,11 +237,11 @@ def get_junction_sequence(df, gff3_file, fasta_file):
             s = tx_df['coord_1']
             min_idx = s.idxmin()
             first = int(s.min())
-            print transcript_dict[transcript][2]
-            print first
+            #print transcript_dict[transcript][2]
+            #print first
             max_idx = s.idxmax()
             last = int(s.max())
-            print last
+            #print last
         
             if first == last:
                 df.loc[min_idx,'intron'] = 'Only'
@@ -344,8 +343,8 @@ def generate_consensus_matrix(gff3, fasta_dict, PSSM=False):
             for b, base in enumerate(seq):
                 pos_matrix_3prime[base_dict[base],b] += 1
                 
-    print counter1
-    print counter2
+    #print counter1
+    #print counter2
 
     float_formatter = lambda x: "%.1f" % x
     np.set_printoptions(formatter={'float_kind':float_formatter})
@@ -366,10 +365,10 @@ def generate_consensus_matrix(gff3, fasta_dict, PSSM=False):
         a += 1
 
 
-    print sum(pos_matrix_5prime)        
-    print pos_matrix_5prime
-    print sum(pos_matrix_3prime)
-    print pos_matrix_3prime
+    #print sum(pos_matrix_5prime)        
+    #print pos_matrix_5prime
+    #print sum(pos_matrix_3prime)
+    #print pos_matrix_3prime
     
     return (pos_matrix_5prime, pos_matrix_3prime)
 
@@ -402,8 +401,8 @@ def generate_PSSM(seq_list, fasta_dict):
             b += 1
         a += 1
         
-    print sum(PSSM)        
-    print PSSM
+    #print sum(PSSM)        
+    #print PSSM
     
     return PSSM
 
@@ -588,4 +587,43 @@ def score_PyTract(df, fa_dict, alt_column_name=None, from_branches=False):
     df['Py score alternative -15:0'] = alt_py1
     df['Py score alternative -30:-15'] = alt_py2
     return df
+       
+    
+def position_wise_scores(seq_5p, seq_3p, organism):
+    organism, gff3, fa_dict, bowtie_index = SP.find_organism_files(organism)
+    PSSM_5p, PSSM_3p = generate_consensus_matrix(gff3, fa_dict, PSSM=True)
+    base_dict = {"A":0, "C":1, "T":2, "G":3}
+    
+    seq_5p = [x for x in seq_5p if x is not None]
+    seq_3p = [x for x in seq_3p if x is not None]
+    
+    score_5prime = np.empty([2,len(seq_5p[0])])
+    score_3prime = np.empty([2,len(seq_3p[0])])
+    all_5p = np.empty([len(seq_5p), len(seq_5p[0])])
+    all_3p = np.empty([len(seq_3p), len(seq_3p[0])])
+                       
+    n=0
+    for n in range(len(seq_5p)):
+        for a, base in enumerate(seq_5p[n]):
+            all_5p[n,a] = PSSM_5p[base_dict[base], a]
+    
+    a=0
+    for a in range(len(score_5prime[0])):
+        score_5prime[0,a] = np.mean(all_5p[0:,a])
+        score_5prime[1,a] = np.std(all_5p[0:,a])
+    print score_5prime
             
+    m=0
+    for m in range(len(seq_3p)):
+        for b, base in enumerate(seq_3p[m]):
+            all_3p[m,b] = PSSM_3p[base_dict[base], b]
+        
+    b=0
+    for b in range(len(score_3prime[0])):
+        score_3prime[0,b] = np.mean(all_3p[0:,b])
+        score_3prime[1,b] = np.std(all_3p[0:,b])
+    print score_3prime
+    
+    return all_5p, all_3p
+    
+    

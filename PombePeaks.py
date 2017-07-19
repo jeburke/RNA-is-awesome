@@ -8,10 +8,12 @@ import matplotlib.patches as patches
 import pysam
 from scipy import stats
 from statsmodels import robust
-sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/SP_ANALYSIS/')
-sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/SP_ANALYSIS/')
+sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/')
+sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/')
 import SPTools as SP
+import PombeMetagene as PM
 import random
+import rpy2.robjects as robjects
 
 
 ### Transcript dictionary where key is transcript name and values are [start, stop, strand, chromosome, list of cds starts, list  of cds ends]. Can provide a different gff3 file if desired.
@@ -74,6 +76,7 @@ def tx_info(tx, tx_dict):
     strand = tx_dict[tx][2]
     start = tx_dict[tx][0]
     end = tx_dict[tx][1]
+    chrom = tx_dict[tx][3]
     exons = None
     if len(tx_dict[tx]) > 4 and len(tx_dict[tx][4]) > 0:
         CDS_start = min(tx_dict[tx][4])
@@ -83,8 +86,23 @@ def tx_info(tx, tx_dict):
         CDS_start = start
         CDS_end = end
         
-    return start, end, strand, CDS_start, CDS_end, exons
+    return start, end, strand, CDS_start, CDS_end, exons, chrom
     
+
+def remove_nc_overlap(tx_dict):
+    new_dict = {}
+    sno_dict = {k:v for k, v in tx_dict.items() if 'SNO' in k}
+    nc_dict = {k:v for k, v in tx_dict.items() if 'RNA' in k}
+    for tx, info in tx_dict.iteritems():
+        if 'RNA' not in tx and 'MIT' not in tx:
+            flag=False
+            chr_nc = {k:v for k, v in nc_dict.items() if v[3] == info[3]}
+            for nc, nc_info in chr_nc.iteritems():
+                if nc_info[0] in range(info[0],info[1]) or nc_info[1] in range(info[0],info[1]):
+                    flag=True
+            if flag is False:
+                new_dict[tx] = info
+    return new_dict, sno_dict
     
 ### Method for determining Z scores on somewhat skewed distributions
 def robust_z(x, med, mad):
@@ -191,11 +209,11 @@ def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2,
 def PARCLIP_peaks(bam_file, transcript_dict):
     peak_dict = {}
     bam_reader = pysam.Samfile(bam_file)
-    chrom_convert = {'chr1':'I','chr2':'II','chr3':'III'}
+    #chrom_convert = {'chr1':'I','chr2':'II','chr3':'III'}
     for tx, info in transcript_dict.iteritems():
         chrom = info[3]
-        if chrom in chrom_convert:
-            chrom = chrom_convert[chrom]
+        #if chrom in chrom_convert:
+        #    chrom = chrom_convert[chrom]
         start = info[0]
         end = info[1]
         strand = info[2]
@@ -541,7 +559,7 @@ def compare_NETseq_peak_counts(wt, mut, from_reps=False):
     
 #This function makes the little gene diagrams for each transcript    
 def gene_patches3(tx, tx_dict, ax):
-    start, end, strand, CDS_start, CDS_end, exons = tx_info(tx, tx_dict)
+    start, end, strand, CDS_start, CDS_end, exons, chrom = tx_info(tx, tx_dict)
     tx_patch = patches.Rectangle((start,0.8),end-start,0.02,edgecolor='0.1',facecolor='0.1')
     ax.add_patch(tx_patch)
     if exons is not None:
@@ -632,3 +650,334 @@ def compare_NETseq_pipeline(WTbam1, WTbam2, MUTbam1, MUTbam2, save_dir='./', gff
         print count
         
     plot_peak_differences(WT_set, MUT_set, only_WT, only_MUT, tx_dict, save_dir=save_dir, tx_list=tx_list)
+    
+
+    
+# ******************New functions start here******************** #
+
+def slide(s, window_size, step, plot=False, name=''):
+    ''' Function to find clusters of peaks using the Z-score based peak picking method
+        
+        Parameters
+        ----------
+        s : read series from generate_read_series function
+        window_size : width of the window to open
+        step : distance to slide the window each time
+        plot : show plot of s with windows indicated as grey rectangles
+        name : title of plot
+        
+        Returns
+        -------
+        clusters : list of cluster coordinates in that region'''
+        
+    #Determine baseline by picking peaks and excluding them
+    log_s = s.apply(np.log)
+    log_s = s.dropna()
+    s_MAD = robust.mad(log_s.tolist())
+    s_med = np.median(log_s.tolist())
+    s_Z = log_s.apply(robust_z, args=(s_med, s_MAD))
+    #Z_index = s_Z[s_Z < 2].index
+    all_peaks = s_Z[s_Z >= 2].index
+    try:
+        avg_density = sum(s[s.index.isin(all_peaks)])/float(len(s[s.index.isin(all_peaks)]))
+        #print avg_density
+        
+        #if avg_density <= 5:
+        #    return None
+
+    except ValueError:
+        return None
+    except ZeroDivisionError:
+        return None
+    
+    peak_index = []
+    clusters = []
+    cluster_start = None
+    cluster_end = None
+    
+   
+    #Slide across entire window and compare to baseline
+    n = min(s.index)
+    flag = False
+    while n < max(s.index)-window_size:
+        window = range(n,n+window_size)
+        #density = sum(s[s.index.isin(window)])/float(window_size)*1000 
+        #if density/avg_density >= threshold:
+        if len(set(window).intersection(all_peaks)) > 0:
+            peak_index = peak_index + range(n,n+step)
+            if flag is False:
+                cluster_start = n
+            flag = True
+            if n+step >= max(s.index)-window_size:
+                cluster_end = n+window_size
+                peak_index = peak_index + range(n,n+window_size)
+        else:
+            if flag is True:
+                cluster_end = n+2
+        
+        if cluster_start is not None and cluster_end is not None:
+            clusters.append((cluster_start-2,cluster_end))
+            cluster_start = None
+            cluster_end = None
+            flag = False
+        
+        n += step
+        
+    if plot is True and len(clusters) > 0:
+        peaks = s[s.index.isin(peak_index)]
+        fig = plt.figure(figsize=(12,4))
+        ax = fig.add_subplot(111)
+        ax.bar(s.index, s, zorder=2, linewidth=1.5)
+        ax.bar(peaks.index, peaks, color='red', edgecolor='red', zorder=3, linewidth=1.5)
+        max_y = max(s)+0.1*max(s)
+        ax.set_ylim([0,max_y])
+        for cluster in clusters:
+            ax.add_patch(patches.Rectangle((cluster[0],0), cluster[1]-cluster[0], max_y, fill=True, linewidth=0, color='0.8', alpha=0.5, zorder=1))
+        ax.set_xlabel(name)
+        ax.set_ylabel('Reads')
+        plt.show()
+        plt.clf()
+    
+    return clusters
+
+def cluster_density(bam, row, tx_dict):
+    '''Function to calculate cluster density from a dataframe made from clusters found with slide
+    
+        Parameters
+        ----------
+        bam : bam file opened with pysam
+        row : dataframe row
+        tx_dict : dictionary of transcripts to be analyzed
+        
+        Returns
+        -------
+        density : float, travelling ratio of cluster RPK versus transcript RPK
+        '''
+    
+    start, end, strand, CDS_start, CDS_end, exons, chrom = tx_info(row['transcript'], tx_dict)
+    iterator = bam.fetch(row['chromosome'], row['start'], row['end'])
+    s = generate_read_series(iterator, row['chromosome'], row['start'], row['end'], row['strand'])
+    s2 = s[s.index.isin(range(row['cluster start'], row['cluster end']+1))]
+    try:
+        density = (sum(s2)/float(row['cluster size']))/(sum(s)/float(row['end']-row['start']))
+    except ZeroDivisionError:
+        density = np.NaN
+    return density
+
+def cluster_reads(bam, row, tx_dict):
+    '''Function to calculate cluster reads and transcript RPK from a dataframe made from clusters found with slide
+
+       Parameters
+       ----------
+       bam : bam file opened with pysam
+       row : dataframe row
+       tx_dict : dictionary of transcripts to be analyzed
+
+       Returns
+       -------
+       reads : int, number of reads in the cluster'''
+    
+    start, end, strand, CDS_start, CDS_end, exons, chrom = tx_info(row['transcript'], tx_dict)
+    
+    iterator = bam.fetch(row['chromosome'], row['start'], row['end'])
+    s = generate_read_series(iterator, row['chromosome'], row['start'], row['end'], row['strand'])
+    s2 = s[s.index.isin(range(row['cluster start'], row['cluster end']+1))]
+    
+    reads = sum(s2)
+    
+    return reads
+
+def find_and_quant_clusters(list_of_bams, tx_dict, window_size=50, step=10, find_clusters_in=0, by_transcript=False):
+    '''Function to calculate cluster density using slide algorithm to find clusters
+
+       Parameters
+       ----------
+       list_of_bams : list, locations of bam files
+       tx_dict : dict, dictionary of transcripts to be analyzed (generate with build_transcript_dict)
+       window_size : int, width of the window to open
+       step : int, distance to slide the window each time
+       find_clusters_in : int, index of bam file to use for cluster search
+       by_transcript : bool, False to calculate densities for each l, True to calculate average cluster density in transcript
+
+       Returns
+       -------
+       df : dataframe, organized by cluster if by_transcript is False or transcript if by_transcript is True'''
+    
+    #Find clusters in first file - can be indicated with find_clusters_in
+    lat_rom = {'chr1':'I','chr2':'II','chr3':'III'}
+    
+    cluster_dict = {}
+    for tx in tx_dict:
+        start, end, strand, CDS_start, CDS_end, exons, chrom = tx_info(tx, tx_dict)
+        if chrom in lat_rom: chrom = lat_rom[chrom]
+        
+        bam_reader = pysam.Samfile(list_of_bams[find_clusters_in])
+        iterator = bam_reader.fetch(chrom, start, end)
+        s = generate_read_series(iterator, chrom, start, end, strand)
+        clusters = slide(s, window_size, step, plot=False, name=tx+' ('+chrom+')')
+        if clusters is not None:
+            cluster_dict[tx] = clusters
+    
+    
+    df = pd.DataFrame(columns = ['transcript','chromosome','strand','start','end','cluster start','cluster end'])
+    df_info = []
+    for tx, clusters in cluster_dict.iteritems():
+        if len(clusters) > 0:
+            start, end, strand, CDS_start, CDS_end, exons, chrom = tx_info(tx, tx_dict)
+            if chrom in lat_rom: chrom = lat_rom[chrom]
+            
+            for cluster in clusters:
+                df_info.append([tx, chrom, strand, start, end, cluster[0], cluster[1]])
+    df['transcript'] = zip(*df_info)[0]
+    df['chromosome'] = zip(*df_info)[1]
+    df['strand'] = zip(*df_info)[2]
+    df['start'] = zip(*df_info)[3]
+    df['end'] = zip(*df_info)[4]
+    df['cluster start'] = zip(*df_info)[5]
+    df['cluster end'] = zip(*df_info)[6]
+    df['cluster size'] = df['cluster end']-df['cluster start']
+    
+    open_bams = {}
+    density_dict = {}
+    for bam in list_of_bams:
+        open_bams[bam] = pysam.Samfile(bam)
+        density_dict[bam] = []
+        
+    counter = 0
+    for ix, r in df.iterrows():
+        if counter % 500 == 0:
+            print counter
+        for bam in list_of_bams:
+            if by_transcript is False:
+                density_dict[bam].append(cluster_density(open_bams[bam], r, tx_dict))
+            else:
+                density_dict[bam].append(cluster_reads(open_bams[bam], r, tx_dict))
+        counter += 1
+    
+    sample_names = {}
+    if by_transcript is False:
+        for bam, reads in density_dict.iteritems():
+            name = bam.split('/')[-1].split('_sorted.bam')[0]
+            print name
+            sample_names[bam] = name
+            df[name] = density
+        df['ratio1'] = df[sample_names[list_of_bams[2]]]/df[sample_names[list_of_bams[0]]]
+        df['ratio2'] = df[sample_names[list_of_bams[3]]]/df[sample_names[list_of_bams[1]]]
+        if len(sample_names) == 6:
+            df['ratio3'] = df[sample_names[4]]/df[sample_names[0]]
+            df['ratio4'] = df[sample_names[5]]/df[sample_names[1]]
+    
+    else:
+        totals = {}
+        for bam, reads in density_dict.iteritems():
+            name = bam.split('/')[-1].split('_sorted.bam')[0]
+            print name
+            sample_names[bam] = name
+            totals[name] = PM.count_aligned_reads(bam)
+            df[name] = reads
+
+        by_tx_df = pd.DataFrame(index = set(df['transcript']), columns=sample_names.values())
+        for bam, name in sample_names.iteritems():
+            for tx in set(df['transcript']):
+                avg = sum(df[df['transcript'] == tx][name])/float(sum(df[df['transcript'] == tx]['cluster size']))
+                avg = avg / totals[name] *1000
+                by_tx_df.loc[tx, name] = avg
+                
+        
+        by_tx_df['ratio1'] = by_tx_df[sample_names[list_of_bams[2]]]/by_tx_df[sample_names[list_of_bams[0]]]
+        by_tx_df['ratio2'] = by_tx_df[sample_names[list_of_bams[3]]]/by_tx_df[sample_names[list_of_bams[1]]]
+        if len(sample_names) == 6:
+            by_tx_df['ratio3'] = by_tx_df[sample_names[4]]/by_tx_df[sample_names[0]]
+            by_tx_df['ratio4'] = by_tx_df[sample_names[5]]/by_tx_df[sample_names[1]]
+        df = by_tx_df
+    return df
+
+def bar_plot_ratios(df, include=None, exclude=None, fill_list=None, recolor=None, x_label='Mut / WT\n NETseq cluster RPKM'):
+    '''Function to make a bar plot from output of find_and_quant_clusters (by_transcript must be True)
+
+       Parameters
+       ----------
+       df : DataFrame, output from find_and_quant_clusters
+       include : str or list, include transcripts that contain string or are in list
+       exclude : str or list, exclude transcripts that contain string or are in list
+       fill_list : list, make sure all transcripts of interest are in dataframe, even if they had no clusters (fills with NaN)
+       recolor : list, transcripts to highlight in orange
+       x_label : str, label for plot
+
+       Returns
+       -------
+       fig : pyplot figure, figure object that can be saved in various formats'''
+    
+    # Fill in NaN values for transcripts with no peaks
+    if fill_list is not None:
+        not_in_df = set(fill_list).difference(df.index)
+        extra_df = pd.DataFrame(index = not_in_df, columns=df.columns)
+        df = df.append(extra_df)
+    
+    # Filter Dataframe based on list or names
+    if include is not None:
+        if type(include) == str:
+            df = df[df.index.str.contains(include)]
+        elif type(include) == list:
+            df = df[df.index.isin(include)]
+    if exclude is not None:
+        if type(exclude) == str:
+            df = df[~df.index.str.contains(exclude)]
+        elif type(exclude) == list:
+            df = df[~df.index.isin(exclude)]
+    
+    # Sort dataframe by name
+    df = df.sort_index(ascending=False)
+
+    # Set up bar chart
+    fig = plt.figure(figsize=(4,10))
+    ax = fig.add_subplot(111)
+    
+    ind = np.arange(len(df))
+    height = 0.7
+    
+    # Average replicates and determine range
+    y = (df['ratio1']+df['ratio2']).divide(2.)
+    err = (df['ratio1']-df['ratio2']).apply(abs).divide(2.)
+
+    max_x = max([x for x in y+err if str(x) != 'nan'])
+    max_x = max_x + 0.05*max_x
+
+    ax.barh(ind, y, height=height, color='0.5', zorder=2, label='Averaged replicates')
+    
+    # Highlight particular bars if indicated
+    if recolor is not None:
+        for name in set(recolor).intersection(df.index):
+            index_pos = list(df.index).index(name)
+            ax.get_children()[index_pos].set_color('orange')
+
+    # Draw error bars
+    (_, caps, _) = ax.errorbar(y, ind+height/2, fmt='o', markersize=0, xerr=err, color='black', capsize=4, elinewidth=1.5, zorder=3)
+    for cap in caps:
+        cap.set_color('black')
+        cap.set_markeredgewidth(1.5)
+
+    # Draw patches for rows with NaN values
+    for n in ind:
+        if str(df.iloc[n]['ratio1']) == "nan":
+            ax.add_patch(patches.Rectangle((0,n), max_x, height, fill=True, linewidth=0, color='0.8', alpha=0.5, zorder=1))
+
+    # Draw a line at 1
+    ax.plot([1,1],[min(ind)-0.5,max(ind)+1],'--',color='0.7', zorder=1)
+    
+    # Set labels and min/max values
+    ax.set_xlabel(x_label)
+    ax.set_ylim([min(ind)-0.5,max(ind)+1])
+    ax.set_xlim([0,max_x])
+    ax.set_yticklabels(df.index)
+    ax.set_yticks(ind+height/2)
+    plt.show()
+    
+    return fig
+
+def Ftest_pvalue_rpy2(d1,d2):
+    """docstring for Ftest_pvalue_rpy2"""
+    rd1 = (robjects.FloatVector(d1))
+    rd2 = (robjects.FloatVector(d2))
+    rvtest = robjects.r['var.test']
+    return rvtest(rd1,rd2)[2][0]
