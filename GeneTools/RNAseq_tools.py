@@ -58,7 +58,7 @@ def align_fastq(directory, threads=1, organism='crypto'):
     
     for fastq in fastq_list:
         prefix = fastq.split('.fastq')[0]
-        args = 'tophat2 --read-mismatches 3 --read-gap-length 2 --read-edit-dist 3 --min-anchor-length 8 --splice-mismatches 1 --min-intron-length 20 --max-intron-length 2000 --max-insertion-length 3 --max-deletion-length 3 --num-threads {0} --max-multihits 2 --library-type fr-firststrand --segment-mismatches 3 --no-coverage-search --segment-length 20 --min-coverage-intron 10 --max-coverage-intron 100000 --min-segment-intron 50 --max-segment-intron 500000 --b2-sensitive --bowtie1 -G {1} -o {2} {3} {4}'.format(str(threads), gff3, prefix, bowtie_ix, fastq)
+        args = 'tophat2 --read-mismatches 2 --read-gap-length 2 --read-edit-dist 2 --min-anchor-length 8 --splice-mismatches 0 --min-intron-length 20 --max-intron-length 2000 --max-insertion-length 3 --max-deletion-length 3 --num-threads {0} --max-multihits 2 --library-type fr-firststrand --segment-mismatches 3 --no-coverage-search --segment-length 20 --min-coverage-intron 10 --max-coverage-intron 100000 --min-segment-intron 50 --max-segment-intron 500000 --bowtie1 -G {1} -o {2} {3} {4}'.format(str(threads), gff3, prefix, bowtie_ix, fastq)
         #print args
         p = subprocess.Popen(args.split(' '), stdout=subprocess.PIPE)
         p.wait()
@@ -203,10 +203,10 @@ def load_DESeq2_results(csv_list):
     for n, file in enumerate(csv_list):
         if n == 0:
             df = pd.read_csv(file, index_col=0)
-            df = add_col_level(df, file.split('/')[-1].split('.csv')[0])
+            df = add_col_level(df, file.split('/')[-1].split('.')[0])
         else:
             new_df = pd.read_csv(file, index_col=0)
-            new_df = add_col_level(new_df, file.split('/')[-1].split('.csv')[0])
+            new_df = add_col_level(new_df, file.split('/')[-1].split('.')[0])
             df = df.merge(new_df, left_index=True, right_index=True)
     return df
 
@@ -287,6 +287,78 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     plt.show()
     
     new_df = dataframe.merge(pd.DataFrame(data[('cluster','cluster')]), right_index=True, left_index=True)
+    
+    return new_df
+
+def RNAseq_clustered_heatmap2(dataframe, sample_names=None, n_clusters=10):
+    '''Generates a clustered heatmap using kmeans clustering and returns a dataframe with cluster indeces.
+    
+    Parameters
+    ----------
+    dataframe : pandas.core.frame.DataFrame
+              Return from load_DESeq2_results
+    sample_names : list, default ``None``
+              Provide a list of sample names. Please use dataframe.columns to ensure the sample names are correctly formatted.
+              If no sample names are provided, clusters across all samples in the dataframe.
+    n_clusters : int, default 10 
+              Number of clusters to create
+    
+    Returns
+    -------
+    clustered_results : pandas.core.frame.DataFrame
+              The same dataframe with cluster indeces added as an additional column
+              '''
+    
+    if sample_names is None:
+        sample_names = dataframe.columns
+        
+    data = dataframe[sample_names]
+    data = data.dropna(how='any')
+
+    # Convert DataFrame to matrix
+    mat = data.as_matrix()
+
+    # Using sklearn, cluster data
+    km = cluster.KMeans(n_clusters=n_clusters)
+    km.fit(mat)
+
+    # Get cluster assignment labels
+    labels = km.labels_
+
+    # Format results as a DataFrame
+    data['cluster'] = labels
+    data = data.sort_values('cluster')
+    cluster_sizes = []
+    base=0
+    for index in set(data['cluster'].tolist()):
+        cluster_sizes.append(len(data[data['cluster'] == index])+base)
+        base += len(data[data['cluster'] == index])
+        
+        
+    # Get sizes of clusters
+    all_data = []
+    for column in data[data.columns[:-1]].columns:
+        all_data = all_data + data[column].tolist()
+
+    # Plot data as heatmap
+    data_min = min(all_data)
+    data_max = max(all_data)
+    both_max = max(data_min*-1, data_max)
+    fig = plt.figure(figsize=(3,12))
+    ax = fig.add_subplot(111)
+    pcm = ax.pcolor(range(len(data.columns)), range(len(data.index)), data[data.columns[:-1]], cmap='PuOr_r', norm=colors.Normalize(vmin=both_max*-1, vmax=both_max))
+    ax.yaxis.set_ticks(cluster_sizes)
+    ax.yaxis.set_ticklabels(range(len(cluster_sizes)))
+    plt.xticks([x+0.5 for x in range(len(data.columns))], sample_names, rotation="vertical")
+    for size in cluster_sizes:
+        ax.plot([0,len(data.columns)-1], [size,size], '-', color='0.5')
+        
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    fig.colorbar(pcm, cax=cax)
+    plt.show()
+    
+    new_df = dataframe.merge(pd.DataFrame(data['cluster']), right_index=True, left_index=True)
     
     return new_df
 

@@ -8,19 +8,33 @@ import pysam
 from scipy import stats
 from statsmodels import robust
 from scipy.interpolate import spline
-sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/SP_ANALYSIS/')
-sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/SP_ANALYSIS/')
+sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/')
+sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/')
 import SPTools as SP
+import PombePeaks as PP
+from scipy.stats import ks_2samp
 
 ### Transcript dictionary where key is transcript name and values are [start, stop, strand, chromosome, list of cds starts, list  of cds ends]. Can provide a different gff3 file if desired.
 def build_transcript_dict(gff3="/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3", expand=False):
     transcript_dict = SP.build_transcript_dict(gff3, organism='pombe')
     
+    chrom_lengths = {'I':5818680, 'II':4744158, 'III':2598968,'chr1':5818680, 'chr2':4744158, 'chr3':2598968}
+    
     if expand is True:
         expanded_dict = {}
         for tx, info in transcript_dict.iteritems():
-            new_start = info[0]-220
-            new_end = info[1]+220
+            new_start = info[0]-300
+            if new_start < 0:
+                new_start = 0
+            new_end = info[1]+300
+            if info[3] in chrom_lengths:
+                if new_end > chrom_lengths[info[3]]:
+                    new_end = chrom_lengths[info[3]]
+            #else: print info[3]
+            if len(info[4]) == 0:
+                info[4] = [info[0]]
+            if len(info[5]) == 0:
+                info[5] = [info[1]]
             expanded_dict[tx] = [new_start, new_end, info[2], info[3], info[4], info[5]]
         transcript_dict = expanded_dict
     
@@ -350,4 +364,164 @@ def plot_metagene_tss(sample_names, metagene_dict, color_list=None, plot_name='Y
     plt.ylim([0,ymax])
     plt.legend()
     plt.show()
-    fig.savefig(plot_name+'.pdf', format='pdf')        
+    fig.savefig(plot_name+'.pdf', format='pdf')
+    
+## ****New code for travelling ratios starts here **** ##
+
+def region_density(s, info, window_size=500):
+    start, end, strand, CDS_start, CDS_end, exons, chrom = info
+    start = start+300
+    end = end-300
+    ORF = s[s.index.isin(range(start,end))]
+    if sum(ORF) > 0:
+        if end-start >= 500:
+            if strand == '+':
+                range1 = range(start,start+window_size)
+                range2 = range(end-window_size,end)
+                range3 = range(end,end+100)
+            
+            elif strand == '-':
+                range1 = range(end-window_size,end)
+                range2 = range(start,start+window_size)
+                range3 = range(start-100,start)
+            
+            sum1 = sum(s[s.index.isin(range1)])/float(window_size)
+            sum2 = sum(s[s.index.isin(range2)])/float(window_size)
+            sum3 = sum(s[s.index.isin(range3)])/200.
+
+            five = float(sum1)/(float(sum(ORF))/(end-start))
+            three = float(sum2)/(float(sum(ORF))/(end-start))
+            ds = float(sum3)/(float(sum(ORF))/(end-start))
+        else: 
+            return None
+    else: 
+        return None
+        
+    return five, three, ds
+
+
+def add_cdf_to_plot(ax, value_lists, label_list, color_list, ks_list):
+    all_cdfs = []
+    all_lists = []
+    n = 0 
+    
+    for n in range(len(value_lists)):
+        new_list = [x for x in value_lists[n] if (str(x) != 'inf' and str(x) != '-inf' and str(x) != 'nan') ]
+        all_lists = all_lists+new_list
+        cumulative, base = SP.cdf_values(new_list)
+        ax.plot(base[1:], cumulative, c=color_list[n], linewidth=3.0, label=label_list[n])
+        all_cdfs.append(cumulative)
+        
+    xmin = np.percentile(all_lists, 1)
+    xmax = np.percentile(all_lists, 99)
+    ax.set_xlim([xmin,xmax])
+    ax.tick_params(axis='x', labelsize=12)
+    ax.tick_params(axis='y', labelsize=12)
+    
+    if ks_list is not None:
+        text = "p-values:\n"+ks_list[0]+'\n'+ks_list[1]
+        if len(ks_list) == 4:
+            text = text+'\n'+ks_list[2]+'\n'+ks_list[3]
+        ax.annotate(text,  xy=(xmax-0.25*xmax,0.0), fontsize=12)
+    
+    return ax
+    
+import itertools
+def plot_traveling_ratio(bam_files, tx_dict=None, label_list=None, color_list=None, stranded=True, xlabel='traveling ratio', ylabel='Fraction of transcripts', ks_test=False, testing=False):
+    
+    if tx_dict is None:
+        tx_dict = build_transcript_dict(expand=True)
+
+        if testing is True:
+            tx_iter = itertools.islice(tx_dict.items(), 0, 20)
+            mini_tx_dict = {}
+            for key, value in tx_iter:
+                mini_tx_dict[key] = value
+            tx_dict = remove_overlapping_transcripts(mini_tx_dict)
+        
+        else:
+            tx_dict = remove_overlapping_transcripts(tx_dict)
+
+    # First get read series for all transcripts in all samples 
+    read_dict = {}
+    TR_dict = {} #bam file, transcript then (5p, 3p, ds)
+    
+    print "Calculating traveling ratios..."
+    for bam in bam_files:
+        print bam
+        read_dict[bam] = {}
+        TR_dict[bam] = {}
+        bam_reader = pysam.Samfile(bam)
+        lat_rom = {'chr1':'I','chr2':'II','chr3':'III'}
+        for tx, info in tx_dict.iteritems():
+            if info[3] in lat_rom: chrom = lat_rom[info[3]]
+            else: chrom = info[3]
+
+            iterator = bam_reader.fetch(chrom, info[0], info[1])
+            s = PP.generate_read_series(iterator, chrom, info[0], info[1], info[2])
+            
+            if stranded is False:
+                switch = {'+':'-','-':'+'}
+                iterator = bam_reader.fetch(chrom, info[0], info[1])
+                s2 = PP.generate_read_series(iterator, chrom, info[0], info[1], switch[info[2]])
+                s = s.add(s2, fill_value=0)
+            
+            read_dict[bam][tx] = s
+            
+            # Calculate traveling ratios
+            info = PP.tx_info(tx, tx_dict)
+            TR_values = region_density(s, info, window_size=500)
+            
+            if TR_values is not None:
+                TR_dict[bam][tx] = TR_values
+                
+    # Convert to lists for plotting
+    names = []
+    five_lists = []
+    three_lists = []
+    ds_lists = []
+    for n, bam in enumerate(bam_files):
+        names.append(bam.split('/')[-1].split('_sorted.bam')[0])
+        five_lists.append([])
+        three_lists.append([])
+        ds_lists.append([])
+        
+        for tx, TRs in TR_dict[bam].iteritems():
+            five_lists[n].append(TRs[0])
+            three_lists[n].append(TRs[1])
+            ds_lists[n].append(TRs[2])
+                
+    if color_list is None:
+        color_list = ['0.3','0.6','orangered','orange','teal','turquoise']
+
+    ks_lists = [None,None,None]
+    if ks_test is True:
+        for m, lists in enumerate([five_lists, three_lists, ds_lists]):
+            ks_lists[m] = []
+            ks_lists[m].append("%0.1e" % ks_2samp(lists[0], lists[2])[1])
+            ks_lists[m].append("%0.1e" % ks_2samp(lists[1], lists[3])[1])
+            if len(lists) == 6:
+                ks_lists[m].append("%0.1e" % ks_2samp(lists[0], lists[4])[1])
+                ks_lists[m].append("%0.1e" % ks_2samp(lists[1], lists[5])[1])
+        
+    # Set up figure and plot
+    fig = plt.figure(figsize=(14, 6), dpi=600)
+    ax1 = fig.add_subplot(131)
+    ax1 = add_cdf_to_plot(ax1, five_lists, names, color_list, ks_lists[0])
+    ax1.set_ylabel(ylabel, fontsize=14)
+    ax1.set_xlabel("5' "+xlabel+'\n500 nt window', fontsize=14)
+    
+    ax2 = fig.add_subplot(132)
+    ax2 = add_cdf_to_plot(ax2, three_lists, names, color_list, ks_lists[1])
+    ax2.set_xlabel("3' "+xlabel+'\n500 nt window', fontsize=14)
+    
+    ax3 = fig.add_subplot(133)
+    ax3 = add_cdf_to_plot(ax3, ds_lists, names, color_list, ks_lists[2])
+    ax3.set_xlabel("Downstream "+xlabel+'\n100 nt window', fontsize=14)
+    
+    # Draw legend after 3rd plot
+    ax3.legend(bbox_to_anchor=(1.0, 0.3), fontsize=12)
+
+    plt.show()
+
+    return fig
