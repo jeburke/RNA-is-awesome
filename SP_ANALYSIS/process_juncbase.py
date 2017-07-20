@@ -2,8 +2,9 @@
 Please note: uses chr# format for chromosome names.'''
 
 import sys
-sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/SP_ANALYSIS/')
-sys.path.insert(0, '/home/jordan/RNA-is-awesome/SP_ANALYSIS/')
+sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/')
+sys.path.insert(0, '/home/jordan/RNA-is-awesome/')
+sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome')
 import SPTools as SP
 
 juncbase_output = sys.argv[1]

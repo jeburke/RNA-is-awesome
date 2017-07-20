@@ -1,1 +1,0 @@
-transcript	 chromosome	 coordinate	 peak height	 sequence

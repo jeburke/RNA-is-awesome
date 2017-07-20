@@ -803,7 +803,8 @@ def find_and_quant_clusters(list_of_bams, tx_dict, window_size=50, step=10, find
        -------
        df : dataframe, organized by cluster if by_transcript is False or transcript if by_transcript is True'''
     
-    #Find clusters in first file - can be indicated with find_clusters_in
+    print "Finding clusters in "+list_of_bams[find_clusters_in]+"...\n***Change bam file with find_clusters_in argument***\n"
+    
     lat_rom = {'chr1':'I','chr2':'II','chr3':'III'}
     
     cluster_dict = {}
@@ -818,7 +819,7 @@ def find_and_quant_clusters(list_of_bams, tx_dict, window_size=50, step=10, find
         if clusters is not None:
             cluster_dict[tx] = clusters
     
-    
+    print "Creating dataframe from clusters...\n"
     df = pd.DataFrame(columns = ['transcript','chromosome','strand','start','end','cluster start','cluster end'])
     df_info = []
     for tx, clusters in cluster_dict.iteritems():
@@ -837,6 +838,7 @@ def find_and_quant_clusters(list_of_bams, tx_dict, window_size=50, step=10, find
     df['cluster end'] = zip(*df_info)[6]
     df['cluster size'] = df['cluster end']-df['cluster start']
     
+    print "Determining cluster density from all bam files...\n"
     open_bams = {}
     density_dict = {}
     for bam in list_of_bams:
@@ -860,7 +862,7 @@ def find_and_quant_clusters(list_of_bams, tx_dict, window_size=50, step=10, find
             name = bam.split('/')[-1].split('_sorted.bam')[0]
             print name
             sample_names[bam] = name
-            df[name] = density
+            df[name] = reads
         df['ratio1'] = df[sample_names[list_of_bams[2]]]/df[sample_names[list_of_bams[0]]]
         df['ratio2'] = df[sample_names[list_of_bams[3]]]/df[sample_names[list_of_bams[1]]]
         if len(sample_names) == 6:
@@ -868,6 +870,7 @@ def find_and_quant_clusters(list_of_bams, tx_dict, window_size=50, step=10, find
             df['ratio4'] = df[sample_names[5]]/df[sample_names[1]]
     
     else:
+        print "Combining all clusters in transcript or region...\n"
         totals = {}
         for bam, reads in density_dict.iteritems():
             name = bam.split('/')[-1].split('_sorted.bam')[0]
