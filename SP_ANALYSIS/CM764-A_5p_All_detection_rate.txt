@@ -1,4 +1,0 @@
-transcript	 5' splice site hits	 5' splice sites 	 3' splice site hits 	 3' splice sites 	 new peaks 
-CNAG_00483T0	6	7	6	7	29
-CNAG_05698T0	5	8	2	8	9
-CNAG_06699T0	11	12	11	12	31
