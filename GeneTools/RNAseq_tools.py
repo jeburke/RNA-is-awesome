@@ -9,8 +9,10 @@ from matplotlib_venn import venn2, venn2_circles
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/')
+sys.path.append('/home/jordan/RNA-is-awesome/')
 import SPTools as SP
 sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/GeneTools/')
+sys.path.append('/home/jordan/RNA-is-awesome/')
 import Annotation_tools
 import SeqTools
 from math import factorial
@@ -208,6 +210,45 @@ def load_DESeq2_results(csv_list):
             new_df = pd.read_csv(file, index_col=0)
             new_df = add_col_level(new_df, file.split('/')[-1].split('.')[0])
             df = df.merge(new_df, left_index=True, right_index=True)
+    return df
+
+def load_HTSeq_results(csv_list):
+    '''This function loads DESeq2 output csv files into a dataframe.
+    
+    Parameters
+    -----------
+    csv_list : list or str
+             Either a list of the csv files - ["file1.csv","file2.csv"] or "all".
+             If "all", will read all csv files in the current working directory.
+    
+    Returns
+    -------
+    pandas.core.frame.DataFrame : a Pandas dataframe with data from all samples'''
+    
+    if csv_list == 'all':
+        csv_list = []
+        cwd = os.getcwd()
+        for file in os.listdir(cwd):
+            if file.endswith('.htseq'):
+                csv_list.append(file)
+        print csv_list
+    
+    n=0
+    for n, file in enumerate(csv_list):
+        if n == 0:
+            df = pd.read_csv(file, index_col=0, names=[file.split('/')[-1].split('.htseq')[0]], sep='\t')
+        else:
+            new_df = pd.read_csv(file, index_col=0, names=[file.split('/')[-1].split('.htseq')[0]], sep='\t')
+            df = df.merge(new_df, left_index=True, right_index=True)
+            
+    df = df[~df.index.str.contains('__')]
+    
+    for column in df.columns:
+        df[column] = df[column].divide(float(sum(df[column])*1e-6))
+        #df[column] = df[column].divide(float(sum(df[column])*1e-6)).apply(np.log2)
+    df = df.replace([np.inf,np.inf*-1],np.NaN)
+    df = df.dropna(how='any')
+    
     return df
 
 def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
