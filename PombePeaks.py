@@ -114,7 +114,7 @@ def generate_read_series(bam_iterator, chrom, start, end, strand, baseline=0):
     s = pd.Series(baseline, index=range(start-25, end+25))
     for read in bam_iterator:
         if read.is_reverse and strand == '+':
-            pos = read.reference_start
+            pos = read.reference_end
             if pos not in s.index:
                 s[pos] = 0
             s[pos] += 1
@@ -124,7 +124,8 @@ def generate_read_series(bam_iterator, chrom, start, end, strand, baseline=0):
                 s[pos] = 0
             s[pos] = s[pos]+1
     s = s.dropna()
-    s = s[s > 0]
+    if baseline is None:
+        s = s[s > 0]
     s = s.sort_index()
     return s
 
@@ -149,6 +150,7 @@ def find_peaks(s, use_robust=True, min_z=2, use_log=True):
             marker_list[0].append(pos)
             marker_list[1].append(s[pos]+0.01*s[pos])
     return marker_list
+
 
 ### Pick peaks in NET-seq data. Also consolidates clusters of peaks into a single center (must be within 10 bp). Returns a peak dictionary. Keys are transcripts (or regions) and values are a tuple. The first position is a read series for the region for plotting. The second position is a pair of lists that are the x and y values for each peak picked (+10% for easy plotting).
 def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2, use_log=True, scramble=False, collapse=False):
@@ -381,7 +383,7 @@ def plot_NETvsPAR(region_dict, PC_dict, NS_dict, save_dir='.', filt=None):
             fig.savefig('{0}/{1}_NET_PAR.pdf'.format(save_dir,frag), format='pdf')
             plt.clf()
 
-def plot_NETseq(region_dict, NS_dict, save_dir='.', NS_dict2=None, bam1=None, bam2=None, filt=None):
+def plot_NETseq_deprecated(region_dict, NS_dict, save_dir='.', NS_dict2=None, bam1=None, bam2=None, filt=None):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     
@@ -558,18 +560,30 @@ def compare_NETseq_peak_counts(wt, mut, from_reps=False):
     return in_both, only_WT, only_mut
     
 #This function makes the little gene diagrams for each transcript    
-def gene_patches3(tx, tx_dict, ax):
+def gene_patches3(tx, tx_dict, ax, arrow=False, offset=0):
     start, end, strand, CDS_start, CDS_end, exons, chrom = tx_info(tx, tx_dict)
-    tx_patch = patches.Rectangle((start,0.8),end-start,0.02,edgecolor='0.1',facecolor='0.1')
-    ax.add_patch(tx_patch)
+    
+    if arrow is False:
+        tx_patch = patches.Rectangle((start,0.8-offset),end-start,0.02,edgecolor='0.1',facecolor='0.1')
+        ax.add_patch(tx_patch)
+    else:
+        if strand == '+':
+            ax.arrow(start, 0.8-offset, end-start-0.02*(end-start), 0, linewidth=2, head_width=0.1, 
+                     head_length=0.02*(end-start), fc='k', ec='k')
+        elif strand == '-':
+            ax.arrow(end, 0.8-offset, start-end-0.02*(start-end), 0, linewidth=2, head_width=0.1, 
+                     head_length=0.02*(end-start), fc='k', ec='k')
+
+    #ax.annotate(tx, xy=(start, 0.7-offset), horizontalalignment='center', verticalalignment='top')
+    
     if exons is not None:
         exon_patches = []
         for exon_start, exon_stop in exons:
-            exon_patches.append(patches.Rectangle((exon_start, 0.76),exon_stop-exon_start,0.09,edgecolor='0.1',facecolor='0.1'))
+            exon_patches.append(patches.Rectangle((exon_start, 0.76-offset),exon_stop-exon_start,0.09,edgecolor='0.1',facecolor='0.1'))
         for patch in exon_patches:
             ax.add_patch(patch)
     else:
-        CDS_patch = patches.Rectangle((CDS_start, 0.76),CDS_end-CDS_start, 0.09,edgecolor='0.1',facecolor='0.1')
+        CDS_patch = patches.Rectangle((CDS_start, 0.76-offset),CDS_end-CDS_start, 0.09,edgecolor='0.1',facecolor='0.1')
         ax.add_patch(CDS_patch)
     ax.get_yaxis().set_ticks([])
     return strand    
@@ -863,11 +877,11 @@ def find_and_quant_clusters(list_of_bams, tx_dict, window_size=50, step=10, find
             print name
             sample_names[bam] = name
             df[name] = reads
-        df['ratio1'] = df[sample_names[list_of_bams[2]]]/df[sample_names[list_of_bams[0]]]
-        df['ratio2'] = df[sample_names[list_of_bams[3]]]/df[sample_names[list_of_bams[1]]]
+        df['ratio1'] = df[sample_names[list_of_bams[0]]]/df[sample_names[list_of_bams[2]]]
+        df['ratio2'] = df[sample_names[list_of_bams[1]]]/df[sample_names[list_of_bams[3]]]
         if len(sample_names) == 6:
-            df['ratio3'] = df[sample_names[4]]/df[sample_names[0]]
-            df['ratio4'] = df[sample_names[5]]/df[sample_names[1]]
+            df['ratio3'] = df[sample_names[0]]/df[sample_names[4]]
+            df['ratio4'] = df[sample_names[1]]/df[sample_names[5]]
     
     else:
         print "Combining all clusters in transcript or region...\n"
@@ -887,11 +901,11 @@ def find_and_quant_clusters(list_of_bams, tx_dict, window_size=50, step=10, find
                 by_tx_df.loc[tx, name] = avg
                 
         
-        by_tx_df['ratio1'] = by_tx_df[sample_names[list_of_bams[2]]]/by_tx_df[sample_names[list_of_bams[0]]]
-        by_tx_df['ratio2'] = by_tx_df[sample_names[list_of_bams[3]]]/by_tx_df[sample_names[list_of_bams[1]]]
+        by_tx_df['ratio1'] = by_tx_df[sample_names[list_of_bams[0]]]/by_tx_df[sample_names[list_of_bams[2]]]
+        by_tx_df['ratio2'] = by_tx_df[sample_names[list_of_bams[1]]]/by_tx_df[sample_names[list_of_bams[3]]]
         if len(sample_names) == 6:
-            by_tx_df['ratio3'] = by_tx_df[sample_names[4]]/by_tx_df[sample_names[0]]
-            by_tx_df['ratio4'] = by_tx_df[sample_names[5]]/by_tx_df[sample_names[1]]
+            by_tx_df['ratio3'] = by_tx_df[sample_names[0]]/by_tx_df[sample_names[4]]
+            by_tx_df['ratio4'] = by_tx_df[sample_names[1]]/by_tx_df[sample_names[5]]
         df = by_tx_df
     return df
 
@@ -952,7 +966,7 @@ def bar_plot_ratios(df, include=None, exclude=None, fill_list=None, recolor=None
     if recolor is not None:
         for name in set(recolor).intersection(df.index):
             index_pos = list(df.index).index(name)
-            ax.get_children()[index_pos].set_color('orange')
+            ax.get_children()[index_pos].set_color('red')
 
     # Draw error bars
     (_, caps, _) = ax.errorbar(y, ind+height/2, fmt='o', markersize=0, xerr=err, color='black', capsize=4, elinewidth=1.5, zorder=3)
@@ -984,3 +998,82 @@ def Ftest_pvalue_rpy2(d1,d2):
     rd2 = (robjects.FloatVector(d2))
     rvtest = robjects.r['var.test']
     return rvtest(rd1,rd2)[2][0]
+
+def plot_NETseq(bam1, bam2, transcript_list, save_dir='.', colors=['0.2','darkturquoise'], cluster_df=None):
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    
+    tx_dict = build_transcript_dict()
+    tx_dict = {k:v for k,v in tx_dict.items() if k in transcript_list}
+    lat_rom = {'chr1':'I','chr2':'II','chr3':'III'}
+    
+    # Calculate total number of reads for normalization
+    total1 = check_output(['samtools','view','-F 0x04','-c',bam1]).strip()
+    total1 = float(total1)/1000000.
+    print bam1.split('/')[-1]+' - '+str(total1)+' million reads'
+    name1 =  bam1.split('/')[-1].split('_sorted')[0].split('_primed')[0].split('_NS')[0]
+    
+    total2 = check_output(['samtools','view','-F 0x04','-c',bam2]).strip()
+    total2 = float(total2)/1000000.
+    print bam2.split('/')[-1]+' - '+str(total2)+' million reads'
+    name2 =  bam2.split('/')[-1].split('_sorted')[0].split('_primed')[0].split('_NS')[0]
+
+    bam_read1 = pysam.Samfile(bam1)
+    bam_read2 = pysam.Samfile(bam2)
+    
+    for tx in tx_dict:
+        start, end, strand, CDS_start, CDS_end, exons, chrom = tx_info(tx, tx_dict)
+        if chrom in lat_rom: chrom = lat_rom[chrom]
+            
+        bam_iter1 = bam_read1.fetch(chrom, start, end)
+        bam_iter2 = bam_read2.fetch(chrom, start, end)
+
+        s1 = generate_read_series(bam_iter1, chrom, start, end, strand)
+        s1 = s1/total1
+        
+        s2 = generate_read_series(bam_iter2, chrom, start, end, strand)
+        s2 = s2/total2
+        
+        #if sum(s1)/float(end-start)*1000 > 100:
+        
+        if strand == '+':
+            start_rpkm = sum(s2.index.isin(range(start,start+500)))/0.5
+        elif strand == '-':
+            start_rpkm = sum(s2.index.isin(range(end-500,end)))/0.5
+                             
+        if start_rpkm > 200:
+            fig, (ax, ax_mut, tx_plot) = plt.subplots(3, figsize=(12,6), sharex=True)
+            fig.subplots_adjust(hspace=0)
+
+            ax.bar(s1.index, s1, linewidth=1, color=colors[0], edgecolor=colors[0], zorder=2)
+            ax_mut.bar(s2.index, s2, linewidth=1, color=colors[1], edgecolor=colors[1], zorder=2)
+
+            y_max = max(s1.tolist()+s2.tolist()) + 0.1*max(s1.tolist()+s2.tolist())
+            ax.set_ylim(0,y_max)
+            ax_mut.set_ylim(0,y_max)
+
+            if cluster_df is not None:
+                tx_df = cluster_df[cluster_df['transcript'] == tx]
+                for ix, r in tx_df.iterrows():
+                    ax.add_patch(patches.Rectangle((r['cluster start'],0), r['cluster end']-r['cluster start'], 
+                                                   y_max, fill=True, linewidth=0, color='0.8', alpha=0.5, zorder=1))
+                    ax_mut.add_patch(patches.Rectangle((r['cluster start'],0), r['cluster end']-r['cluster start'], 
+                                                   y_max, fill=True, linewidth=0, color='0.8', alpha=0.5, zorder=1))
+
+            strand = gene_patches3(tx, tx_dict, tx_plot, arrow=True)
+
+            ax.set_ylabel(name1+'\nNETseq (RPM)')        
+            ax_mut.set_ylabel(name2+'\nNETseq (RPM)')
+
+            plt.setp(ax.get_xticklabels(), visible=False) 
+            ax_mut.invert_yaxis()
+
+            if strand == '-':
+                ax.invert_xaxis()
+                ax_mut.invert_xaxis()
+                tx_plot.invert_xaxis()
+
+            plt.title(tx+' ('+strand+' strand)', y=0.5, fontsize=14)
+            plt.show()
+            fig.savefig('{0}/{1}_NETseq.pdf'.format(save_dir, tx), format='pdf')
+            plt.clf()

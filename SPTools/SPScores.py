@@ -15,6 +15,8 @@ sys.path.insert(0, '/home/jordan/RNA-is-awesome/')
 import SPTools as SP
 import collections
 from math import log
+from scipy import stats
+from matplotlib import pyplot as plt
 
 def read_juncbase_output(juncbase_output):
     if type(juncbase_output) == list:
@@ -26,8 +28,9 @@ def read_juncbase_output(juncbase_output):
         junc_df = pd.concat(df_list)
         junc_df.replace(to_replace='NA', value=np.NaN, inplace=True)
     elif type(juncbase_output) == str:
-        with open(juncbase_output, 'r') as fin:
-            junc_df = pd.read_csv(fin, sep='\t')
+        junc_df = pd.read_csv(juncbase_output, sep='\t')
+        if not junc_df.columns[0].startswith('#'):
+            junc_df = junc_df.drop(junc_df.columns[0], axis=1)
     
     sample_list = []
     junc_df['contained in'] = None
@@ -43,16 +46,18 @@ def read_juncbase_output(juncbase_output):
             wt = junc_df.columns[n]
             n += 2
         else:
-            junc_df['avg_'+junc_df.columns[n]+'+'+junc_df.columns[n+1]] = junc_df[[(junc_df.columns[n]),(junc_df.columns[n+1])]].mean(axis=1, skipna=False)
-            sample_list.append(junc_df.columns[n])
-            sample_list.append(junc_df.columns[n+1])
-            if str(junc_df.columns[n]) == 'nan' or str(junc_df.columns[n+1]) == 'nan':
-                print junc_df['avg_'+junc_df.columns[n]+'+'+junc_df.columns[n+1]]
-            if n != 11:
+            if junc_df.columns[n+1] != 'contained in':
+                print 'Averaging '+junc_df.columns[n]+' and '+junc_df.columns[n+1]
+                junc_df['avg_'+junc_df.columns[n]+'+'+junc_df.columns[n+1]] = junc_df[[(junc_df.columns[n]),(junc_df.columns[n+1])]].mean(axis=1, skipna=False)
+                
+                sample_list.append(junc_df.columns[n])
+                sample_list.append(junc_df.columns[n+1])
+                if str(junc_df.columns[n]) == 'nan' or str(junc_df.columns[n+1]) == 'nan':
+                    print junc_df['avg_'+junc_df.columns[n]+'+'+junc_df.columns[n+1]]
                 junc_df[junc_df.columns[n]+'+'+junc_df.columns[n+1]] = ''
             n += 2
     
-    print junc_df.columns
+    #print junc_df.columns
     filt_df = pd.DataFrame(columns=junc_df.columns, index = junc_df.index)
     n = 0
     for n in range(len(junc_df)):
@@ -75,7 +80,7 @@ def read_juncbase_output(juncbase_output):
                         elif junc_df[column][n] < junc_df[wt_name][n]:
                             junc_df[column.split('avg_')[1]] = 'Down'
                 a += 1                   
-#        if flag == True:
+
         filt_df.iloc[[n]] = junc_df.iloc[[n]]
         filt_df.loc[n,'contained in'] = sample_str
 
@@ -120,7 +125,7 @@ def make_fasta_dict(fasta_file):
 def get_sequence(coord_dict, gff3_file, fasta_file):
     if 'pombe' in gff3_file:
         organism = 'pombe'
-        #rom_lat = {'chr1':'I','chr2':'II','chr3':'III'}
+
     else: organism = None
     
     transcript_dict = SP.build_transcript_dict(gff3_file, organism=organism)
@@ -363,12 +368,6 @@ def generate_consensus_matrix(gff3, fasta_dict, PSSM=False):
                 pos_matrix_3prime[a,b] = np.log2((pos_matrix_3prime[a,b]/float(counter1))/nuc_prob[a])
             b += 1
         a += 1
-
-
-    #print sum(pos_matrix_5prime)        
-    #print pos_matrix_5prime
-    #print sum(pos_matrix_3prime)
-    #print pos_matrix_3prime
     
     return (pos_matrix_5prime, pos_matrix_3prime)
 
@@ -400,9 +399,6 @@ def generate_PSSM(seq_list, fasta_dict):
             PSSM[a,b] = np.log2((PSSM[a,b]/float(counter))/nuc_prob[a])
             b += 1
         a += 1
-        
-    #print sum(PSSM)        
-    #print PSSM
     
     return PSSM
 
@@ -518,6 +514,7 @@ def reformat_df(df, sample_list):
     new_df1[['5p score','3p score']] = new_df1[['5p score','3p score']].astype(float)
     
     new_columns2 = ['Gene', 'as_event_type', 'chr', 'coord_1', 'coord_2', 'strand']+sample_list
+    new_columns2 = new_columns2+[x for x in df.columns if '+' in x]
     new_df2 = df[new_columns2]
     new_df2 = new_df2.sort_values('as_event_type', axis=0)
     new_df2 = new_df2.rename(columns = {'as_event_type':'event'})
@@ -537,7 +534,7 @@ def write_seq_list_to_file(df, prefix):
             f.write(seq+'\n')
             
 def percent_py(seq):
-    py_dict = {'A':0,'G':0,'T':1,'C':1}
+    py_dict = {'A':0,'G':0,'T':1,'C':1,'N':0}
     score = 0
     for base in seq:
         score += py_dict[base]
@@ -609,8 +606,8 @@ def position_wise_scores(seq_5p, seq_3p, organism):
     
     a=0
     for a in range(len(score_5prime[0])):
-        score_5prime[0,a] = np.mean(all_5p[0:,a])
-        score_5prime[1,a] = np.std(all_5p[0:,a])
+        score_5prime[0,a] = np.median(all_5p[0:,a])
+        score_5prime[1,a] = (max(all_5p[0:,a])-min(all_5p[0:,a]))/2.
     print score_5prime
             
     m=0
@@ -620,10 +617,323 @@ def position_wise_scores(seq_5p, seq_3p, organism):
         
     b=0
     for b in range(len(score_3prime[0])):
-        score_3prime[0,b] = np.mean(all_3p[0:,b])
-        score_3prime[1,b] = np.std(all_3p[0:,b])
+        score_3prime[0,b] = np.median(all_3p[0:,b])
+        score_3prime[1,b] = (max(all_3p[0:,b])-min(all_3p[0:,b]))/2.
     print score_3prime
     
     return all_5p, all_3p
+
+from scipy import stats
+
+def generate_all_ss_seqs(gff3, fasta_dict, organism):
+    transcript_dict = SP.build_transcript_dict(gff3, organism=organism)
+    ss, flag = SP.list_splice_sites(gff3, organism=organism)
+    ss_dict = SP.collapse_ss_dict(ss)
     
+    all_seq5 = []
+    all_seq3 = []
+    for transcript, introns in ss_dict.iteritems():
+        if organism == 'pombe':
+            isoform = transcript+'.1'
+        else:
+            isoform = transcript+'T0'
+        strand = transcript_dict[isoform][2]
+        chrom = transcript_dict[isoform][3]
+
+        for intron in introns:
+            if strand == '+':
+                seq5 = fasta_dict[chrom][(intron[0]-1):(intron[0]+7)]
+            elif strand == '-':
+                seq5 = fasta_dict[chrom][(intron[0]-6):(intron[0]+2)]
+                seq5 = SP.reverse_complement(seq5)
+
+            all_seq5.append(seq5)
+
+            if strand == '+':
+                seq3 = fasta_dict[chrom][(intron[1]-5):(intron[1]+3)]
+            elif strand == '-':
+                seq3 = fasta_dict[chrom][(intron[1]-2):(intron[1]+6)]
+                seq3 = SP.reverse_complement(seq3)
+            
+            all_seq3.append(seq3)
+    return all_seq5, all_seq3
+  
     
+def seq_list_to_totals(seq_list):
+    base_dict = {"A":0, "C":1, "T":2, "G":3}
+    seq_list = [x for x in seq_list if x is not None]
+    
+    total_array = np.ones([4, len(seq_list[0])])
+    
+    n=0
+    for n in range(len(seq_list)):
+        for a, base in enumerate(seq_list[n]):
+            total_array[base_dict[base],a] += 1
+    return total_array
+
+def position_wise_scores2(seq5_list, seq3_list, organism, title='Intron position strength'):
+    '''Uses chi-contingency test to score base proportions at each position in sample against population'''
+    
+    organism, gff3, fa_dict, bowtie_index = SP.find_organism_files(organism)
+
+    all_5p, all_3p = generate_all_ss_seqs(gff3, fa_dict, organism)
+    
+    pop_5p = seq_list_to_totals(all_5p)
+    pop_3p = seq_list_to_totals(all_3p)
+    samp_5p = seq_list_to_totals(seq5_list)
+    samp_3p = seq_list_to_totals(seq3_list)
+    print samp_5p.shape
+
+    p5 = []
+    for n in range(samp_5p.shape[1]):
+        if n == 2 or n == 3:
+            p5.append(1)
+        else:
+            conting = np.array([samp_5p[:,n],pop_5p[:,n]])
+            chi2, p, dof, expected = stats.chi2_contingency(conting)
+            p5.append(np.log10(p)*-1)
+        
+    p3 = []
+    for n in range(samp_3p.shape[1]):
+        if n == 4 or n == 5:
+            p3.append(1)
+        else:
+            conting = np.array([samp_3p[:,n],pop_3p[:,n]])
+            chi2, p, dof, expected = stats.chi2_contingency(conting)
+            p3.append(np.log10(p)*-1)
+    
+    fig, ax = plt.subplots(2, 1, figsize=(4,4))
+    width = 0.7
+    
+    max_y = max(p5+p3) + 0.1*max(p5+p3)
+    
+    ind5 = np.arange(len(p5))
+    ax[0].bar(ind5, p5, color='k')
+    ax[0].plot([0,8], [2,2], '--', color='0.7')
+    ax[0].set_xlim([0,len(p5)])
+    ax[0].set_ylabel("5' splice site\n-log10(p-value)")
+    ax[0].set_title(title)
+    ax[0].set_ylim([0,max_y])
+
+    ind3 = np.arange(len(p3))
+    ax[1].bar(ind3, p3, color='k')
+    ax[1].plot([0,8], [2,2], '--', color='0.7')
+    ax[1].set_xlim([0,len(p3)])
+    ax[1].set_ylabel("3' splice site\n-log10(p-value)")
+    ax[1].set_ylim([0,max_y])
+
+    ax[0].set_xticks(ind3 + width / 2)
+    ax[1].set_xticks(ind3 + width / 2)
+    ax[0].set_xticklabels(np.arange(-2,6))
+    ax[1].set_xticklabels(np.arange(-5,3))
+
+    fig.tight_layout()
+    plt.show()
+    return fig
+
+def by_pos_plots(df, metrics=['Intermediate Level', 'Precursor']):
+    col5 = [x for x in df.columns if 'Base 5' in x[1]]
+    col3 = [x for x in df.columns if 'Base 3' in x[1]]
+    
+    for direction in ['Up','Down']:
+        for metric in metrics:
+            if len(df[df[('All',metric+' change')] == direction]) > 5:
+                for n in range(len(col5)):
+                    if n == 0:
+                        s5 = df[df[('All',metric+' change')] == direction][col5[n]]
+                    else:
+                        s5 = s5.str.cat(df[df[('All',metric+' change')] == direction][col5[n]])
+                print len(s5)
+
+                for n in range(len(col3)):
+                    if n == 0:
+                        s3 = df[df[('All',metric+' change')] == direction][col3[n]]
+                    else:
+                        s3 = s3.str.cat(df[df[('All',metric+' change')] == direction][col3[n]])
+
+                print metric+' '+direction
+                fig = SP.position_wise_scores2(s5, s3, 'crypto')
+
+def simple_score_junction(seq5, seq3, PSSM):
+    '''Function to score just one intron. 
+    Need PSSM from generate_consensus_matrix.
+    Sequence lengths should match PSSM (8 each).'''
+    
+    base_dict = {"A":0, "C":1, "T":2, "G":3}
+    score5 = 0
+    score3 = 0
+    for a, base in enumerate(seq5):
+        score5 += PSSM[0][base_dict[base],a]
+    for b, base in enumerate(seq3):
+        score3 += PSSM[1][base_dict[base],b] 
+    
+    return score5, score3
+
+## Find and score potential branches
+def generate_all_branches():
+    branch_options = [('C','T'),
+                      ('T','A'),
+                      ('G','A','C'),
+                      ('A'),
+                      ('C','T')]
+    branches = {}
+    for n, position in enumerate(branch_options):
+        branches[n] = set()
+        for base in position:
+            if n == 0:
+                branches[n].add(base)
+            else:
+                for branch in branches[n-1]:
+                    branches[n].add(branch+base)
+    branches = branches[n]
+    
+    return branches
+
+def branch_PSSM(peak_branch_df, fa_dict):
+    base_dict = {"A":0, "C":1, "T":2, "G":3}
+    nuc_prob = gc_content(fa_dict)
+    
+    pos_matrix_branch = np.zeros([4,5])
+    counter = 0
+    if type(peak_branch_df) == str:
+        with open(peak_branch_df) as f:
+            for line in f:
+                counter += 1
+                seq = line.strip()
+                for a, base in enumerate(seq):
+                    pos_matrix_branch[base_dict[base],a] += 1
+    else:
+        for seq in peak_branch_df['Branch seq']:
+            counter += 1
+            seq = seq[2:7]
+            for a, base in enumerate(seq):
+                pos_matrix_branch[base_dict[base],a] += 1
+
+    float_formatter = lambda x: "%.1f" % x
+    np.set_printoptions(formatter={'float_kind':float_formatter})
+    
+    a = 0
+    while a < 4:
+        b = 0
+        while b < 5:
+            if pos_matrix_branch[a,b] == 0: pos_matrix_branch[a,b] += 1
+            pos_matrix_branch[a,b] = np.log2((pos_matrix_branch[a,b]/float(counter))/nuc_prob[a])
+            b += 1
+        a += 1
+    
+    return pos_matrix_branch
+
+def score_branch(seq, PSSM):
+    base_dict = {"A":0, "C":1, "T":2, "G":3}
+    branch_score = 0
+    for a, base in enumerate(seq):
+        branch_score += PSSM[base_dict[base],a]
+    return branch_score
+
+def find_score_branches_ppy(quant_df, peak_branch_df, fa_dict):
+    #branches = generate_all_branches()
+    PSSM = branch_PSSM(peak_branch_df, fa_dict)
+    
+    branches = []
+    if type(peak_branch_df) is not str:
+        for ix, branch in peak_branch_df['Branch seq'].iteritems():
+            seq = branch[2:7]
+            if seq[:-2] != 'A' and 'A' in seq:
+                A_ix = branch.rfind('A')
+                new_seq = branch[A_ix-3:A_ix+2]
+                if len(new_seq) == 5:
+                    seq = new_seq
+        branches = peak_branch_df['Branch seq'].str[2:7]
+    else:
+        with open(peak_branch_df) as f:
+            for line in f:
+                branches.append(line.strip())
+    
+    # Sort branches by abundance so that the most common ones are first in the search
+    br_abund = []
+    for branch in set(branches):
+        count = len([x for x in branches if x == branch])
+        if count > 1:
+            br_abund.append((branch, count))
+    br_abund = sorted(br_abund, key=lambda x: x[1], reverse=True)
+    branches = zip(*br_abund)[0]
+    
+    branch_dict = collections.OrderedDict()
+    for branch in branches:
+        branch_dict[branch] = score_branch(branch, PSSM)
+    
+    branch_3_dist = []
+    branch_score = []
+    branch_seqs = []
+    perc_py = []
+    for ix, r in quant_df.iterrows():
+        if r['strand'] == '+':
+            intron_seq = fa_dict[r['chromosome']][int(r['position']):int(r['position']+r['intron size'])]
+            three_site = r['position']+r['intron size']
+        elif r['strand'] == '-':
+            intron_seq = fa_dict[r['chromosome']][int(r['position']-r['intron size']-1):int(r['position']-1)]
+            intron_seq = SP.reverse_complement(intron_seq)
+            three_site = r['position']-r['intron size']
+        
+        if type(peak_branch_df) is not str:
+            if ix in peak_branch_df['genome coord']:
+                ix_df = peak_branch_df[peak_branch_df['genome coord'] == ix]
+                ix_df = ix_df.sort_values('depth', ascending=False)
+                best_branch = ix_df.iloc[0,'branch site']
+                best_branch = abs(ix_df.iloc[0,'5p splice site']-best_branch)
+
+                seq = ix_df.iloc[0,'Branch seq'][2:7]
+                branch_seqs.append(seq)
+                branch_score.append(score_branch(seq, PSSM))
+                branch_3_dist.append(ix_df.iloc[0,'Branch to 3p distance'])
+
+                if 'N' in intron_seq[best_branch[0]+5:]:
+                        print ix
+                        print intron_seq
+                perc_py.append(percent_py(intron_seq[best_branch[0]+5:]))
+                               
+        else:
+            matches = []
+            for branch in branch_dict:
+                if branch in intron_seq:
+                    matches.append((intron_seq.index(branch), branch, branch_dict[branch]))
+
+            if len(matches) == 0:
+                # Find the closest A
+                best_ix = intron_seq[:-3].rfind('A')
+                seq = intron_seq[best_ix-3:best_ix+2]
+                score = score_branch(seq, PSSM)
+                best_branch = (best_ix, seq, score)
+                
+                #branch_3_dist.append(np.NaN)
+                #branch_score.append(np.NaN)
+                #branch_seqs.append('NNNNN')
+                #perc_py.append(percent_py(intron_seq[-30:]))
+            elif len(matches) > 1:
+                matches = sorted(matches, key=lambda x: x[2], reverse=True)
+                best_branch = matches[0]
+            else:
+                best_branch = matches[0]
+
+            branch_3_dist.append((len(intron_seq)-best_branch[0]-4)/1000.)
+            branch_score.append(best_branch[2])
+            branch_seqs.append(best_branch[1])
+
+            if len(intron_seq)-best_branch[0]-5 > 1:
+                if 'N' in intron_seq[best_branch[0]+5:]:
+                    print ix
+                    print intron_seq
+                perc_py.append(percent_py(intron_seq[best_branch[0]+5:]))
+            else:
+                perc_py.append(np.NaN)
+    
+    quant_df['branch score'] = branch_score
+    quant_df['branch to 3p distance'] = branch_3_dist
+    quant_df['percent pPy'] = perc_py
+    
+    for n in range(len(branch_seqs[0])):
+        pos = [x[n] for x in branch_seqs]
+        quant_df['branch-'+str(n)] = pos
+    
+    print str(len(quant_df)-len(quant_df['branch score'].dropna()))+' introns without identifiable branches'
+    return quant_df              

@@ -84,6 +84,21 @@ def build_transcript_dict(gff3_file, organism=None):
     transcript_dict = collections.OrderedDict(sorted(transcript_dict.items()))
     return transcript_dict
 
+def tx_info(tx, tx_dict):
+    strand = tx_dict[tx][2]
+    start = tx_dict[tx][0]
+    end = tx_dict[tx][1]
+    chrom = tx_dict[tx][3]
+    exons = None
+    if len(tx_dict[tx]) > 4 and len(tx_dict[tx][4]) > 0:
+        CDS_start = min(tx_dict[tx][4])
+        CDS_end = max(tx_dict[tx][5])
+        exons = zip(tx_dict[tx][4],tx_dict[tx][5])
+    else:
+        CDS_start = start
+        CDS_end = end
+        
+    return start, end, strand, CDS_start, CDS_end, exons, chrom
 
 ##################################################################################
 ## Determines splice site locations from gff3 file. Needs to have "chr" format  ##
@@ -256,6 +271,11 @@ def find_organism_files(organism):
         fa = '/home/jordan/GENOMES/POMBE/Sp_fasta_dict.json'
         bowtie_index = '/home/jordan/GENOMES/POMBE/Spombe'
         organism = 'pombe'
+    elif 'cerev' in organism:
+        gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
+        fa = '/home/jordan/GENOMES/S288C/S288C_fasta_dict.json'
+        bowtie_index = '/home/jordan/GENOMES/S288C/S288C'
+        organism = None
         
     with open(fa) as f:
         fa_dict = json.load(f)

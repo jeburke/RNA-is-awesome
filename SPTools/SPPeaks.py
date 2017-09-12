@@ -133,35 +133,17 @@ def CP_peaks_by_gene(fin, transcript_dict, cutoff=5):
                                 peaks_by_gene[tx] = []
                             peaks_by_gene[tx].append([peak,peak_height,strand])
                             
-                            ## Bit of code to check for a neighboring peak and remove it if there is a neighbor.
-                            #else:
-                            #    n=0
-                            #    neighbor=False
-                            #    for n in range(len(peaks_by_gene[tx])):
-                            #        if abs(peak-peaks_by_gene[tx][n][0]) <= 2:
-                            #            neighbor=True
-                            #            if peak_height >= peaks_by_gene[tx][n][1]:
-                            #                del peaks_by_gene[tx][n]
-                            #                peaks_by_gene[tx].append([peak,peak_height,strand])
-                            #            elif peak_height < peaks_by_gene[tx][n]:
-                            #                pass
-                            #    if neighbor == False:
-                            #        peaks_by_gene[tx].append([peak,peak_height,strand])
-    print peak_count
+    #print peak_count
     return peaks_by_gene
  
 #Function to compare untagged and 2 replicates and pick peaks that are in both but not in untagged
 def CP_compare_reps(untagged, tagged1, tagged2):
-    #print len(tagged1)
-    #print len(tagged2)
     tx_list = list(set(tagged1.keys()).intersection(tagged2.keys()))
-    #print len(tx_list)
     new_peak_dict = {}
     peak_count = 0
     for tx in tx_list:
         new_peak_dict[tx] = []
         for peak,peak_height,strand in tagged1[tx]:
-            #if peak_height > 0.05*max(zip(*tagged1[tx])[1]):
             if peak in zip(*tagged2[tx])[0]:
                 if tx not in untagged or peak not in zip(*untagged[tx])[0]:
                     new_peak_dict[tx].append([peak,peak_height,strand])
@@ -192,14 +174,12 @@ def CP_compare_to_annotation(peaks, ss_dict, transcript_dict):
                     try:
                         annotated = False
                         for pos in peak_range:
-                        #if peak-1 in info[0] or peak in info[0] or peak+1 in info[0]:
                             if pos in info[0]:
                                 five_count += 1
                                 compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "5prime"]
                                 annotated = True
                                 break
-                            #print [tx[:-2], chrom, strand, peak, height, "5prime"]
-                        #elif peak-1 in info[1] or peak in info[1] or peak+1 in info[1]:
+
                             elif pos in info[1]:
                                 three_count += 1
                                 compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "3prime"]
@@ -257,10 +237,10 @@ def collapse_unpredicted_peaks(df):
                             break
                         else:
                             continue
-    print "Number of unpredicted peaks after condensing:"
-    print len(df[df['type'].isin(['other','intronic'])])
-    print "Number of intronic peaks after condensing:"
-    print len(df[df['type'] == 'intronic'])
+    #print "Number of unpredicted peaks after condensing:"
+    #print len(df[df['type'].isin(['other','intronic'])])
+    #print "Number of intronic peaks after condensing:"
+    #print len(df[df['type'] == 'intronic'])
     df.reset_index(inplace=True)
     return df
 
@@ -339,7 +319,9 @@ def peak_to_seq_pipeline(untagged_peak_file, tagged1_peak_file, tagged2_peak_fil
     
     print "Completed"
     return peak_seq_df
-    
+
+
+### ****Cross-validation**** ###
 def compare_peak_junc_df(peak_df, junc_df, organism = None):
     print str(len(peak_df))+' peaks'
     print str(len(junc_df))+' junctions'
@@ -364,7 +346,7 @@ def compare_peak_junc_df(peak_df, junc_df, organism = None):
             tx_junc = junc_df[junc_df['transcript'] == tx+'T0']
         for index, row in tx_peak.iterrows():
             match_flag = False
-            #print tx_junc['start']
+
             peak_range = range(row['position']-1,row['position']+1)
             for pos in peak_range:
                 if match_flag is False:
@@ -416,7 +398,13 @@ def compare_peak_junc_df(peak_df, junc_df, organism = None):
     new_df['annotated intron coords'] = ann_coords
     return new_df
 
-def peak_seq_enrichment(df, AorT, GorC):
+
+### Function to determine how enriched dinucleotide before and after peak is compared to genome
+def peak_seq_enrichment(df, organism):
+    organism, gff3, fa_dict, bowtie_index = SP.find_organism_files(organism)
+    nuc_prob = SP.gc_content(fa_dict)
+    p_dict = {'A':nuc_prob[0], 'T':nuc_prob[2], 'C':nuc_prob[1], 'G':nuc_prob[3]}
+    
     unpeaks = df[df['type'] == 'other']
     unpeaks = unpeaks.append(df[df['type'] == 'intronic'])
     print "Number of unpredicted peaks:"
@@ -433,7 +421,6 @@ def peak_seq_enrichment(df, AorT, GorC):
         five[dinuc] = len(unpeaks[unpeaks['sequence'].str[6:8].str.contains(dinuc)])
         three[dinuc] = len(unpeaks[unpeaks['sequence'].str[4:6].str.contains(dinuc)])
 
-    p_dict = {'A':AorT, 'T':AorT, 'C':GorC, 'G':GorC}
     five_LO = {}
     three_LO = {}
     for dinuc in five.keys():
@@ -457,18 +444,18 @@ def peak_seq_enrichment(df, AorT, GorC):
     fig, ax = plt.subplots(figsize=(12,6))
     width = 0.35
     ind = np.arange(len(five_LO.keys()))
-    rects2 = ax.bar(ind, three_LO.values(), width, color='turquoise', label='Before peak')
-    rects1 = ax.bar(ind + width, five_LO.values(), width, color='coral', label='After peak')
+    rects2 = ax.bar(ind, three_LO.values(), width, color='crimson', edgecolor='crimson', label='Before peak')
+    rects1 = ax.bar(ind + width, five_LO.values(), width, color='indigo', edgecolor='indigo', label='After peak')
     ax.plot([-1,17],[0,0],'-', color='black')
     ax.plot([-1,17],[2.94,2.94], '--', color='0.7', label='95% CI')
     ax.plot([-1,17],[-2.94,-2.94], '--', color='0.7')
 
     ax.set_xlim([-1,17])
-    ax.set_xticklabels(five_LO.keys())
+    ax.set_xticklabels(five_LO.keys(), fontsize=12)
     ax.set_xticks(ind + width / 2)
-    ax.set_ylabel('Log odds dinucleotide enrichment')
-    ax.set_title('Unpredicted peaks')
-    ax.legend()
+    ax.set_ylabel('Log odds dinucleotide enrichment', fontsize=14)
+    ax.set_title('Unpredicted peaks', fontsize=14)
+    ax.legend(fontsize=12)
     
     return fig
 

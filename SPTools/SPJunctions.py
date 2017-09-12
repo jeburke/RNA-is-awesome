@@ -24,7 +24,6 @@ def build_junction_dict(junction_bed, gff3_file, transcript_dict, organism=None)
     for transcript, coords in transcript_dict.iteritems():
         if transcript[:-2] in ss_by_gene.keys():
             chromosome = coords[3]
-            #junction_dict[transcript] = []
             if chromosome in transcript_by_chr:
                 transcript_by_chr[chromosome].append(transcript)
             else:
@@ -47,8 +46,6 @@ def build_junction_dict(junction_bed, gff3_file, transcript_dict, organism=None)
                 
                 if chromosome in transcript_by_chr:
                     transcript_list = transcript_by_chr[chromosome]
-                    #if organism == 'pombe':
-                    #    transcript_list = [x for x in transcript_list if x[:-2] in ss_by_gene.keys()]
                 
                 strand = columns[5]
                 if strand == '+':
@@ -60,89 +57,90 @@ def build_junction_dict(junction_bed, gff3_file, transcript_dict, organism=None)
                 depth = int(columns[4])
                 size = abs(jct_end-jct_start)
                 
-                assigned = False
-                for transcript in transcript_list:
-                    if jct_start > transcript_dict[transcript][0] and jct_end < transcript_dict[transcript][1] and strand == transcript_dict[transcript][2]:
-                        assigned = True
-                        jct_transcript = transcript
-                        all_sites = zip(*ss_by_gene[transcript[:-2]])
-                        try:
-                            if jct_start in all_sites[0] and jct_end in all_sites[1]:
-                                jct_type = 'Annotated'
-                                ann_size = size
-                                intron_num = all_sites[0].index(jct_start)+1
-                                ann_start = jct_start
-                                ann_stop = jct_end
+                if depth >= 5:
+                    assigned = False
+                    for transcript in transcript_list:
+                        if jct_start > transcript_dict[transcript][0] and jct_end < transcript_dict[transcript][1] and strand == transcript_dict[transcript][2]:
+                            assigned = True
+                            jct_transcript = transcript
+                            all_sites = zip(*ss_by_gene[transcript[:-2]])
+                            try:
+                                if jct_start in all_sites[0] and jct_end in all_sites[1]:
+                                    jct_type = 'Annotated'
+                                    ann_size = size
+                                    intron_num = all_sites[0].index(jct_start)+1
+                                    ann_start = jct_start
+                                    ann_stop = jct_end
+                                    break
+                                else:
+                                    n=0
+                                    for intron in ss_by_gene[transcript[:-2]]:
+                                        n += 1
+                                        ann_size = None
+                                        if strand == '+':
+                                            if jct_start > intron[0] and jct_end < intron[1]:
+                                                ann_size = abs(intron[1]-intron[0])
+                                                jct_type = 'Nested'
+                                                ann_start = intron[0]
+                                                ann_stop = intron[1]
+                                                intron_num = n
+                                                break
+                                            elif jct_start >= intron[0] and jct_end == intron[1]:
+                                                ann_size = abs(intron[1]-intron[0])
+                                                jct_type = '3p tethered'
+                                                ann_start = intron[0]
+                                                ann_stop = intron[1]
+                                                intron_num = n
+                                                break
+                                            elif jct_start == intron[0] and jct_end <= intron[1]:
+                                                ann_size = abs(intron[1]-intron[0])
+                                                jct_type = '5p tethered'
+                                                ann_start = intron[0]
+                                                ann_stop = intron[1]
+                                                intron_num = n
+                                                break
+
+                                        elif strand == '-':
+                                            if jct_start < intron[0] and jct_end > intron[1]:
+                                                jct_type = 'Nested'
+                                                ann_size = intron[0]-intron[1]
+                                                ann_start = intron[0]
+                                                ann_stop = intron[1]
+                                                intron_num = n
+                                                break
+                                            elif jct_start <= intron[0] and jct_end == intron[1]:
+                                                jct_type = '5p tethered'
+                                                ann_size = intron[0]-intron[1]
+                                                ann_start = intron[0]
+                                                ann_stop = intron[1]
+                                                intron_num = n
+                                                break
+                                            elif jct_start == intron[0] and jct_end >= intron[1]:
+                                                jct_type = '3p tethered'
+                                                ann_size = intron[0]-intron[1]
+                                                ann_start = intron[0]
+                                                ann_stop = intron[1]
+                                                intron_num = n
+                                                break
                                 break
-                            else:
-                                n=0
-                                for intron in ss_by_gene[transcript[:-2]]:
-                                    n += 1
-                                    ann_size = None
-                                    if strand == '+':
-                                        if jct_start > intron[0] and jct_end < intron[1]:
-                                            ann_size = abs(intron[1]-intron[0])
-                                            jct_type = 'Nested'
-                                            ann_start = intron[0]
-                                            ann_stop = intron[1]
-                                            intron_num = n
-                                            break
-                                        elif jct_start >= intron[0] and jct_end == intron[1]:
-                                            ann_size = abs(intron[1]-intron[0])
-                                            jct_type = '3p tethered'
-                                            ann_start = intron[0]
-                                            ann_stop = intron[1]
-                                            intron_num = n
-                                            break
-                                        elif jct_start == intron[0] and jct_end <= intron[1]:
-                                            ann_size = abs(intron[1]-intron[0])
-                                            jct_type = '5p tethered'
-                                            ann_start = intron[0]
-                                            ann_stop = intron[1]
-                                            intron_num = n
-                                            break
-                                        
-                                    elif strand == '-':
-                                        if jct_start < intron[0] and jct_end > intron[1]:
-                                            jct_type = 'Nested'
-                                            ann_size = intron[0]-intron[1]
-                                            ann_start = intron[0]
-                                            ann_stop = intron[1]
-                                            intron_num = n
-                                            break
-                                        elif jct_start <= intron[0] and jct_end == intron[1]:
-                                            jct_type = '5p tethered'
-                                            ann_size = intron[0]-intron[1]
-                                            ann_start = intron[0]
-                                            ann_stop = intron[1]
-                                            intron_num = n
-                                            break
-                                        elif jct_start == intron[0] and jct_end >= intron[1]:
-                                            jct_type = '3p tethered'
-                                            ann_size = intron[0]-intron[1]
-                                            ann_start = intron[0]
-                                            ann_stop = intron[1]
-                                            intron_num = n
-                                            break
-                            break
-                        except IndexError:
-                            print transcript
-                if assigned is False: unassigned_count += 1
- 
-                try:
-                    if jct_transcript != None:
-                        if ann_size == None:
-                            jct_type = "Other"
-                            ann_size = 0
-                            ann_start = None
-                            ann_stop = None
-                            intron_num = None
-                        if (jct_transcript, ann_size) not in junction_dict:
-                            junction_dict[(jct_transcript, ann_size)] = []
-                        junction_dict[(jct_transcript, ann_size)].append([chromosome, jct_start, jct_end, strand, depth, jct_type, size, ann_size, ann_start, ann_stop])
-                except ValueError:
-                    print jct_transcript
-                    print jct_type
+                            except IndexError:
+                                print transcript
+                    if assigned is False: unassigned_count += 1
+
+                    try:
+                        if jct_transcript != None:
+                            if ann_size == None:
+                                jct_type = "Other"
+                                ann_size = 0
+                                ann_start = None
+                                ann_stop = None
+                                intron_num = None
+                            if (jct_transcript, ann_size) not in junction_dict:
+                                junction_dict[(jct_transcript, ann_size)] = []
+                            junction_dict[(jct_transcript, ann_size)].append([chromosome, jct_start, jct_end, strand, depth, jct_type, size, ann_size, ann_start, ann_stop])
+                    except ValueError:
+                        print jct_transcript
+                        print jct_type
 
     print str(unassigned_count)+' junctions not assigned to transcripts'
     return junction_dict
@@ -230,75 +228,3 @@ def combine_junctions(junc_df1, junc_df2):
     new_df.drop('genome coord', inplace=True)
     return new_df
     
-
-def add_int_levels(junction_df, int_levels_df, gff3, organism=None):
-    ss_dict, flag = SP.list_splice_sites(gff3, organism=organism)
-    tx_dict = SP.build_transcript_dict(gff3, organism=organism)
-    intron_sizes = {}
-    for transcript, sites in ss_dict.iteritems():
-        if len(sites[0]) > 0:
-            intron_sizes[transcript] = []
-            if tx_dict[transcript][2] == '+':
-                n=0
-                for n in range(len(sites[0])):
-                    intron_sizes[transcript].append((n+1,sites[1][n]-sites[0][n]))
-            elif tx_dict[transcript][2] == '-':
-                n=0
-                for n in range(len(sites[0])):
-                    intron_sizes[transcript].append((len(sites[0])-n,sites[0][n]-sites[1][n]))
-    
-    int_level_columns = {}
-    for entry in int_levels_df.columns:
-        if entry[1] == '5prime Normalized':
-            int_level_columns[entry] = []
-    
-    for index, row in junction_df.iterrows():
-        tx = row['intron tuple'][0]
-        intron_size = row['intron tuple'][1]
-        if intron_size == 0:
-            for sample in int_level_columns:
-                int_level_columns[sample].append(np.NaN)
-        else:
-            try:
-                intron_ix = zip(*intron_sizes[tx])[1].index(intron_size)
-                intron_num = zip(*intron_sizes[tx])[0][intron_ix]
-                
-                for sample in int_level_columns:
-                    int_level_columns[sample].append(int_levels_df.loc[(tx,intron_num)][sample])
-                    
-            except ValueError:
-                for sample in int_level_columns:
-                    int_level_columns[sample].append(np.NaN)
-            except KeyError:
-                for sample in int_level_columns:
-                    int_level_columns[sample].append(np.NaN)
-    for sample in int_level_columns:
-        junction_df[sample] = int_level_columns[sample]
-    
-    junction_df = junction_df.dropna(how='any')
-    return junction_df
-
-def add_occupancy(junction_df, occupancy_df):
-    occ_columns = {}
-    for entry in occupancy_df.columns:
-        if entry[1] == 'Normalized to mature':
-            occ_columns[entry] = []
-    
-    for index, row in junction_df.iterrows():
-        tx = row['transcript']
-        try:
-            for sample in occ_columns:
-                occ_columns[sample].append(occupancy_df.loc[tx][sample])
-
-        #except ValueError:
-        #    for sample in int_level_columns:
-        #        int_level_columns[sample].append(np.NaN)
-        except KeyError:
-            for sample in occ_columns:
-                occ_columns[sample].append(np.NaN)
-    
-    for sample in occ_columns:
-        junction_df[sample] = occ_columns[sample]
-        
-    junction_df = junction_df.dropna(how='any')
-    return junction_df

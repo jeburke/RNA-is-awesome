@@ -1,14 +1,23 @@
 __author__ = 'jordanburke'
 
-import pandas
+import sys
+sys.path.append('/home/jordan/CodeBase/RNA-is-awesome')
+sys.path.append('/home/jordan/RNA-is-awesome')
+import SPTools as SP
+import pandas as pd
+import pysam
+from subprocess import check_output
 import math
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import numpy as np
 import random
 from beeswarm import *
 from scipy.stats import ks_2samp
+from scipy import stats
 import re
 import operator
+import os
 import seaborn as sns
 sns.set_style('white')
 
@@ -21,7 +30,7 @@ def get_ratios(dataFrame, samplename, count_type, log=False, base=10, T0only=Fal
     for name1, name2 in dataFrame.columns:
         if name2 == count_type:
             if name1 == samplename:
-                s = pandas.Series(dataFrame[(name1,name2)])
+                s = pd.Series(dataFrame[(name1,name2)])
                 if T0only == True:
                     transcript_list = []
                     for row in dataFrame.iterrows():
@@ -58,7 +67,7 @@ def count_above_cutoff(dataframe, sample_tuple, cutoff=5):
     for name1, name2 in dataframe.columns:
         if name1 == sample_tuple[0] and name2 == sample_tuple[1]:
             print name1, name2
-            s = pandas.Series(dataframe[(name1,name2)])
+            s = pd.Series(dataframe[(name1,name2)])
             #print s
             for row in s.iteritems():
                 #print row
@@ -98,10 +107,10 @@ def compare_samples(df, SampleTuple1, SampleTuple2, fold_change=10):
     
     for name1, name2 in df.columns:
         if name2 == count_type1 and name1 == samplename1:
-            s = pandas.Series(df[(name1,name2)])
+            s = pd.Series(df[(name1,name2)])
             dict1 =  s.to_dict()
         elif name2 == count_type2 and name1 == samplename2:
-            s = pandas.Series(df[(name1,name2)])
+            s = pd.Series(df[(name1,name2)])
             dict2 = s.to_dict()
             
     low_dict = {}
@@ -503,8 +512,8 @@ def cumulative_function(df, score_file, bin_size, SampleTuple1, bin_by=False, bi
     elif bin_tuple is not None:
         transcript_list_1= bin_tuple[0]
         transcript_list_2= bin_tuple[1]
-    new_df1 = pandas.DataFrame(columns=df.columns)
-    new_df2 = pandas.DataFrame(columns=df.columns)
+    new_df1 = pd.DataFrame(columns=df.columns)
+    new_df2 = pd.DataFrame(columns=df.columns)
 
     new_df1 = df[df.index.map(lambda x: x in transcript_list_1)]
     new_df2 = df[df.index.map(lambda x: x in transcript_list_2)]
@@ -664,5 +673,535 @@ def sns_distplot_n(list_of_lists, label_list=None, color_list=None, x_title='Len
     n = 0 
     for n in range(len(list_of_lists)):
         ax = sns.distplot(list_of_lists[n])
+
         
+##################################################################################
+## Tools to use with SP_pipeline and SP_quant scripts. Use quant dataframe      ##
+##################################################################################
+
+def draw_diagonal(ax):
+    ax_max = max([ax.get_ylim()[1],ax.get_xlim()[1]])
+    ax_min = min([ax.get_ylim()[0],ax.get_xlim()[0]])
+    ax.plot([ax_min, ax_max],[ax_min, ax_max],'--',color='0.7')
+    ax.set_xlim([ax_min, ax_max])
+    ax.set_ylim([ax_min, ax_max])
+    return ax, (ax_min, ax_max)
     
+def SP_pipeline_scatters(df, base_dir, name):
+    metrics = [x.split(' avg')[0] for x in df.columns if 'avg' in x]
+    colors = ['0.3','royalblue','mediumpurple','deepskyblue','0.5','0.7']
+
+    if len(metrics) <= 4:
+            figsize = (8,8)
+    else: figsize = (8,12)
+    fig, ax = plt.subplots(nrows=len(metrics)/2+len(metrics)%2, ncols=2, figsize=figsize)
+    
+    for n, metric in enumerate(metrics):
+        columns = [x for x in df.columns if metric in x]
+        columns = [x for x in columns if 'avg' not in x]
+
+        data = df[columns].apply(np.log2).replace([np.inf, -1*np.inf],np.NaN).dropna(how='any')
+        if metric == 'Total Spliceosomal' or metric == 'RNAseq':
+            data = data.drop_duplicates(keep='first')
+        
+        data1 = data[columns[0]]
+        data2 = data[columns[1]]
+    
+        ax[n/2][n%2].scatter(data1, data2, color=colors[n], alpha=0.6, s=10)
+        ax[n/2][n%2].set_xlabel(columns[0]+' (log2)')
+        ax[n/2][n%2].set_ylabel(columns[1]+' (log2)')
+        ax[n/2][n%2], limits = draw_diagonal(ax[n/2][n%2])
+        ax[n/2][n%2].set_title(metric)
+        
+        r, p = stats.pearsonr(data1, data2)
+        xy=((limits[1]+limits[0])/2., limits[0]+abs(0.05*limits[0]))
+        ax[n/2][n%2].annotate("Pearson R coef: "+"%0.2f" %r, xy=xy, fontsize=12)
+        
+    if len(metrics) == 3:
+        ax[1][1].axis('off')
+    
+    fig.tight_layout()
+    plt.show()
+    fig.savefig(base_dir+name+'_scatterplots.pdf',format='pdf')
+    
+def SP_quant_scatters(final_df, bam_dict, W=False):
+    reps = []
+    for genotype, sample in bam_dict.iteritems():
+        sample1 = (sample['A1'].split('/')[-1].split('-A')[0])
+        sample2 = (sample['A2'].split('/')[-1].split('-A')[0])
+        reps.append((genotype,sample1,sample2))
+    
+    # Build combos of replicates and comparisons between genotypes
+    combos = [reps[0], reps[1],
+             ((reps[0][0],reps[1][0]), reps[0][1], reps[1][1]),
+             ((reps[0][0],reps[1][0]), reps[0][2], reps[1][2])]
+    
+    color_list = ['0.3','royalblue','mediumpurple','deepskyblue','0.5','0.7']
+    metrics = [' Intermediate Level',' Total Spliceosomal',' Precursor', '-B Intron Retention']
+    if W is True:
+        metrics.append(' RNAseq')
+    
+    for k, metric in enumerate(metrics):
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(8,8))
+        
+        for n, (genotype, sample1, sample2) in enumerate(combos):
+            if type(genotype) == str:
+                final_df.loc[:,(genotype,sample1+' log2'+metric)] = final_df[(genotype,sample1+metric)].apply(np.log2)
+                final_df.loc[:,(genotype,sample2+' log2'+metric)] = final_df[(genotype,sample2+metric)].apply(np.log2)
+                final_df = final_df.replace([np.inf, np.inf*-1], np.NaN).dropna(how='any')
+                
+                data1 = final_df.loc[:,(genotype,sample1+' log2'+metric)]
+                data2 = final_df.loc[:,(genotype,sample2+' log2'+metric)]
+                ax[n/2][n%2].set_title(genotype+' replicates', fontsize=14)
+        
+            else:
+                final_df.loc[:,(genotype[0],sample1+' log2'+metric)] = final_df[(genotype[0],sample1+metric)].apply(np.log2)
+                final_df.loc[:,(genotype[1],sample2+' log2'+metric)] = final_df[(genotype[1],sample2+metric)].apply(np.log2)
+                final_df = final_df.replace([np.inf, np.inf*-1], np.NaN).dropna(how='any')
+                
+                data1 = final_df.loc[:,(genotype[0],sample1+' log2'+metric)]
+                data2 = final_df.loc[:,(genotype[1],sample2+' log2'+metric)]
+                ax[n/2][n%2].set_title(genotype[0]+' vs. '+genotype[1], fontsize=14)
+        
+            all_data = data1.append(data2)
+            all_max = max(all_data)+0.1*max(all_data)
+            all_min = min(all_data)-0.1*abs(min(all_data))
+        
+            ax[n/2][n%2].scatter(data1,data2,color=color_list[k],alpha=0.5,s=10)
+            ax[n/2][n%2], limits = draw_diagonal(ax[n/2][n%2])
+            ax[n/2][n%2].set_xlabel(sample1+' log2'+metric, fontsize=12)
+            ax[n/2][n%2].set_ylabel(sample2+' log2'+metric, fontsize=12)
+            
+            r, p = stats.pearsonr(data1, data2)
+            xy=((limits[1]+limits[0])/2., limits[0]+abs(0.05*limits[0]))
+            ax[n/2][n%2].annotate("Pearson R coef: "+"%0.2f" %r, xy=xy, fontsize=12)
+        
+        fig.tight_layout()    
+        plt.show()
+        plt.clf()
+
+
+def set_cdf_xlim(df, metric, x_var):
+    maxs = []
+    mins = []
+    for quart in range(0,4):
+        data = df[df['quartile'] == quart][metric+' avg']
+        try:
+            if max(data)-np.percentile(data, 99) < 0.05*max(data):
+                maxs.append(max(data)+ 0.2*max(data))
+            else:
+                maxs.append(np.percentile(data, 99))
+            mins.append(np.percentile(data, 1))
+        except ValueError:
+            pass
+    return (min(mins), max(maxs))
+
+def intron_char_plots(df, metric, color="0.8"):
+    df['alt splicing'] = df['alt splicing'].apply(bool)
+    gridkw = dict(height_ratios=[1,1])
+    pal = sns.set_palette(sns.light_palette(color, reverse=True))
+    fig, (ax1, ax2) = plt.subplots(2, 4, figsize=(12,8), gridspec_kw=gridkw)
+    
+    for n, factor in enumerate(['alt splicing', 'intron position','Base 5-4', 'Base 5-5']):
+        if 'Base' in factor:
+            df = df.sort_values(factor)
+        sns.boxplot(x=factor, y=metric+' avg', data=df, ax=ax1[n], palette=pal)
+        plt.setp(ax1[n].lines, color=".1")
+        ax1[n].tick_params(axis='both', which='major', labelsize=14)
+        ax1[n].set_xlabel(factor.capitalize(), fontsize=16)
+        ax1[n].set_ylabel('log2 '+metric, fontsize=16)
+
+    quart_info = {0:('Bottom','royalblue'),1:('Lower','skyblue'),2:('Upper','orange'),3:('Top','orangered')}
+    for n, x_var in enumerate(['intron size','introns in transcript','W Intron Retention avg','5p score']):
+        # Separate explanatory variable into quartiles
+        df['quartile'] = 0
+        for m, quart in enumerate([25,50,75]):
+            df.loc[df[df[x_var] >= np.percentile(df[x_var], quart)].index, 'quartile'] = m+1
+
+        for quart in range(0,4):
+            data = df[df['quartile'] == quart][metric+' avg']
+            try:
+                sns.kdeplot(data, ax=ax2[n], bw=2, cumulative=True, linewidth=3, 
+                        color=quart_info[quart][1])
+            except ValueError:
+                pass
+        ax2[n].set_xlim(set_cdf_xlim(df, metric, x_var))
+        ax2[n].set_xlabel('log2 '+metric, fontsize=16)
+        ax2[n].set_ylabel('Fraction of intermediates', fontsize=16)
+        ax2[n].set_title(x_var.capitalize(), fontsize=16)
+        ax2[n].tick_params(axis='both', which='major', labelsize=14)
+        ax2[n].legend_.remove()
+
+    fig.tight_layout()
+    plt.show()
+    return fig        
+
+def fig_fix_font(fig, xlabel_list=None, ylabel_list=None, ylabel=None):
+    ax_list = fig.axes
+    for n, ax in enumerate(ax_list):
+        if xlabel_list is None:
+            xlabel = ax.get_xlabel()
+        else:
+            xlabel = xlabel_list[n]
+        if ylabel_list is None:
+            if ylabel is None:
+                ylabel = ax.get_ylabel()
+            else:
+                ylabel = ylabel
+        else:
+            ylabel = ylabel_list[n]
+            
+        ax.tick_params(axis='both', which='major', labelsize=14)
+        ax.set_xlabel(xlabel, fontsize=16)
+        ax.set_ylabel(ylabel, fontsize=16)
+    return fig
+        
+def mut_compare_boxplots(df, metrics=['Intermediate Level', 'Precursor', 'W Intron Retention'], color='0.8'):
+    pal = sns.set_palette(sns.light_palette(color))
+    x_list = []
+    for metric in metrics:
+        fig, ax = plt.subplots(ncols=4, nrows=3, figsize=(10,10))
+        
+        for n, prop in enumerate(['alt splicing','intron position']):
+            sns.boxplot(x=('Peaks',prop), y=('All',metric+' log2 ratio1'), data=df, ax=ax[0][n], palette=pal)
+            x_list.append(prop.capitalize())
+
+        for n, pos in enumerate(['Base 3-2','Base 3-3']):
+            x_list.append(pos)
+            sns.boxplot(x=('Peaks',pos), y=('All',metric+' log2 ratio1'), data=df.sort_values(('Peaks',pos)), ax=ax[0][n+2], palette=pal)
+
+        for n, pos in enumerate([x[1] for x in df.columns if ('Base 5-' in x[1]) and (x[1][-1] in ['4','5','6','7'])]):
+            x_list.append(pos)
+            sns.boxplot(x=('Peaks',pos), y=('All',metric+' log2 ratio1'), data=df.sort_values(('Peaks',pos)), ax=ax[n/4+1][n%4], palette=pal)
+
+        for n, pos in enumerate([x[1] for x in df.columns if ('branch-' in x[1]) and (x[1][-1] != '3')]):
+            x_list.append(pos)
+            sns.boxplot(x=('Peaks',pos), y=('All',metric+' log2 ratio1'), data=df.sort_values(('Peaks',pos)), ax=ax[2][n], palette=pal)
+        
+        fig = fig_fix_font(fig, xlabel_list=x_list, ylabel=metric)
+        plt.suptitle(metric, y=1.02, fontsize=16)
+        fig.tight_layout()
+        plt.show()
+        plt.clf()
+        
+def set_cdf_xlim_Z(df, metric, x_var):
+    maxs = []
+    mins = []
+    for change in ['Other','Up','Down']:
+        data = df[df[('All',metric+' change')] == change][('Peaks',x_var)]
+        if len(data) > 0:
+            if max(data)-np.percentile(data, 99) < 0.05*max(data):
+                maxs.append(max(data)+ 0.2*max(data))
+            else:
+                maxs.append(np.percentile(data, 99))
+            mins.append(np.percentile(data, 1))
+    return (min(mins), max(maxs))
+        
+def mut_compare_cdfs(df, metrics=['Intermediate Level', 'Precursor', 'W Intron Retention']):
+    groups = {'Other':'0.6','Up':'orangered','Down':'royalblue'}
+    for metric in metrics:
+        x_list = []
+        fig, ax = plt.subplots(ncols=3, nrows=2, figsize=(10,8))
+
+        for n, prop in enumerate(['intron size','5p score','branch score','3p score', 'introns in transcript','transcript size']):
+            prop_data = df[('Peaks',prop)].replace([np.inf, np.inf*-1], np.NaN).dropna()
+            x_list.append(prop.capitalize())
+            for change in ['Other','Up','Down']:
+                plot_df = df[df[('All', metric+' change')] == change]
+                if len(plot_df) > 10:
+                    sns.kdeplot(plot_df[('Peaks',prop)], ax=ax[n/3][n%3], bw=2, cumulative=True, linewidth=3, 
+                                    color=groups[change], label=change)
+                    ax[n/3][n%3].set_xlim(set_cdf_xlim_Z(df, metric, prop))
+            ax[n/3][n%3].legend_.remove()
+        
+        fig = fig_fix_font(fig, xlabel_list=x_list, ylabel='Fraction of introns')
+        fig.tight_layout()
+        plt.suptitle(metric, y=1.02, fontsize=16)
+        plt.show()
+        plt.clf()
+        
+##################################################################################
+## Tools for plotting IGV like traces based on dataframes and bam files         ##
+##################################################################################
+def config_quant(config_file):
+    bam_dict = {}
+    with open(config_file,'r') as config:
+        for line in config:
+            #bam files for quantitation should be file,quant,A1
+            if 'quant' in line:
+                bam_dict[line.split(',')[-1].strip()] = line.split(',')[0]
+    return bam_dict
+
+def gene_patches3(tx, tx_dict, ax, arrow=False):
+    iso_list = [x for x in tx_dict if tx in x]
+    if len(iso_list) == 0:
+        return None
+    
+    for n, iso in enumerate(iso_list):
+        start, end, strand, CDS_start, CDS_end, exons, chrom = SP.tx_info(iso, tx_dict)
+
+        if arrow is False:
+            tx_patch = patches.Rectangle((start,0.8-n*0.15),end-start,0.04,edgecolor='0.1',facecolor='0.1')
+            ax.add_patch(tx_patch)
+        else:
+            if strand == '+':
+                ax.arrow(start, 0.9, end-start-0.02*(end-start), 0, linewidth=2, head_width=0.1, 
+                         head_length=0.02*(end-start), fc='k', ec='k')
+            elif strand == '-':
+                ax.arrow(end, 0.9, start-end-0.02*(start-end), 0, linewidth=2, head_width=0.1, 
+                         head_length=0.02*(end-start), fc='k', ec='k')
+
+        if exons is not None:
+            exon_patches = []
+            for exon_start, exon_stop in exons:
+                exon_patches.append(patches.Rectangle((exon_start, 0.775-n*0.15), exon_stop-exon_start, 0.10,
+                                                      edgecolor='0.1',facecolor='0.1'))
+            for patch in exon_patches:
+                ax.add_patch(patch)
+        else:
+            CDS_patch = patches.Rectangle((CDS_start, 0.75-n*0.15),CDS_end-CDS_start, 0.10, edgecolor='0.1', facecolor='0.1')
+            ax.add_patch(CDS_patch)
+        ax.get_yaxis().set_ticks([])
+    return strand   
+
+def generate_read_series_A(bam_iterator, chrom, start, end, strand, baseline=0):
+    s = pd.Series(baseline, index=range(start, end))
+    for read in bam_iterator:
+        if read.is_reverse and strand == '+':
+            pos = read.reference_end
+            if pos not in s.index:
+                s[pos] = 0
+            s[pos] += 1
+        elif not read.is_reverse and strand == '-':
+            pos = read.reference_start
+            if pos not in s.index:
+                s[pos] = 0
+            s[pos] += 1
+    s = s.sort_index()
+    return s
+
+def generate_read_series_B(bam_iterator, chrom, start, end, strand, baseline=0):
+    s = pd.Series(baseline, index=range(start, end))
+    for read in bam_iterator:
+        # Check to make sure the read doesn't span an intron
+        intron = False
+        for cigarop in read.cigar:
+            if(cigarop[0]==3):
+                intron = True
+                break
+        # Get reads (flip if read2)
+        if intron is False:
+            pos_range = range(read.reference_start, read.reference_end)
+            if read.is_reverse and strand == '+':
+                s[s.index.isin(pos_range)] += 1
+            elif not read.is_reverse and strand == '-':
+                s[s.index.isin(pos_range)] += 1
+    s = s.sort_index()
+    return s
+
+def generate_read_series_PE(bam_iterator, chrom, start, end, strand, baseline=0):
+    s = pd.Series(baseline, index=range(start, end))
+    for read in bam_iterator:
+        # Check to make sure the read doesn't span an intron
+        intron = False
+        for cigarop in read.cigar:
+            if(cigarop[0]==3):
+                intron = True
+                break
+        # Get reads (flip if read2)
+        if intron is False:
+            pos_range = range(read.reference_start, read.reference_end)
+            if read.is_read1:
+                if read.is_reverse and strand == '+':
+                    s[s.index.isin(pos_range)] += 1
+                elif not read.is_reverse and strand == '-':
+                    s[s.index.isin(pos_range)] += 1
+            elif read.is_read2:
+                if not read.is_reverse and strand == '+':
+                    s[s.index.isin(pos_range)] += 1
+                elif read.is_reverse and strand == '-':
+                    s[s.index.isin(pos_range)] += 1
+    s = s.sort_index()
+    return s
+
+def get_introns(open_bam, chrom, start, end, strand):
+    introns = {}
+    if strand == '+':
+        introns.update(open_bam.find_introns((read for read in open_bam.fetch(chrom, start, end) 
+                                              if read.is_reverse and r.is_read1)))
+        introns.update(open_bam.find_introns((read for read in open_bam.fetch(chrom, start, end) 
+                                              if not read.is_reverse and r.is_read2)))
+    if strand == '-':
+        introns.update(open_bam.find_introns((read for read in open_bam.fetch(chrom, start, end) 
+                                              if not read.is_reverse and r.is_read1)))
+        introns.update(open_bam.find_introns((read for read in open_bam.fetch(chrom, start, end) 
+                                              if read.is_reverse and r.is_read2)))
+    print introns
+
+def igv_plots_quant(config_file, df, organism, save_dir=None):
+    organism, gff3, fa_dict, bowtie_index = SP.find_organism_files(organism)
+    bam_files = config_quant(config_file)
+    tx_dict = SP.build_transcript_dict(gff3, organism=organism)
+    if save_dir is None:
+        save_dir = config_file.split('.txt')[0]+'_plots/'
+    elif save_dir[-1] != '/':
+        save_dir = save_dir+'/'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    
+    open_bams = {}
+    totals = {}
+    for rep, bam in bam_files.iteritems():
+        open_bams[rep] = pysam.Samfile(bam)
+        print bam
+        total = check_output(['samtools','view','-F 0x04','-c',bam]).strip()
+        total = float(total)/1000000.
+        print total
+        totals[rep] = total
+
+    order = ['A1','B1','W1','A2','B2','W2']
+    colors = ['0.1','royalblue','0.6','0.1','royalblue','0.6']
+    
+    # Get read series for all
+    for ix, r in df.iterrows():
+        fig, ax = plt.subplots(4, 2, figsize=(12,6), sharex=True)
+        fig.subplots_adjust(hspace=0)
+
+        if r['strand'] == '+':
+            start = r['position']-100
+            end = r['position'] + r['intron size']+100
+            
+        elif r['strand'] == '-':
+            start = r['position']-r['intron size']-100
+            end = r['position']+100
+        
+        max_y = [0,0,0]
+        for n, rep in enumerate(order):
+            bam_iter = open_bams[rep].fetch(r['chromosome'], int(start), int(end))
+            if rep.startswith('A'):
+                s = generate_read_series_A(bam_iter, r['chromosome'], int(start), int(end), r['strand'])
+                s = s.divide(totals[rep])
+                peak_range = range(int(r['position'])-2, int(r['position'])+2)
+                max_y[0] = max([max_y[0],sum(s[s.index.isin(peak_range)])])
+                
+            else:
+                s = generate_read_series_B(bam_iter, r['chromosome'], int(start), int(end), r['strand'])
+                s = s.divide(totals[rep])
+                if rep.startswith('B'):
+                    max_y[1] = max([max_y[1], max(s)])
+                if rep.startswith('W'):
+                    max_y[2] = max([max_y[2], max(s)])
+            
+            ax[n%3][n/3].bar(s.index, s, linewidth=1, color=colors[n], edgecolor=colors[n], zorder=2)
+            ax[n%3][n/3].tick_params(axis='both', which='major', labelsize=14)
+
+        strand = gene_patches3(r['transcript'], tx_dict, ax[3][0], arrow=False)
+        strand = gene_patches3(r['transcript'], tx_dict, ax[3][1], arrow=False)
+        ax[3][0].set_xlim(start,end)
+        ax[3][0].set_xlim(start,end)
+        if strand == '-':
+            ax[3][0].invert_xaxis()
+            ax[3][1].invert_xaxis()
+        
+        for n in range(6):
+            ax[n%3][n/3].set_ylim(0,max_y[n%3]+0.1*max_y[n%3])
+            ax[n%3][n/3].set_xlim(start, end)
+            if strand == '-':
+                ax[n%3][n/3].invert_xaxis()
+
+        ax[0][0].set_ylabel('RPM', fontsize=16)
+        ax[0][1].set_ylabel('RPM', fontsize=16)
+        ax[0][0].set_title(r['transcript'], fontsize=16)
+        ax[0][1].set_title(r['transcript'], fontsize=16)
+        ax[3][0].get_xaxis().set_ticks([])
+        ax[3][1].get_xaxis().set_ticks([])
+        plt.show()
+        
+        fig.savefig(save_dir+r['transcript']+'_ABW.pdf', format='pdf')
+        plt.clf()
+
+def igv_plots_mut(config_file, df, organism, mut_color='limegreen', save_dir=None):
+    bam_dict = SP.config_mut_quant(config_file)
+    organism, gff3, fa_dict, bowtie_index = SP.find_organism_files(organism)
+    tx_dict = SP.build_transcript_dict(gff3, organism=organism)
+    if save_dir is None:
+        save_dir = config_file.split('.txt')[0]+'_plots/'
+    elif save_dir[-1] != '/':
+        save_dir = save_dir+'/'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    
+    open_bams = {}
+    geno_list = [None, None, None, None]
+    total_list = [0,0,0,0]
+    for genotype, bams in bam_dict.iteritems():
+        A_reps = {k:v for k,v in bams.items() if k[0] == 'A'}
+        for rep, bam in A_reps.iteritems():
+            name = bam.split('/')[-1].split('_sorted')[0]
+            open_bams[name] = pysam.Samfile(bam)
+            
+            print name
+            total = check_output(['samtools','view','-F 0x04','-c',bam]).strip()
+            total = float(total)/1000000.
+            print total
+            
+            if genotype == 'WT':
+                if rep == 'A1':
+                    ix = 0
+                else:
+                    ix = 1
+            else:
+                if rep == 'A1':
+                    ix = 2
+                else:
+                    ix = 3
+                    
+            geno_list[ix] = name
+            total_list[ix] = total
+
+    #total_list = [x/max(total_list) for x in total_list]
+    colors = ['0.1','0.1',mut_color,mut_color]
+    
+    # Get read series for all
+    for ix, r in df.iterrows():
+        fig, ax = plt.subplots(5, figsize=(12,10), sharex=True)
+        fig.subplots_adjust(hspace=0)
+
+        if r[('Peaks','strand')] == '+':
+            start = r[('Peaks','position')]-100
+            end = r[('Peaks','position')] + r[('Peaks','intron size')]+100
+            
+        elif r[('Peaks','strand')] == '-':
+            start = r[('Peaks','position')]-r[('Peaks','intron size')]-100
+            end = r[('Peaks','position')]+100
+        
+        max_y = 0
+        for n, bam in enumerate(geno_list):
+            bam_iter = open_bams[bam].fetch(r[('Peaks','chromosome')], int(start), int(end))
+            s = generate_read_series_A(bam_iter, r[('Peaks','chromosome')], int(start), int(end), r[('Peaks','strand')])
+            s = s.divide(total_list[n])
+            ax[n].bar(s.index, s, linewidth=1, color=colors[n], edgecolor=colors[n], zorder=2)
+            ax[n].tick_params(axis='both', which='major', labelsize=14)
+            
+            peak_range = range(int(r[('Peaks','position')])-2, int(r[('Peaks','position')])+2)
+            max_y = max([max_y,sum(s[s.index.isin(peak_range)])])
+            
+        
+        strand = gene_patches3(r[('Peaks','transcript')], tx_dict, ax[4], arrow=False)
+        ax[4].set_xlim(start,end)
+        if strand == '-':
+            ax[4].invert_xaxis()
+        
+        for n in range(4):
+            ax[n].set_ylim(0,max_y+0.1*max_y)
+            #ax[n].plot([r[('Peaks','position')],r[('Peaks','position')]], [0,max_y+0.1*max_y],'--',color='0.9', zorder=1)
+            ax[n].set_xlim(start, end)
+            if strand == '-':
+                ax[n].invert_xaxis()
+
+        ax[0].set_ylabel('RPM', fontsize=16)
+        ax[0].set_title(r[('Peaks','transcript')], fontsize=16)
+        ax[0].get_xaxis().set_ticks([])
+        plt.show()
+        fig.savefig(save_dir+r[('Peaks','transcript')]+'_A.pdf', format='pdf')
+        plt.clf()

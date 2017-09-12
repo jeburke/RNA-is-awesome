@@ -12,11 +12,25 @@ sys.path.insert(0, '/Users/jordanburke/RNA-is-awesome/')
 sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/')
 import SPTools as SP
 import PombePeaks as PP
+import GeneTools as GT
 from scipy.stats import ks_2samp
+import itertools
+import sklearn
+from matplotlib import colors
+from copy import deepcopy
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import random
 
 ### Transcript dictionary where key is transcript name and values are [start, stop, strand, chromosome, list of cds starts, list  of cds ends]. Can provide a different gff3 file if desired.
-def build_transcript_dict(gff3="/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3", expand=False):
+def build_transcript_dict(gff3="/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3", expand=False, convert_chroms=False):
     transcript_dict = SP.build_transcript_dict(gff3, organism='pombe')
+    
+    lat_rom = {'chr1':'I','chr2':'II','chr3':'III','MT':'MT'}
+    
+    if convert_chroms is True:
+        transcript_dict = {k:[start, end, strand, lat_rom[chrom], cds_start, cds_end] for 
+                           k, [start, end, strand, chrom, cds_start, cds_end] in transcript_dict.items()}
+    
     
     chrom_lengths = {'I':5818680, 'II':4744158, 'III':2598968,'chr1':5818680, 'chr2':4744158, 'chr3':2598968}
     
@@ -373,8 +387,8 @@ def region_density(s, info, window_size=500):
     start = start+300
     end = end-300
     ORF = s[s.index.isin(range(start,end))]
-    if sum(ORF) > 0:
-        if end-start >= 500:
+    if sum(ORF) > 50:
+        if end-start >= 1000:
             if strand == '+':
                 range1 = range(start,start+window_size)
                 range2 = range(end-window_size,end)
@@ -385,13 +399,17 @@ def region_density(s, info, window_size=500):
                 range2 = range(start,start+window_size)
                 range3 = range(start-100,start)
             
-            sum1 = sum(s[s.index.isin(range1)])/float(window_size)
-            sum2 = sum(s[s.index.isin(range2)])/float(window_size)
-            sum3 = sum(s[s.index.isin(range3)])/200.
-
-            five = float(sum1)/(float(sum(ORF))/(end-start))
-            three = float(sum2)/(float(sum(ORF))/(end-start))
-            ds = float(sum3)/(float(sum(ORF))/(end-start))
+            sums = {}
+            ranges = {'five':(range1,float(window_size)), 'three':(range2,float(window_size)), 'ds':(range3,100.)}
+            for name, (rg, window) in ranges.iteritems():
+                rg_sum = sum(s[s.index.isin(rg)])
+                if rg_sum == 0: rg_sum += 1
+                sums[name] = rg_sum/float(window)
+                
+            denom = (float(sum(ORF))/(end-start))
+            five = sums['five']/denom
+            three = sums['three']/denom
+            ds = sums['ds']/denom
         else: 
             return None
     else: 
@@ -399,14 +417,69 @@ def region_density(s, info, window_size=500):
         
     return five, three, ds
 
+def heatmap_bins(s, info, window_size=500):
+    start, end, strand, CDS_start, CDS_end, exons, chrom = info
+    ORF = s[s.index.isin(range(start,end))]
+    ORF_sum = float(sum(ORF))/(end-start)
+    if sum(ORF) > 0:
+        if end-start >= 1000:
+            five_sums = []
+            three_sums = []
+            if strand == '+':
+                range1 = range(start,start+window_size)
+                range2 = range(end-window_size,end)
+                
+                n = min(range1)
+                while n < max(range1):
+                    bin_sum = sum(s[s.index.isin(range(n,n+100))])
+                    if bin_sum == 0: bin_sum += 1
+                    bin_sum = bin_sum/100.
+                    five_sums.append(bin_sum/ORF_sum)
+                    n += 100
+                n = min(range2)
+                while n < max(range2):
+                    bin_sum = sum(s[s.index.isin(range(n,n+100))])
+                    if bin_sum == 0: bin_sum += 1
+                    bin_sum = bin_sum/100.
+                    three_sums.append(bin_sum/ORF_sum)
+                    n += 100
+                
+            elif strand == '-':
+                range1 = range(end-window_size,end)
+                range2 = range(start,start+window_size)
+                
+                n = max(range1)
+                while n > min(range1):
+                    bin_sum = sum(s[s.index.isin(range(n-100,n))])
+                    if bin_sum == 0: bin_sum += 1
+                    bin_sum = bin_sum/100.
+                    five_sums.append(bin_sum/ORF_sum)
+                    n = n-100
+                n = max(range2)
+                while n > min(range2):
+                    bin_sum = sum(s[s.index.isin(range(n-100,n))])
+                    if bin_sum == 0: bin_sum += 1
+                    bin_sum = bin_sum/100.
+                    three_sums.append(bin_sum/ORF_sum)
+                    n = n-100
+        else: 
+            return None
+    else: 
+        return None
+        
+    return five_sums, three_sums
 
-def add_cdf_to_plot(ax, value_lists, label_list, color_list, ks_list):
+
+def add_cdf_to_plot(ax, value_lists, label_list, color_list, ks_list, log2=False):
     all_cdfs = []
     all_lists = []
     n = 0 
     
     for n in range(len(value_lists)):
-        new_list = [x for x in value_lists[n] if (str(x) != 'inf' and str(x) != '-inf' and str(x) != 'nan') ]
+        if log2 is True:
+            new_list = [np.log2(x) for x in value_lists[n]]
+        else: new_list = value_lists[n]
+        new_list = [x for x in new_list if (str(x) != 'inf' and str(x) != '-inf' and str(x) != 'nan') ]
         all_lists = all_lists+new_list
         cumulative, base = SP.cdf_values(new_list)
         ax.plot(base[1:], cumulative, c=color_list[n], linewidth=3.0, label=label_list[n])
@@ -419,15 +492,15 @@ def add_cdf_to_plot(ax, value_lists, label_list, color_list, ks_list):
     ax.tick_params(axis='y', labelsize=12)
     
     if ks_list is not None:
-        text = "p-values:\n"+ks_list[0]+'\n'+ks_list[1]
+        text = "p-values:    \n"+ks_list[0]+'    \n'+ks_list[1]+'    '
         if len(ks_list) == 4:
-            text = text+'\n'+ks_list[2]+'\n'+ks_list[3]
-        ax.annotate(text,  xy=(xmax-0.25*xmax,0.0), fontsize=12)
+            text = text+'    \n'+ks_list[2]+'    \n'+ks_list[3]+'    '
+        ax.annotate(text,  xy=(xmax,0.0), horizontalalignment='right', fontsize=12)
     
     return ax
     
-import itertools
-def plot_traveling_ratio(bam_files, tx_dict=None, label_list=None, color_list=None, stranded=True, xlabel='traveling ratio', ylabel='Fraction of transcripts', ks_test=False, testing=False):
+
+def plot_traveling_ratio(bam_files, tx_dict=None, label_list=None, color_list=None, stranded=True, xlabel='traveling ratio', ylabel='Fraction of transcripts', ks_test=False, testing=False, both=True):
     
     if tx_dict is None:
         tx_dict = build_transcript_dict(expand=True)
@@ -445,12 +518,14 @@ def plot_traveling_ratio(bam_files, tx_dict=None, label_list=None, color_list=No
     # First get read series for all transcripts in all samples 
     read_dict = {}
     TR_dict = {} #bam file, transcript then (5p, 3p, ds)
+    hm_dict = {} #for heatmpa, bam file, transcript them (5p_bins, 3p_bins)
     
     print "Calculating traveling ratios..."
     for bam in bam_files:
         print bam
         read_dict[bam] = {}
         TR_dict[bam] = {}
+        hm_dict[bam] = {}
         bam_reader = pysam.Samfile(bam)
         lat_rom = {'chr1':'I','chr2':'II','chr3':'III'}
         for tx, info in tx_dict.iteritems():
@@ -467,13 +542,16 @@ def plot_traveling_ratio(bam_files, tx_dict=None, label_list=None, color_list=No
                 s = s.add(s2, fill_value=0)
             
             read_dict[bam][tx] = s
-            
+
             # Calculate traveling ratios
             info = PP.tx_info(tx, tx_dict)
             TR_values = region_density(s, info, window_size=500)
-            
+
             if TR_values is not None:
                 TR_dict[bam][tx] = TR_values
+                
+            # Get bins for heatmap
+            hm_dict[bam][tx] = heatmap_bins(s, info, window_size=500)
                 
     # Convert to lists for plotting
     names = []
@@ -503,25 +581,221 @@ def plot_traveling_ratio(bam_files, tx_dict=None, label_list=None, color_list=No
             if len(lists) == 6:
                 ks_lists[m].append("%0.1e" % ks_2samp(lists[0], lists[4])[1])
                 ks_lists[m].append("%0.1e" % ks_2samp(lists[1], lists[5])[1])
-        
+                
+    wind_lists = []
+    if both is False:
+        wind_lists.append([five_lists[0],five_lists[2]])
+        wind_lists.append([three_lists[0],three_lists[2]])
+        wind_lists.append([ds_lists[0],ds_lists[2]])
+        names = [names[0],names[2]]
+    else:
+        wind_lists = [five_lists, three_lists, ds_lists]
+
     # Set up figure and plot
-    fig = plt.figure(figsize=(14, 6), dpi=600)
-    ax1 = fig.add_subplot(131)
-    ax1 = add_cdf_to_plot(ax1, five_lists, names, color_list, ks_lists[0])
-    ax1.set_ylabel(ylabel, fontsize=14)
-    ax1.set_xlabel("5' "+xlabel+'\n500 nt window', fontsize=14)
+    fig, (ax1, ax2) = plt.subplots(2, 3, figsize=(14, 10), dpi=600)
     
-    ax2 = fig.add_subplot(132)
-    ax2 = add_cdf_to_plot(ax2, three_lists, names, color_list, ks_lists[1])
-    ax2.set_xlabel("3' "+xlabel+'\n500 nt window', fontsize=14)
-    
-    ax3 = fig.add_subplot(133)
-    ax3 = add_cdf_to_plot(ax3, ds_lists, names, color_list, ks_lists[2])
-    ax3.set_xlabel("Downstream "+xlabel+'\n100 nt window', fontsize=14)
+    for n, wind in enumerate(["5'", "3'","Downstream"]):
+        ax1[n] = add_cdf_to_plot(ax1[n], wind_lists[n], names, color_list, ks_lists[n])
+        ax1[n].set_ylabel(ylabel, fontsize=14)
+        ax1[n].set_xlabel(wind+' '+xlabel+'\n500 nt window', fontsize=14)
+        
+        ax2[n] = add_cdf_to_plot(ax2[n], wind_lists[n], names, color_list, ks_lists[n], log2=True)
+        ax2[n].set_ylabel(ylabel, fontsize=14)
+        ax2[n].set_xlabel(wind+' log2 '+xlabel+'\n500 nt window', fontsize=14)
     
     # Draw legend after 3rd plot
-    ax3.legend(bbox_to_anchor=(1.0, 0.3), fontsize=12)
-
+    ax1[0].legend(fontsize=12)
+    fig.tight_layout()
     plt.show()
+    
+    return fig, TR_dict, hm_dict
 
-    return fig
+def compare_TR(wt1, wt2, mut1, mut2):
+    up_downs_both = {"Decreased 5'":set(),"Increased 5'":set(),"Decreased 3'":set(),"Increased 3'":set(),"Unchanged":set()}
+    for tx in wt1:
+        try:
+            ratio51 = np.log2(mut1[tx][0]/wt1[tx][0])
+            ratio52 = np.log2(mut2[tx][0]/wt2[tx][0])
+            if ratio51 >= 0.58 and ratio52 >= 0.58:
+                up_downs_both["Increased 5'"].add(tx)
+            elif ratio51 <= -0.58 and ratio52 <= -0.58:
+                up_downs_both["Decreased 5'"].add(tx)
+        
+            ratio31 = np.log2(mut1[tx][1]/wt1[tx][1])
+            ratio32 = np.log2(mut2[tx][1]/wt2[tx][1])
+            if ratio31 >= 0.58 and ratio32 >= 0.58:
+                up_downs_both["Increased 3'"].add(tx)
+            elif ratio31 <= -0.58 and ratio32 <= -0.58:
+                up_downs_both["Decreased 3'"].add(tx)
+
+            if abs(ratio31) < 0.58 and abs(ratio32) < 0.58 and abs(ratio51) < 0.58 and abs(ratio52) < 0.58:
+                up_downs_both["Unchanged"].add(tx)
+        
+        except ZeroDivisionError:
+            pass
+        except KeyError:
+            pass
+    
+    return up_downs_both
+    
+
+def TR_venns(bam_list, TR_dict, N=4675):
+    '''
+    Parameters
+    ----------
+    bam_list : list, should be [wt1, wt2, mut1, mut2]
+    TR_dict : dictionary, traveling ratios from plot_traveling_ratio function
+    N : number of genes in population (default excludes overalaping genes and ncRNAs)
+    
+    Returns
+    -------
+    up_downs_both : '''
+    
+    up_downs_both = compare_TR(TR_dict[bam_list[0]], TR_dict[bam_list[1]], TR_dict[bam_list[2]], TR_dict[bam_list[3]])
+    
+    combos = [("Increased 5'","Increased 3'"),("Decreased 5'","Decreased 3'"),
+              ("Increased 5'","Decreased 3'"),("Decreased 5'","Increased 3'"),
+             ("Increased 5'","Unchanged")]
+    
+    #print "*******Replicate 1 plots*******\n"
+    classes = {}
+    for a,b in combos:
+        K = len(up_downs_both[a])
+        J = len(up_downs_both[b])
+        overlap = set(up_downs_both[a]).intersection(up_downs_both[b])
+        k = len(overlap)
+        n = K + J - k
+        p = GT.hypergeometric(N,n,K,J,k)
+        GT.venn_2sample(n, K, k, J, a, b, ['crimson','deepskyblue','darkorchid'], p)
+        
+        if a not in classes:
+            classes[a] = up_downs_both[a]
+        if b not in classes:
+            classes[b] = up_downs_both[b]
+        
+        if p < 0.05:
+            classes[a+' '+b] = overlap
+            classes[a] = classes[a].difference(overlap)
+            classes[b] = classes[b].difference(overlap)
+    
+    return classes
+
+def TR_heatmap2(TR_dict, bam_files, clusters=None, name='HeatMap'):
+    if clusters is not None:
+        index = set()
+        for cluster in clusters:
+            index.update(cluster)
+    else:
+        index = TR_dict[bam_files[0]].keys()
+    
+    columns = pd.MultiIndex.from_product([['TSS','PolyA'],['WT1','WT2','Mut1','Mut2']])
+    TR_df = pd.DataFrame(index=index, columns=columns)
+    
+    labels = ['WT1','WT2','Mut1','Mut2']
+    for n,bam in enumerate(bam_files):
+        for tx, TRs in TR_dict[bam].iteritems():
+            if TRs is not None:
+                five, three, ds = TRs
+                TR_df.loc[tx, ('TSS',labels[n])] = np.log2(five)
+                TR_df.loc[tx, ('PolyA',labels[n])] = np.log2(three)
+    TR_df = TR_df.replace([np.inf,np.inf*-1],np.NaN)
+    TR_df = TR_df.dropna(how='any')
+    
+    all_data = []
+    for column in TR_df:
+        all_data = all_data + TR_df[column].tolist()
+    
+    # Sort by clusters 
+    cluster_sizes = []
+    if clusters is not None:
+        new_TR = None
+        cluster_names = sorted(clusters.keys(), reverse=True)
+        for name in cluster_names:
+            cluster = clusters[name]
+            cluster_df = TR_df[TR_df.index.isin(cluster)]
+            if "5'" in name:
+                cluster_df.loc[:,('TSS','ratio')] = ((cluster_df[('TSS','Mut1')]/cluster_df[('TSS','WT1')])+
+                                                   (cluster_df[('TSS','Mut2')]/cluster_df[('TSS','WT2')])).divide(2.)
+                cluster_df = cluster_df.sort_values(('TSS','ratio'), ascending=False)
+                cluster_df = cluster_df.drop(('TSS','ratio'), axis=1)
+            elif "3'" in name:
+                cluster_df.loc[:,('PolyA','ratio')] = ((cluster_df[('PolyA','Mut1')]/cluster_df[('PolyA','WT1')])+
+                                                   (cluster_df[('PolyA','Mut2')]/cluster_df[('PolyA','WT2')])).divide(2.)
+                cluster_df = cluster_df.sort_values(('PolyA','ratio'), ascending=False)
+                cluster_df = cluster_df.drop(('PolyA','ratio'), axis=1)
+            elif name == 'Unchanged':
+                if len(cluster_df) > 100:
+                    random_index = random.sample(cluster_df.index, 100)
+                    cluster_df = cluster_df[cluster_df.index.isin(random_index)]
+                    cluster_df = cluster_df.sort_values(('TSS','WT1'))
+                    
+            cluster_sizes.append(len(cluster_df))
+            
+            if new_TR is None:
+                new_TR = deepcopy(cluster_df)
+            else:
+                new_TR = pd.concat([new_TR, cluster_df])
+    else:
+        mat = TR_df.as_matrix()
+        km = sklearn.cluster.KMeans(n_clusters=5)
+        km.fit(mat)
+        labels = km.labels_
+        TR_df.loc[:,('All','cluster')] = labels
+        cluster_names = list(set(labels))
+        TR_df = TR_df.sort_values(('All','cluster'))
+        
+        cluster_sizes = []
+        for index in range(5):
+            cluster_sizes.append(len(TR_df[TR_df[('All','cluster')] == index]))
+            
+        TR_df = TR_df.drop(('All','cluster'), axis=1)
+        new_TR = deepcopy(TR_df)
+
+    # Figure out scales
+    data_min = np.percentile(all_data, 2)
+    data_max = np.percentile(all_data, 98)
+    both_max = max([data_min*-1, data_max])
+    print both_max
+    
+    for column in new_TR.columns:
+        new_TR[column] = pd.to_numeric(new_TR[column])
+    
+    # Make heatmap
+    fig = plt.figure(figsize=(4,12))
+    ax = fig.add_subplot(111)
+    pcm = ax.pcolor(range(len(new_TR.columns)+1), range(len(new_TR.index)), new_TR, cmap='RdBu_r', 
+                    norm=colors.Normalize(vmin=both_max*-1, vmax=both_max))
+
+    tick_spacing = []
+    base = 0
+    for size in cluster_sizes:
+        tick_spacing.append(base+size)
+        base += size
+
+    ax.yaxis.set_ticks(tick_spacing)
+    ax.yaxis.set_ticklabels(cluster_names, fontsize=14)
+    ax.set_xticklabels([])
+    
+    # Label replicates
+    for n, label in {1:'WT',3:'seb1-1',5:'WT',7:'seb1-1'}.iteritems():
+        ax.text(n, len(new_TR)+5, label, horizontalalignment='center', fontsize=14)
+    ax.text(2, len(new_TR)+20, 'TSS', horizontalalignment='center', fontsize=16)
+    ax.text(6, len(new_TR)+20, 'PolyA', horizontalalignment='center', fontsize=16)
+    
+    for size in tick_spacing:
+        ax.plot([0,len(new_TR.columns)], [size,size], '-', color='0.5')
+    ax.plot([4,4], [0,len(new_TR)], '-', color='0.5')
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.3)
+    cbar = plt.colorbar(pcm, cax=cax)
+    cbar.ax.tick_params(labelsize=14)
+    ax.text(8.2, len(new_TR)/2, 'log2 Traveling ratio', verticalalignment='center',fontsize=14,rotation='vertical')
+    fig.savefig(name+'.eps', format='eps')
+    plt.show()
+    return fig, TR_df
+
+def unlog2(x):
+    x = 2**x
+    return x
+

@@ -5,3 +5,5 @@ from .SPScores import *
 from .SPJunctions import *
 from .SPTranscripts import *
 from .SPBranch import *
+from .SPQuant import *
+from .SP_pipeline import *

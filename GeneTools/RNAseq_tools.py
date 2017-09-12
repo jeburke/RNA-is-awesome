@@ -12,7 +12,7 @@ sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/')
 sys.path.append('/home/jordan/RNA-is-awesome/')
 import SPTools as SP
 sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/GeneTools/')
-sys.path.append('/home/jordan/RNA-is-awesome/')
+sys.path.append('/home/jordan/RNA-is-awesome/GeneTools/')
 import Annotation_tools
 import SeqTools
 from math import factorial
@@ -27,7 +27,7 @@ font = {'family': 'sans-serif',
         'size': 12,
         }
 
-def align_fastq(directory, threads=1, organism='crypto'):
+def align_fastq(directory, threads=1, organism='crypto', PE=False):
     '''Automatically aligns all fastq.gz files in a drectory using TopHat'''
     if directory[-1] != '/':
         directory = directory+'/'
@@ -48,6 +48,22 @@ def align_fastq(directory, threads=1, organism='crypto'):
     for file in os.listdir(directory):
         if file.lower().endswith("fastq.gz"):
             fastq_list.append(directory+file)
+            
+    if PE is True:
+        fastq_list = sorted(fastq_list)
+        fastq_list2 = []
+        for fastq in fastq_list:
+            if '_R1_' in fastq:
+                R2_name = fastq.split('_R1_')[0]+'_R2_'+fastq.split('_R1_')[1]
+                if R2_name.split('/')[-1] not in os.listdir(directory):
+                    print "No paired fastq file for "+fastq
+                    print "Aborting!"
+                    return None
+                else:
+                    fastq_list2.append(R2_name)
+                    fastq_list.remove(R2_name)
+        print len(fastq_list)
+        print len(fastq_list2)
     
     ##Check to make sure tophat hasn't already completed on these files.
     for name in os.listdir(directory):
@@ -58,20 +74,26 @@ def align_fastq(directory, threads=1, organism='crypto'):
                         fastq_list.remove(fastq)
                         print "Tophat alread completed on "+fastq
     
-    for fastq in fastq_list:
-        prefix = fastq.split('.fastq')[0]
-        args = 'tophat2 --read-mismatches 2 --read-gap-length 2 --read-edit-dist 2 --min-anchor-length 8 --splice-mismatches 0 --min-intron-length 20 --max-intron-length 2000 --max-insertion-length 3 --max-deletion-length 3 --num-threads {0} --max-multihits 2 --library-type fr-firststrand --segment-mismatches 3 --no-coverage-search --segment-length 20 --min-coverage-intron 10 --max-coverage-intron 100000 --min-segment-intron 50 --max-segment-intron 500000 --bowtie1 -G {1} -o {2} {3} {4}'.format(str(threads), gff3, prefix, bowtie_ix, fastq)
-        #print args
-        p = subprocess.Popen(args.split(' '), stdout=subprocess.PIPE)
-        p.wait()
+    if len(fastq_list) > 0:
+        for n, fastq in enumerate(fastq_list):
+            prefix = fastq.split('.fastq')[0]
+            args = 'tophat2 --read-mismatches 2 --read-gap-length 2 --read-edit-dist 2 --min-anchor-length 8 --splice-mismatches 0 --min-intron-length 20 --max-intron-length 2000 --max-insertion-length 3 --max-deletion-length 3 --num-threads {0} --max-multihits 2 --library-type fr-firststrand --segment-mismatches 3 --no-coverage-search --segment-length 20 --min-coverage-intron 10 --max-coverage-intron 100000 --min-segment-intron 50 --max-segment-intron 500000 --bowtie1 -G {1} -o {2} {3} {4}'.format(str(threads), gff3, prefix, bowtie_ix, fastq)
+            
+            if PE is True:
+                args = args+' '+fastq_list2[n]
+            
+            print args
+            p = subprocess.Popen(args.split(' '), stdout=subprocess.PIPE)
+            p.wait()
         
-        print '\n'
-        print prefix
-	if 'align_summary.txt' in os.listdir(prefix):
-            with open(prefix+'/align_summary.txt','r') as f:
-                for line in f:
-                    print line
-                print '\n'
+            print '\n'
+            print prefix
+
+            if 'align_summary.txt' in os.listdir(prefix):
+                with open(prefix+'/align_summary.txt','r') as f:
+                    for line in f:
+                        print line
+                        print '\n'
             
     print 'Finished'
 
@@ -150,18 +172,22 @@ def count_with_HTseq(base_dir, organism='crypto'):
         
 def main():
     '''Runs the first part of this module to align, sort, index and count reads'''
-    # Input will be RNAseq_tools.py directory number_of_threads_tophat organism
+    # Input will be RNAseq_tools.py directory number_of_threads_tophat [organism] [SE/PE]
     # Current organism options: 'crypt', 'pombe', 'cerevisiae'
+    PE = False
     if len(sys.argv) == 3:
         organism = 'crypto'
     else:
         organism = sys.argv[3]
+        if sys.argv[-1].strip() == 'PE':
+            PE = True
+            print "Data are paired end"
         
     directory = sys.argv[1]
     threads = sys.argv[2]
     
     print "********Aligning reads with Tophat********\n"
-    align_fastq(directory, threads=threads, organism=organism)
+    align_fastq(directory, threads=threads, organism=organism, PE=PE)
     print "********Sorting and indexing BAM files********\n"
     sort_index_bam_files(directory)
     print "********Counting reads in transcripts with HTseq********\n"
@@ -557,17 +583,23 @@ def NchooseR(n,r):
     return c
 
 def hypergeometric(N, n, K, J, k):
+    #print "N: "+str(N)
+    #print "n: "+str(n)
+    #print "K: "+str(max(K,J))
+    #print "k: "+str(k)
+    
     '''Called by gene_venn'''
-    K = min(K,J)
+    K = max(K,J)
     if N-K < 0:
         print "Too many genes in your spreadsheet! Check your formatting."
         return None, None
     else:
-        p = (NchooseR(K,k)*NchooseR(N-K,n-k))/NchooseR(N,n)
-        x = n*k/N
-    return p, x
+        p=0
+        for i in range(k,min([n,K])):
+            p += (NchooseR(K,i)*NchooseR(N-K,n-i))/NchooseR(N,n)
+    return p
 
-def venn_2sample(n,K,k,J, name1, name2, colors, p, x):
+def venn_2sample(n,K,k,J, name1, name2, colors, p):
     A_only = K-k
     B_only = J-k
     AB = k
@@ -593,10 +625,8 @@ def venn_2sample(n,K,k,J, name1, name2, colors, p, x):
         sub_c.set_lw(1.0)       # Line width
 
     p = '%.1E' % p
-    if x >= 5: x = 'Enriched'
-    else: x = 'De-enriched'
     
-    plt.title(name1+' vs. '+name2+'\n p-value: '+p+', '+x, fontdict=font)
+    plt.title(name1+' vs. '+name2+'\n p-value: '+p, fontdict=font)
     plt.show()
     plt.savefig(name1+'_'+name2+'_venn.pdf', format='pdf')
     plt.clf()
@@ -638,9 +668,11 @@ def gene_venn(csv_files, organism):
         if len(line.split(',')) > 1:
             df_dict[name] = pd.read_csv(csv, index_col=0)
             df_dict[name] = add_col_level(df_dict[name], name)
-        else:
+        elif len(line.split('\t')) > 1:
             df_dict[name] = pd.read_csv(csv, index_col=0, sep='\t')
             df_dict[name] = add_col_level(df_dict[name], name)
+        else:
+            df_dict[name] = pd.read_csv(csv, index_col=0)
     
     # N = genome size
     # n = number of genes in analysis (so len(a)+len(b))
@@ -654,9 +686,9 @@ def gene_venn(csv_files, organism):
     n = len(df_dict[names[0]]) + len(df_dict[names[1]]) - k
     J = len(df_dict[names[1]])
     
-    p_ab, x_ab = hypergeometric(N,n,K,J,k)
+    p_ab= hypergeometric(N,n,K,J,k)
     if p_ab is not None:
-        venn_2sample(n,K,k,J, names[0], names[1], ['crimson','deepskyblue','darkorchid'], p_ab, x_ab)
+        venn_2sample(n,K,k,J, names[0], names[1], ['crimson','deepskyblue','darkorchid'], p_ab)
         df_ab = df_dict[names[0]].merge(df_dict[names[1]], right_index=True, left_index=True)
         df_ab.to_csv('{0}_{1}_overlap.csv'.format(names[0], names[1]))
 
@@ -667,9 +699,9 @@ def gene_venn(csv_files, organism):
         n_ac = len(df_dict[names[0]]) + len(df_dict[names[2]]) - k_ac
         J_ac = len(df_dict[names[2]])
         
-        p_ac, x_ac = hypergeometric(N,n_ac,K,J_ac,k_ac)
+        p_ac = hypergeometric(N,n_ac,K,J_ac,k_ac)
         if p_ac is not None:
-            venn_2sample(n_ac,K,k_ac,J_ac, names[0], names[2], ['crimson','gold','darkorange'], p_ac, x_ac)
+            venn_2sample(n_ac,K,k_ac,J_ac, names[0], names[2], ['crimson','gold','darkorange'], p_ac)
             df_ac = df_dict[names[0]].merge(df_dict[names[2]], right_index=True, left_index=True)
             df_ac.to_csv('{0}_{1}_overlap.csv'.format(names[0], names[2]))
             
@@ -680,9 +712,9 @@ def gene_venn(csv_files, organism):
         J_bc = len(df_dict[names[2]])
         K_bc = len(df_dict[names[1]])
         
-        p_bc, x_bc = hypergeometric(N,n_bc,K_bc,J_bc,k_bc)
+        p_bc = hypergeometric(N,n_bc,K_bc,J_bc,k_bc)
         if p_bc is not None:
-            venn_2sample(n_bc,K_bc,k_bc,J_bc, names[1], names[2], ['deepskyblue','gold','forestgreen'], p_bc, x_bc)
+            venn_2sample(n_bc,K_bc,k_bc,J_bc, names[1], names[2], ['deepskyblue','gold','forestgreen'], p_bc)
             df_bc = df_dict[names[1]].merge(df_dict[names[2]], right_index=True, left_index=True)
             df_bc.to_csv('{0}_{1}_overlap.csv'.format(names[1], names[2]))
             

@@ -282,20 +282,6 @@ def list_branch_points(sorted_bam_file, gff3_file, fasta_dict, organism=None):
                     new_branch_counts.append(1)
             if len(new_branch_list) > 0:
                 new_branch_dict[transcript].append([intron, new_branch_list, new_branch_counts])
-            
-    #with open('{0}_branches.bedgraph'.format(sorted_bam_file.split('.')[0]), 'w') as fout:
-    #    for transcript, introns in new_branch_dict.iteritems():
-    #        for intron in introns:
-    #            chrom = intron[0].split(':')[0]
-    #            n = 0
-    #            for n in range(len(intron[1])):
-    #                start = intron[1][n]
-    #                end = intron[1][n]+2
-    #                value = intron[2][n]
-    #                line_list = [chrom, start, end, value, '\n']
-    #                line_list = map(str, line_list)
-    #                line = '\t'.join(line_list)
-    #                fout.write(line)
     
     with open('{0}.bed'.format(sorted_bam_file.split('_sorted.bam')[0]), 'w') as fout:
         fout.write('track name=junctions description="TopHat junctions"\n')
@@ -318,9 +304,6 @@ def list_branch_points(sorted_bam_file, gff3_file, fasta_dict, organism=None):
                         line_list = [chrom, str(start-1), str(end+1), read_id, str(value), strand, str(start-1), str(end+1), '75,196,213', '2', '1,1', block_size, '\n']
                         line = '\t'.join(line_list)
                         fout.write(line)
-    
-    #with open('{0}_branches.json'.format(sorted_bam_file.split('.')[0]), 'w') as fout:
-    #    json.dump(new_branch_dict, fout)
     
     return new_branch_dict
             
