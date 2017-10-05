@@ -104,7 +104,7 @@ def igv_plots_general(bam_list, gene_list, organism, colors=None, names=None, sa
     tx_dict = SP.build_transcript_dict(gff3, organism=organism)
     fix_info = {'I':'chr1','II':'chr2','III':'chr3','chr1':'I','chr2':'II','chr4':'IV','chr5':'V','chr6':'VI',
                 'chr7':'VII','chr8':'VIII','chr9':'IX','chr10':'X','chr11':'XI','chr12':'XII','chr13':'XIII',
-                'chr14':'XIV','chr15':'XV','chr16':'XVI','-':'+','+':'-'}
+                'chr14':'XIV','chr15':'XV','chr16':'XVI','-':'+','+':'-','chr1':'I','chr2':'II','chr3':'III'}
     if organism == 'pombe':
         tx_suffix = '.1'
     else:
@@ -157,7 +157,11 @@ def igv_plots_general(bam_list, gene_list, organism, colors=None, names=None, sa
     
     # Get gene_list from dataframe if gene_list is not a list
     df = None
-    if type(gene_list) != list:
+    if type(gene_list) == dict:
+        new_tx_dict = gene_list
+        gene_list = gene_list.keys()
+        
+    elif type(gene_list) != list:
         df = gene_list
         gene_list = df.index
     
@@ -171,7 +175,10 @@ def igv_plots_general(bam_list, gene_list, organism, colors=None, names=None, sa
         
         # Get transcript info from transcript_dictionary
         if df is None:
-            info = new_tx_dict[tx+tx_suffix]
+            try:
+                info = new_tx_dict[tx+tx_suffix]
+            except KeyError:
+                info = new_tx_dict[tx]
             chrom = info[3]
             start = info[0]
             end = info[1]

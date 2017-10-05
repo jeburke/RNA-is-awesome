@@ -20,6 +20,7 @@ from matplotlib import colors
 from copy import deepcopy
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import random
+from scipy.cluster.hierarchy import leaves_list, linkage
 
 ### Transcript dictionary where key is transcript name and values are [start, stop, strand, chromosome, list of cds starts, list  of cds ends]. Can provide a different gff3 file if desired.
 def build_transcript_dict(gff3="/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3", expand=False, convert_chroms=False):
@@ -611,7 +612,7 @@ def plot_traveling_ratio(bam_files, tx_dict=None, label_list=None, color_list=No
     return fig, TR_dict, hm_dict
 
 def compare_TR(wt1, wt2, mut1, mut2):
-    up_downs_both = {"Decreased 5'":set(),"Increased 5'":set(),"Decreased 3'":set(),"Increased 3'":set(),"Unchanged":set()}
+    up_downs_both = {"Decreased 5'":set(),"Increased 5'":set(),"Decreased 3'":set(),"Increased 3'":set()}
     for tx in wt1:
         try:
             ratio51 = np.log2(mut1[tx][0]/wt1[tx][0])
@@ -628,14 +629,16 @@ def compare_TR(wt1, wt2, mut1, mut2):
             elif ratio31 <= -0.58 and ratio32 <= -0.58:
                 up_downs_both["Decreased 3'"].add(tx)
 
-            if abs(ratio31) < 0.58 and abs(ratio32) < 0.58 and abs(ratio51) < 0.58 and abs(ratio52) < 0.58:
-                up_downs_both["Unchanged"].add(tx)
-        
         except ZeroDivisionError:
             pass
         except KeyError:
             pass
     
+    all_other = set(wt1.keys())
+    for category, tx_set in up_downs_both.iteritems():
+        all_other = all_other.difference(tx_set)
+    print len(all_other)
+    up_downs_both["Unchanged"] = all_other
     return up_downs_both
     
 
@@ -696,8 +699,8 @@ def TR_heatmap2(TR_dict, bam_files, clusters=None, name='HeatMap'):
         for tx, TRs in TR_dict[bam].iteritems():
             if TRs is not None:
                 five, three, ds = TRs
-                TR_df.loc[tx, ('TSS',labels[n])] = np.log2(five)
-                TR_df.loc[tx, ('PolyA',labels[n])] = np.log2(three)
+                TR_df.loc[tx, ('TSS',labels[n])] = five
+                TR_df.loc[tx, ('PolyA',labels[n])] = three
     TR_df = TR_df.replace([np.inf,np.inf*-1],np.NaN)
     TR_df = TR_df.dropna(how='any')
     
@@ -736,21 +739,38 @@ def TR_heatmap2(TR_dict, bam_files, clusters=None, name='HeatMap'):
             else:
                 new_TR = pd.concat([new_TR, cluster_df])
     else:
-        mat = TR_df.as_matrix()
-        km = sklearn.cluster.KMeans(n_clusters=5)
-        km.fit(mat)
+        TR_df[('TSS','Ratio 1')] = TR_df[('TSS','Mut1')]/TR_df[('TSS','WT1')]
+        TR_df[('PolyA','Ratio 1')] = TR_df[('PolyA','Mut1')]/TR_df[('PolyA','WT1')]
+        TR_df[('TSS','Ratio 2')] = TR_df[('TSS','Mut2')]/TR_df[('TSS','WT2')]
+        TR_df[('PolyA','Ratio 2')] = TR_df[('PolyA','Mut2')]/TR_df[('PolyA','WT2')]
+        TR_df = TR_df.replace([np.inf,np.inf*-1],np.NaN).dropna(how='any')
+        
+        #mat = TR_df.as_matrix(columns=[('TSS','Ratio 2'),('PolyA','Ratio 2')])
+        mat = TR_df.as_matrix(columns=[('TSS','WT2'),('TSS','Mut2'),('PolyA','WT2'),('PolyA','Mut2')])
+        km = sklearn.cluster.KMeans(n_clusters=3, random_state=0).fit(mat)
         labels = km.labels_
-        TR_df.loc[:,('All','cluster')] = labels
+        
+        #Z = linkage(mat, 'ward')
+        #print leaves_list(Z)
+        
+        TR_df[('All','cluster')] = labels
         cluster_names = list(set(labels))
-        TR_df = TR_df.sort_values(('All','cluster'))
+        TR_df[('TSS','WT avg')] = (TR_df[('TSS','WT1')] + TR_df[('TSS','WT2')]).divide(2.)
+        TR_df = TR_df.sort_values([('All','cluster'),('TSS','WT avg')])
         
         cluster_sizes = []
-        for index in range(5):
+        for index in range(max(TR_df[('All','cluster')])):
             cluster_sizes.append(len(TR_df[TR_df[('All','cluster')] == index]))
+            print index
+            print len(TR_df[TR_df[('All','cluster')] == index])
+            for column in TR_df.columns:
+                print column
+                print np.median(TR_df[TR_df[('All','cluster')] == index][column].apply(np.log2))
             
-        TR_df = TR_df.drop(('All','cluster'), axis=1)
+        cluster_keys = TR_df[('All','cluster')]
+        TR_df = TR_df.drop([('All','cluster'),('TSS','Ratio 1'),('TSS','Ratio 2'),('PolyA','Ratio 1'),('PolyA','Ratio 2'),('TSS','WT avg')], axis=1)
         new_TR = deepcopy(TR_df)
-
+    
     # Figure out scales
     data_min = np.percentile(all_data, 2)
     data_max = np.percentile(all_data, 98)
@@ -758,7 +778,7 @@ def TR_heatmap2(TR_dict, bam_files, clusters=None, name='HeatMap'):
     print both_max
     
     for column in new_TR.columns:
-        new_TR[column] = pd.to_numeric(new_TR[column])
+        new_TR[column] = pd.to_numeric(new_TR[column].apply(np.log2))
     
     # Make heatmap
     fig = plt.figure(figsize=(4,12))
@@ -791,9 +811,14 @@ def TR_heatmap2(TR_dict, bam_files, clusters=None, name='HeatMap'):
     cbar = plt.colorbar(pcm, cax=cax)
     cbar.ax.tick_params(labelsize=14)
     ax.text(8.2, len(new_TR)/2, 'log2 Traveling ratio', verticalalignment='center',fontsize=14,rotation='vertical')
+    fig.tight_layout()
     fig.savefig(name+'.eps', format='eps')
     plt.show()
-    return fig, TR_df
+    
+    if clusters is None:
+        return fig, TR_df, cluster_keys
+    else:
+        return fig, TR_df
 
 def unlog2(x):
     x = 2**x

@@ -471,7 +471,7 @@ def list_of_genes_in_cluster(data, cluster_index, name=None, annotate=False, org
         else:
             print "Organism not recognized. Only 'pombe' and 'crypto' supported at this time"
 
-def volcano_plot(df, sample_names=None, annotate=False, organism=None):
+def volcano_plot(df, sample_names=None, annotate=False, organism=None, change_thresh=1, padj_thresh=0.01):
     '''Generates volcano plots and csv files of significantly changed transcripts for each sample.
     
     Parameters
@@ -502,14 +502,13 @@ def volcano_plot(df, sample_names=None, annotate=False, organism=None):
             if column[1] == 'log2FoldChange':
                 sample_names.append(column[0])
 
-    df = df.dropna(how='any')
+    #df = df.dropna(how='any')
     for name in sample_names:
-        
         ## Find significantly changed transcripts
-        sig = df[df[(name,'padj')] <= 0.01][name]
-        sig = sig[sig['log2FoldChange'] >= 1]
-        sig2 = df[df[(name,'padj')] <= 0.01][name]
-        sig2 = sig2[sig2['log2FoldChange'] <= -1]
+        sig = df[df[(name,'padj')] <= padj_thresh][name]
+        sig = sig[sig['log2FoldChange'] >= change_thresh]
+        sig2 = df[df[(name,'padj')] <= padj_thresh][name]
+        sig2 = sig2[sig2['log2FoldChange'] <= -1*change_thresh]
         print name
         print "Increased:"
         print len(sig)
@@ -519,9 +518,9 @@ def volcano_plot(df, sample_names=None, annotate=False, organism=None):
         #Build plot
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.scatter(df[(name,'log2FoldChange')], df[(name,'padj')].apply(np.log).multiply(-1), color='0.5')
-        ax.scatter(sig['log2FoldChange'], sig['padj'].apply(np.log).multiply(-1), color='orange')
-        ax.scatter(sig2['log2FoldChange'], sig2['padj'].apply(np.log).multiply(-1), color='darkslateblue')
+        ax.scatter(df[(name,'log2FoldChange')], df[(name,'padj')].apply(np.log10).multiply(-1), color='0.5', s=15)
+        ax.scatter(sig['log2FoldChange'], sig['padj'].apply(np.log10).multiply(-1), color='orange', s=15)
+        ax.scatter(sig2['log2FoldChange'], sig2['padj'].apply(np.log10).multiply(-1), color='darkslateblue', s=15)
         xmin = min(df[(name,'log2FoldChange')])-0.1*min(df[(name,'log2FoldChange')])
         xmax = max(df[(name,'log2FoldChange')])+0.1*max(df[(name,'log2FoldChange')])
         x_all = max([xmin*-1,xmax])
@@ -529,7 +528,7 @@ def volcano_plot(df, sample_names=None, annotate=False, organism=None):
         xmin= -1*x_all
         xmax= x_all
         
-        ymed = np.percentile(df[(name,'padj')].apply(np.log).multiply(-1).dropna(how='any'), 99)
+        ymed = np.percentile(df[(name,'padj')].apply(np.log10).multiply(-1).replace([np.inf, np.inf*-1], np.NaN).dropna(how='any'), 99)
         ymax = ymed + 1.5*ymed
         
         if ymax < 4:
@@ -537,9 +536,9 @@ def volcano_plot(df, sample_names=None, annotate=False, organism=None):
         
         ax.set_ylim([-5,ymax])
         ax.set_xlim([xmin,xmax])
-        ax.plot([xmin,xmax],[2,2], '--', color='0.7')
-        ax.plot([1,1], [-5,ymax], '--', color='0.7')
-        ax.plot([-1,-1], [-5,ymax], '--', color='0.7')
+        ax.plot([xmin,xmax],[np.log10(padj_thresh)*-1,np.log10(padj_thresh)*-1], '--', color='0.7')
+        ax.plot([change_thresh,change_thresh], [-5,ymax], '--', color='0.7')
+        ax.plot([-1*change_thresh,-1*change_thresh], [-5,ymax], '--', color='0.7')
         ax.set_xlabel("log2 fold change")
         ax.set_ylabel("-log10 pvalue")
         ax.set_title(name)
@@ -605,7 +604,8 @@ def venn_2sample(n,K,k,J, name1, name2, colors, p):
     AB = k
     s = (A_only, B_only, AB)
 
-    v = venn2(subsets=s, set_labels=(name1, name2))
+    fig, ax = plt.subplots(1)
+    v = venn2(subsets=s, set_labels=(name1, name2), ax=ax)
 
     # Subset colors
     v.get_patch_by_id('10').set_color(colors[0])
@@ -620,15 +620,15 @@ def venn_2sample(n,K,k,J, name1, name2, colors, p):
         v.get_patch_by_id('11').set_alpha(0.9)
 
     # Border styles
-    c = venn2_circles(subsets=s, linestyle='solid')
+    c = venn2_circles(subsets=s, linestyle='solid', ax=ax)
     for sub_c in c:
         sub_c.set_lw(1.0)       # Line width
 
     p = '%.1E' % p
     
-    plt.title(name1+' vs. '+name2+'\n p-value: '+p, fontdict=font)
+    ax.set_title(name1+' vs. '+name2+'\n p-value: '+p, fontdict=font)
+    fig.savefig(name1+'_'+name2+'_venn.pdf', format='pdf', bbox_inches='tight')
     plt.show()
-    plt.savefig(name1+'_'+name2+'_venn.pdf', format='pdf')
     plt.clf()
     
 def gene_venn(csv_files, organism):

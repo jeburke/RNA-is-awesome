@@ -21,6 +21,11 @@ def build_transcript_dict(gff3="/home/jordan/GENOMES/POMBE/schizosaccharomyces_p
     transcript_dict = SP.build_transcript_dict(gff3, organism='pombe')
     return transcript_dict
 
+def fix_info(chrom_or_strand):
+    fix_info = {'I':'chr1','II':'chr2','III':'chr3','chr1':'I','chr2':'II','chr3':'III','+':'-','-':'+'}
+    chrom_or_strand = fix_info[chrom_or_strand]
+    return chrom_or_strand
+
 ### Same as transcript dict but with whole centromeres and subregions
 def build_centromere_dict(gtf='/home/jordan/GENOMES/POMBE/Centromere_annotations.gtf'):
     cen_dict = {}
@@ -129,12 +134,32 @@ def generate_read_series(bam_iterator, chrom, start, end, strand, baseline=0):
     s = s.sort_index()
     return s
 
+def generate_read_series2(open_bam, chrom, start, end, strand, baseline=0):
+    bam_iterator = open_bam.fetch(chrom, start-25, end+25)
+    s = pd.Series(baseline, index=range(start-25, end+25))
+    for read in bam_iterator:
+        if read.is_reverse and strand == '+':
+            pos = read.reference_end
+            if pos not in s.index:
+                s[pos] = 0
+            s[pos] += 1
+        elif not read.is_reverse and strand == '-':
+            pos = read.reference_start
+            if pos not in s.index:
+                s[pos] = 0
+            s[pos] = s[pos]+1
+    s = s.dropna()
+    if baseline is None:
+        s = s[s > 0]
+    s = s.sort_index()
+    return s
+
 ### Find peaks using a Z-score cutoff within a given region. Automatically sets minimum Z-score at 2.
 def find_peaks(s, use_robust=True, min_z=2, use_log=True):   
     if use_log is True:
         new_s = s.apply(np.log)
+        new_s = s.replace([np.inf, np.inf*-1],np.NaN).dropna()
     else:
-        #new_s = s
         new_s = s[s <= s.quantile(0.95)]
     if use_robust is False:
         s_Z = pd.Series(stats.mstats.zscore(new_s), index=new_s.index)
@@ -153,19 +178,20 @@ def find_peaks(s, use_robust=True, min_z=2, use_log=True):
 
 
 ### Pick peaks in NET-seq data. Also consolidates clusters of peaks into a single center (must be within 10 bp). Returns a peak dictionary. Keys are transcripts (or regions) and values are a tuple. The first position is a read series for the region for plotting. The second position is a pair of lists that are the x and y values for each peak picked (+10% for easy plotting).
-def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2, use_log=True, scramble=False, collapse=False):
+def NETseq_peaks(bam_file, transcript_dict, use_robust=True, min_z=2, use_log=True, scramble=False, collapse=False):
     peak_dict = {}
     bam_reader = pysam.Samfile(bam_file)
-    chrom_convert = {'chr1':'I','chr2':'II','chr3':'III'}
     for tx, info in transcript_dict.iteritems():
         chrom = info[3]
-        if chrom in chrom_convert:
-            chrom = chrom_convert[chrom]
         start = info[0]
         end = info[1]
         strand = info[2]
-        iterator = bam_reader.fetch(chrom, start, end)
-        s = generate_read_series(iterator, chrom, start, end, strand)
+        try:
+            iterator = bam_reader.fetch(chrom, start, end)
+            s = generate_read_series(iterator, chrom, start, end, strand)
+        except ValueError:
+            iterator = bam_reader.fetch(fix_info(chrom), start, end)
+            s = generate_read_series(iterator, fix_info(chrom), start, end, strand)
         
         if scramble is True:
             s.index = random.sample(range(min(s.index),max(s.index)),len(s))
@@ -211,6 +237,7 @@ def NETseq_peaks(bam_file, transcript_dict, bam2=None, use_robust=True, min_z=2,
 def PARCLIP_peaks(bam_file, transcript_dict):
     peak_dict = {}
     bam_reader = pysam.Samfile(bam_file)
+    switch_strand = {'+':'-','-':'+'}
     #chrom_convert = {'chr1':'I','chr2':'II','chr3':'III'}
     for tx, info in transcript_dict.iteritems():
         chrom = info[3]
@@ -221,10 +248,14 @@ def PARCLIP_peaks(bam_file, transcript_dict):
         strand = info[2]
         
         #Need to switch strand here because PAR_Clip reads are on the first strand
-        switch_strand = {'+':'-','-':'+'}
         strand = switch_strand[strand]
-        iterator = bam_reader.fetch(chrom, start, end)
-        s = generate_read_series(iterator, chrom, start, end, strand)
+        
+        try:
+            iterator = bam_reader.fetch(chrom, start, end)
+            s = generate_read_series(iterator, chrom, start, end, strand)
+        except ValueError:
+            iterator = bam_reader.fetch(fix_info(chrom), start, end)
+            s = generate_read_series(iterator, fix_info(chrom), start, end, strand)
         s = s[s > 0]
         if len(s) > 0:
             peak_dict[tx] = s
@@ -692,6 +723,7 @@ def slide(s, window_size, step, plot=False, name=''):
     s_Z = log_s.apply(robust_z, args=(s_med, s_MAD))
     #Z_index = s_Z[s_Z < 2].index
     all_peaks = s_Z[s_Z >= 2].index
+    all_peaks = set(all_peaks).intersection(s[s >= 5].index)
     try:
         avg_density = sum(s[s.index.isin(all_peaks)])/float(len(s[s.index.isin(all_peaks)]))
         #print avg_density
@@ -715,8 +747,6 @@ def slide(s, window_size, step, plot=False, name=''):
     flag = False
     while n < max(s.index)-window_size:
         window = range(n,n+window_size)
-        #density = sum(s[s.index.isin(window)])/float(window_size)*1000 
-        #if density/avg_density >= threshold:
         if len(set(window).intersection(all_peaks)) > 0:
             peak_index = peak_index + range(n,n+step)
             if flag is False:
@@ -745,8 +775,9 @@ def slide(s, window_size, step, plot=False, name=''):
         ax.bar(peaks.index, peaks, color='red', edgecolor='red', zorder=3, linewidth=1.5)
         max_y = max(s)+0.1*max(s)
         ax.set_ylim([0,max_y])
-        for cluster in clusters:
-            ax.add_patch(patches.Rectangle((cluster[0],0), cluster[1]-cluster[0], max_y, fill=True, linewidth=0, color='0.8', alpha=0.5, zorder=1))
+        if len(clusters) > 0:
+            for cluster in clusters:
+                ax.add_patch(patches.Rectangle((cluster[0],0), cluster[1]-cluster[0], max_y, fill=True, linewidth=0, color='0.8', alpha=0.5, zorder=1))
         ax.set_xlabel(name)
         ax.set_ylabel('Reads')
         plt.show()
@@ -893,12 +924,14 @@ def find_and_quant_clusters(list_of_bams, tx_dict, window_size=50, step=10, find
             totals[name] = PM.count_aligned_reads(bam)
             df[name] = reads
 
-        by_tx_df = pd.DataFrame(index = set(df['transcript']), columns=sample_names.values())
+        by_tx_df = pd.DataFrame(index = set(df['transcript']), columns=list(sample_names.values())+[x+' std' for x in sample_names.values()])
         for bam, name in sample_names.iteritems():
             for tx in set(df['transcript']):
                 avg = sum(df[df['transcript'] == tx][name])/float(sum(df[df['transcript'] == tx]['cluster size']))
                 avg = avg / totals[name] *1000
+                std = np.std(df[df['transcript'] == tx][name]/df[df['transcript'] == tx]['cluster size'])
                 by_tx_df.loc[tx, name] = avg
+                by_tx_df.loc[tx, name+' std'] = std
                 
         
         by_tx_df['ratio1'] = by_tx_df[sample_names[list_of_bams[0]]]/by_tx_df[sample_names[list_of_bams[2]]]
@@ -955,8 +988,10 @@ def bar_plot_ratios(df, include=None, exclude=None, fill_list=None, recolor=None
     
     # Average replicates and determine range
     y = (df['ratio1']+df['ratio2']).divide(2.)
-    err = (df['ratio1']-df['ratio2']).apply(abs).divide(2.)
-
+    if 'sem' in df.columns:
+        err = df['sem']
+    else:
+        err = (df['ratio1']-df['ratio2']).apply(abs).divide(2.)
     max_x = max([x for x in y+err if str(x) != 'nan'])
     max_x = max_x + 0.05*max_x
 
