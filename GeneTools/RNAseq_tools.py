@@ -33,7 +33,8 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
         directory = directory+'/'
         
     if 'crypto' in organism.lower():
-        bowtie_ix = '/home/jordan/GENOMES/Crypto_for_gobs'
+#        bowtie_ix = '/home/jordan/GENOMES/Crypto_for_gobs'
+	bowtie_ix = '/home/jordan/GENOMES/H99_bt2'
         gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
     elif 'cerev' in organism.lower():
         bowtie_ix = '/home/jordan/GENOMES/S288C/S288C'
@@ -41,12 +42,13 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
         if 'DBK' in organism:
             bowtie_ix = '/home/jordan/GENOMES/S288C/S288C_DBK'
     elif 'pombe' in organism.lower():
-        bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe'
+#        bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe'
+	bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe-2'
         gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
         
     fastq_list = []
     for file in os.listdir(directory):
-        if file.lower().endswith("fastq.gz"):
+        if file.lower().endswith("fastq.gz") or file.lower().endswith("fastq"):
             fastq_list.append(directory+file)
             
     if PE is True:
@@ -69,7 +71,7 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
     for name in os.listdir(directory):
         if os.path.isdir(directory+name):
             for fastq in fastq_list:
-                if directory+name == fastq.split('.fastq.gz')[0]:
+                if directory+name == fastq.split('.fastq')[0]:
                     if 'accepted_hits.bam' in os.listdir(directory+name):
                         fastq_list.remove(fastq)
                         print "Tophat alread completed on "+fastq
@@ -77,7 +79,8 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
     if len(fastq_list) > 0:
         for n, fastq in enumerate(fastq_list):
             prefix = fastq.split('.fastq')[0]
-            args = 'tophat2 --read-mismatches 2 --read-gap-length 2 --read-edit-dist 2 --min-anchor-length 8 --splice-mismatches 0 --min-intron-length 20 --max-intron-length 2000 --max-insertion-length 3 --max-deletion-length 3 --num-threads {0} --max-multihits 2 --library-type fr-firststrand --segment-mismatches 3 --no-coverage-search --segment-length 20 --min-coverage-intron 10 --max-coverage-intron 100000 --min-segment-intron 50 --max-segment-intron 500000 --bowtie1 -G {1} -o {2} {3} {4}'.format(str(threads), gff3, prefix, bowtie_ix, fastq)
+#            args = 'tophat2 --read-mismatches 2 --read-gap-length 2 --read-edit-dist 2 --min-anchor-length 8 --splice-mismatches 0 --min-intron-length 20 --max-intron-length 2000 --max-insertion-length 3 --max-deletion-length 3 --num-threads {0} --max-multihits 2 --library-type fr-firststrand --segment-mismatches 3 --no-coverage-search --segment-length 20 --min-coverage-intron 10 --max-coverage-intron 100000 --min-segment-intron 50 --max-segment-intron 500000 --bowtie1 -G {1} -o {2} {3} {4}'.format(str(threads), gff3, prefix, bowtie_ix, fastq)
+            args = 'tophat2 --read-mismatches 2 --read-gap-length 2 --read-edit-dist 2 --min-anchor-length 8 --splice-mismatches 0 --min-intron-length 20 --max-intron-length 2000 --max-insertion-length 3 --max-deletion-length 3 --num-threads {0} --max-multihits 2 --library-type fr-firststrand --segment-mismatches 3 --no-coverage-search --segment-length 20 --min-coverage-intron 10 --max-coverage-intron 100000 --min-segment-intron 50 --max-segment-intron 500000 -G {1} -o {2} {3} {4}'.format(str(threads), gff3, prefix, bowtie_ix, fastq)
             
             if PE is True:
                 args = args+' '+fastq_list2[n]
@@ -118,7 +121,10 @@ def sort_index_bam_files(base_dir):
                 if name.split('/')[-1]+'_sorted.bam' not in os.listdir(base_dir):
                     tophat_out.append(base_dir+name+'/accepted_hits.bam')
                     names.append(base_dir+name)
-    
+	elif name.endswith('.bam') and 'sorted' not in name:
+	    if name.split('/')[-1].split('.bam')[0]+'_sorted.bam' not in os.listdir(base_dir):
+    		tophat_out.append(base_dir+name)
+		names.append(base_dir+name)
     n=0
     for n in range(len(tophat_out)):
         name = names[n]
@@ -521,15 +527,17 @@ def volcano_plot(df, sample_names=None, annotate=False, organism=None, change_th
         ax.scatter(df[(name,'log2FoldChange')], df[(name,'padj')].apply(np.log10).multiply(-1), color='0.5', s=15)
         ax.scatter(sig['log2FoldChange'], sig['padj'].apply(np.log10).multiply(-1), color='orange', s=15)
         ax.scatter(sig2['log2FoldChange'], sig2['padj'].apply(np.log10).multiply(-1), color='darkslateblue', s=15)
-        xmin = min(df[(name,'log2FoldChange')])-0.1*min(df[(name,'log2FoldChange')])
-        xmax = max(df[(name,'log2FoldChange')])+0.1*max(df[(name,'log2FoldChange')])
+        xmin = (min(df[(name,'log2FoldChange')].replace([np.inf, np.inf*-1], np.NaN).dropna(how='any'))-
+		0.1*min(df[(name,'log2FoldChange')].replace([np.inf, np.inf*-1], np.NaN).dropna(how='any')))
+        xmax = (max(df[(name,'log2FoldChange')].replace([np.inf, np.inf*-1], np.NaN).dropna(how='any'))+
+		0.1*max(df[(name,'log2FoldChange')].replace([np.inf, np.inf*-1], np.NaN).dropna(how='any')))
         x_all = max([xmin*-1,xmax])
         print x_all
         xmin= -1*x_all
         xmax= x_all
         
         ymed = np.percentile(df[(name,'padj')].apply(np.log10).multiply(-1).replace([np.inf, np.inf*-1], np.NaN).dropna(how='any'), 99)
-        ymax = ymed + 1.5*ymed
+	ymax = ymed + 1.5*ymed
         
         if ymax < 4:
             ymax = 20
@@ -540,7 +548,7 @@ def volcano_plot(df, sample_names=None, annotate=False, organism=None, change_th
         ax.plot([change_thresh,change_thresh], [-5,ymax], '--', color='0.7')
         ax.plot([-1*change_thresh,-1*change_thresh], [-5,ymax], '--', color='0.7')
         ax.set_xlabel("log2 fold change")
-        ax.set_ylabel("-log10 pvalue")
+        ax.set_ylabel("-log10 padj")
         ax.set_title(name)
         plt.show()
 
