@@ -185,8 +185,8 @@ def peaks_only(config_file, untagged, organism):
             elif 'quant' in line:
                 quant_bams[line.split(',')[-1].strip()] = line.split(',')[0]
 
-    name = sys.argv[1].split('/')[-1].split('_config')[0]
-    base_dir = sys.argv[1].split(name)[0]
+    name = config_file.split('/')[-1].split('_config')[0]
+    base_dir = config_file.split(name)[0]
     if base_dir == '': base_dir = './'
     print "Output file location and prefix: "+base_dir+name
     

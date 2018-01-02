@@ -176,13 +176,13 @@ def CP_compare_to_annotation(peaks, ss_dict, transcript_dict):
                         for pos in peak_range:
                             if pos in info[0]:
                                 five_count += 1
-                                compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "5prime"]
+                                compare_df.ix[n] = [tx[:-2], chrom, strand, int(pos), height, "5prime"]
                                 annotated = True
                                 break
 
                             elif pos in info[1]:
                                 three_count += 1
-                                compare_df.ix[n] = [tx[:-2], chrom, strand, peak, height, "3prime"]
+                                compare_df.ix[n] = [tx[:-2], chrom, strand, int(pos), height, "3prime"]
                                 annotated = True
                                 break
                         if annotated is False:
@@ -245,15 +245,21 @@ def collapse_unpredicted_peaks(df):
     return df
 
 #Add sequences and check whether they're splice sites
-def add_sequence_to_df(df, fa_dict):
+def add_sequence_to_df(df, fa_dict, flag=False):
     seq_df = df
     sequence = []
     looks_like = []
     for index, row in df.iterrows():
         if row['strand'] == '+':
-            seq = fa_dict[row['chromosome']][row['position']-6:row['position']+6]
+            if flag is True:
+                seq = fa_dict[row['chromosome']][row['position']-6:row['position']+6]
+            else:
+                seq = fa_dict[row['chromosome']][row['position']-5:row['position']+7]
         elif row['strand'] == '-':
-            seq = fa_dict[row['chromosome']][row['position']-7:row['position']+5]
+            if flag is True:
+                seq = fa_dict[row['chromosome']][row['position']-6:row['position']+6]
+            else:
+                seq = fa_dict[row['chromosome']][row['position']-6:row['position']+6]
             seq = reverse_complement(seq)
         sequence.append(seq)
         
@@ -301,7 +307,7 @@ def peak_to_seq_pipeline(untagged_peak_file, tagged1_peak_file, tagged2_peak_fil
     if type(fasta) == str:
         fasta = SP.make_fasta_dict(fasta)
     print "Adding sequences..."
-    peak_seq_df = add_sequence_to_df(peak_df, fasta)
+    peak_seq_df = add_sequence_to_df(peak_df, fasta, flag=flag)
     
     print "Writing bedgraph..."
     with open(name+'.bedgraph', 'w') as fout:

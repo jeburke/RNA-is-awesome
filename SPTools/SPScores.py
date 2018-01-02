@@ -892,6 +892,40 @@ def find_score_branches_ppy(quant_df, peak_branch_df, fa_dict):
                         print intron_seq
                 perc_py.append(percent_py(intron_seq[best_branch[0]+5:]))
                                
+            else:
+                matches = []
+                for branch in branch_dict:
+                    if branch in intron_seq:
+                        matches.append((intron_seq.index(branch), branch, branch_dict[branch]))
+
+                if len(matches) == 0:
+                    # Find the closest A
+                    best_ix = intron_seq[:-3].rfind('A')
+                    seq = intron_seq[best_ix-3:best_ix+2]
+                    score = score_branch(seq, PSSM)
+                    best_branch = (best_ix, seq, score)
+
+                    #branch_3_dist.append(np.NaN)
+                    #branch_score.append(np.NaN)
+                    #branch_seqs.append('NNNNN')
+                    #perc_py.append(percent_py(intron_seq[-30:]))
+                elif len(matches) > 1:
+                    matches = sorted(matches, key=lambda x: x[2], reverse=True)
+                    best_branch = matches[0]
+                else:
+                    best_branch = matches[0]
+
+                branch_3_dist.append((len(intron_seq)-best_branch[0]-4)/1000.)
+                branch_score.append(best_branch[2])
+                branch_seqs.append(best_branch[1])
+
+                if len(intron_seq)-best_branch[0]-5 > 1:
+                    if 'N' in intron_seq[best_branch[0]+5:]:
+                        print ix
+                        print intron_seq
+                    perc_py.append(percent_py(intron_seq[best_branch[0]+5:]))
+                else:
+                    perc_py.append(np.NaN)
         else:
             matches = []
             for branch in branch_dict:
@@ -904,7 +938,7 @@ def find_score_branches_ppy(quant_df, peak_branch_df, fa_dict):
                 seq = intron_seq[best_ix-3:best_ix+2]
                 score = score_branch(seq, PSSM)
                 best_branch = (best_ix, seq, score)
-                
+
                 #branch_3_dist.append(np.NaN)
                 #branch_score.append(np.NaN)
                 #branch_seqs.append('NNNNN')
@@ -927,9 +961,16 @@ def find_score_branches_ppy(quant_df, peak_branch_df, fa_dict):
             else:
                 perc_py.append(np.NaN)
     
+    print len(quant_df)
+    print len(branch_score)
+    
     quant_df['branch score'] = branch_score
     quant_df['branch to 3p distance'] = branch_3_dist
     quant_df['percent pPy'] = perc_py
+    
+    branch_seqs = ['NNNNN' if len(x) < 5 else x for x in branch_seqs ]
+    print len(branch_seqs)
+    print len(quant_df)
     
     for n in range(len(branch_seqs[0])):
         pos = [x[n] for x in branch_seqs]

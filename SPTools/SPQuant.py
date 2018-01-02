@@ -16,8 +16,8 @@ def backfill_splice_sites(df, gff3, fa_dict, PSSM, organism=None):
     ss_dict = SP.collapse_ss_dict(ss_dict)
 
     column_dict = {'position':[],'transcript':[],'alt splicing':[],'type':[],'strand':[], 'introns in transcript':[],
-                   'intron size':[],'chromosome':[], '5p score':[], '3p score':[], 'intron position':[], 'exon size':[],
-                   'transcript size':[], 'peak':[], 'seq5':[],'seq3':[]} 
+                   'intron size':[],'chromosome':[], '5p score':[], '3p score':[], 'intron position':[], 'exon size (us)':[],
+                   'exon size (ds)':[],'transcript size':[], 'peak':[], 'seq5':[],'seq3':[]} 
     new_index = []
     
     for tx in set(df['transcript']):
@@ -54,17 +54,42 @@ def backfill_splice_sites(df, gff3, fa_dict, PSSM, organism=None):
             if n == 0:
                 column_dict['intron position'].append('First')
                 if strand == '+':
-                    column_dict['exon size'].append((five_site-tx_dict[iso][0])/1000.)
+                    column_dict['exon size (us)'].append((five_site-tx_dict[iso][0])/1000.)
+                    if len(splice_sites) > 1:
+                        ds_length = (splice_sites[n+1][0] - three_site)/1000.
+                        try:
+                            if ds_length < 0:
+                                ds_length = (splice_sites[n+2][0] - three_site)/1000.
+                        except IndexError:
+                            ds_length = np.NaN
+                    else:
+                        ds_length = (tx_dict[iso][1] - three_site)/1000.
+                    
                 elif strand == '-':
-                    column_dict['exon size'].append((tx_dict[iso][1]-five_site)/1000.)
+                    column_dict['exon size (us)'].append((tx_dict[iso][1]-five_site)/1000.)
+                    if len(splice_sites) > 1:
+                        ds_length = (three_site - splice_sites[n+1][0])/1000.
+                        try:
+                            if ds_length < 0:
+                                ds_length = (three_site - splice_sites[n+2][0])/1000.
+                        except IndexError:
+                            ds_length = np.NaN
+                    else:
+                        ds_length = (three_site - tx_dict[iso][0])/1000.
+                column_dict['exon size (ds)'].append(ds_length)
             
             elif n == len(splice_sites)-1:
                 column_dict['intron position'].append('Last')
-                column_dict['exon size'].append((abs(five_site-splice_sites[n-1][1])-1)/1000.)
-
+                column_dict['exon size (us)'].append((abs(five_site-splice_sites[n-1][1])-1)/1000.)
+                
+                if strand == '+':
+                    column_dict['exon size (ds)'].append((tx_dict[iso][1]-three_site)/1000.)
+                elif strand == '-':
+                    column_dict['exon size (ds)'].append((three_site - tx_dict[iso][0])/1000.)
             else:
                 column_dict['intron position'].append('Middle')
-                column_dict['exon size'].append((abs(five_site-splice_sites[n-1][1])-1)/1000.)
+                column_dict['exon size (us)'].append((abs(five_site-splice_sites[n-1][1])-1)/1000.)
+                column_dict['exon size (ds)'].append(abs(three_site - splice_sites[n+1][0])/1000.)
 
             if in_df is True:
                 peak_index = chrom+':'+str(int(df_pos))
@@ -292,17 +317,20 @@ def quant_from_peak_df(peak_df, gff3, fa_dict, organism=None):
             column_dict['3p score'].append(scores[1])
             column_dict['5p score'].append(scores[0])
             
-    new_quant_df = quant_df[quant_df.index.isin(new_index)][['chromosome','strand','transcript','position','type']]
+    new_quant_df = quant_df[quant_df.index.isin(new_index)][['genome coord','chromosome',
+                                                             'strand','transcript','position','type']]
     for column, data in column_dict.iteritems():
         new_quant_df[column] = data
     
+    new_quant_df = new_quant_df.drop_duplicates(subset='genome coord', keep='first').set_index('genome coord')
+    
     new_quant_df = SP.backfill_splice_sites(new_quant_df, gff3, fa_dict, pssm, organism=organism)
     
-    for n in range(len(new_quant_df['seq5'].iloc[0])):     
-        new_quant_df['Base 5-'+str(n)] = [x[n] for x in new_quant_df['seq5']]
-    for n in range(len(new_quant_df['seq3'].iloc[0])):
-        new_quant_df['Base 3-'+str(n)] = [x[n] for x in new_quant_df['seq3']]
-    new_quant_df = new_quant_df.drop(['seq5','seq3'], axis=1)
+    #for n in range(len(new_quant_df['seq5'].iloc[0])):     
+    #    new_quant_df['Base 5-'+str(n)] = [x[n] for x in new_quant_df['seq5']]
+    #for n in range(len(new_quant_df['seq3'].iloc[0])):
+    #    new_quant_df['Base 3-'+str(n)] = [x[n] for x in new_quant_df['seq3']]
+    #new_quant_df = new_quant_df.drop(['seq5','seq3'], axis=1)
     
     new_quant_df = SP.find_score_branches_ppy(new_quant_df, '/home/jordan/GENOMES/S288C/S288C_branches2.txt', fa_dict)
     
@@ -350,10 +378,10 @@ def count_reads_at_peaks(bam_files, genome_coords, organism=None):
             
             for read in peak_iter:
                 if read.is_reverse and strand == '+':
-                    if read.reference_end in range(pos-5,pos+1):
+                    if read.reference_end in range(pos-3,pos+3):
                         peak_count += 1
                 elif not read.is_reverse and strand == '-':
-                    if read.reference_start in range(pos-2,pos+4):
+                    if read.reference_start in range(pos-3,pos+3):
                         peak_count += 1
             
             all_reads[bam].append(peak_count)
@@ -563,11 +591,11 @@ def main():
     organism = sys.argv[3]
     organism, gff3, fa_dict, bowtie_index = SP.find_organism_files(organism)
     
-    columns = ['5p score','exon size','introns in transcript','type','transcript size', u'intron size', u'chromosome',
-               'position','alt splicing','3p score','transcript','intron position','strand','peak','Base 5-0','Base 5-1',
-               'Base 5-2','Base 5-3','Base 5-4','Base 5-5','Base 5-6','Base 5-7','Base 3-0','Base 3-1','Base 3-2','Base 3-3',
-               'Base 3-4','Base 3-5','Base 3-6','Base 3-7','branch score','branch to 3p distance','percent pPy','branch-0',
-               'branch-1','branch-2','branch-3','branch-4']
+    columns = ['5p score','exon size (us)','exon size (ds)','introns in transcript','type','transcript size','intron size',
+               'chromosome','position','alt splicing','3p score','transcript','intron position','strand','peak',
+               'Base 5-0','Base 5-1','Base 5-2','Base 5-3','Base 5-4','Base 5-5','Base 5-6','Base 5-7','Base 3-0',
+               'Base 3-1','Base 3-2','Base 3-3','Base 3-4','Base 3-5','Base 3-6','Base 3-7','branch score',
+               'branch to 3p distance','percent pPy','branch-0','branch-1','branch-2','branch-3','branch-4']
     
     quant_df = pd.read_csv(sys.argv[2], index_col=0)
     try:

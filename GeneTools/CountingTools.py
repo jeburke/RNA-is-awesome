@@ -94,4 +94,112 @@ def plot_transcripts(series_dict, tx_list):
         plt.show()
         plt.clf()
     
+def count_PE_reads(open_bam, chrom, start, end, strand, both_strands=False, count_junctions=False):
+    if type(open_bam) != pysam.libcsamfile.Samfile:
+        open_bam = pysam.Samfile(open_bam)
     
+    iterator = open_bam.fetch(chrom, start-150, end+150)
+    
+    count = 0
+    for read in iterator:
+        if both_strands is False:
+            # For reads that start or end in the intron
+            if read.reference_start in range(start, end) or read.reference_end in range(start, end):
+                if not read.is_reverse and strand == '+': count += 1
+                elif read.is_reverse and strand == '-': count += 1
+
+            # For reads that span the intron
+            elif read.reference_start <= start and read.reference_end >= end:
+                intron = False
+                if count_junctions is False:
+                    # Check to see if the read contains a junction
+                    if len(read.cigartuples) == 3 and read.cigartuples[1][0] == 3:
+                        intron = True
+
+                if intron is False:
+                    if not read.is_reverse and strand == '+': count += 1
+                    elif read.is_reverse and strand == '-': count += 1
+                            
+        else:
+            # Don't need to worry about strand or read1 vs. read2, otherwise same as above
+            if read.reference_start in range(start, end) or read.reference_end in range(start, end):
+                count += 1
+            elif read.reference_start <= start and read.reference_end >= end:
+                intron = False
+                if count_junctions is False:
+                    # Check to see if the read contains a junction
+                    if len(read.cigartuples) == 3 and read.cigartuples[1][0] == 3:
+                        intron = True
+                if intron is False:
+                    count += 1
+                    
+    return count
+
+def PE_intron_retention_from_annotation(bam_list, organism, both_strands=False, count_junctions=False):
+    if 'crypto' in organism.lower():
+        gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
+        organism=None
+    elif 'pombe' in organism.lower():
+        gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
+        organism='pombe'
+    elif 'cerev' in organism.lower():
+        gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
+        organism=None
+        
+    tx_dict = GT.build_transcript_dict(gff3, organism=organism)
+    ss_dict, flag = SP.list_splice_sites(gff3, organism=organism)
+    ss_dict = SP.collapse_ss_dict(ss_dict)
+    #ss_dict = {k:v for k, v in ss_dict.items() if k in ss_dict.keys()[:100]}
+    
+    open_bams = {}
+    data_dict = {}
+    for bam in bam_list:
+        open_bams[bam] = pysam.Samfile(bam)
+        name = bam.split('/')[-1].split('_sorted.bam')[0]
+        print name
+        data_dict[bam] = {bam:name, 'reads in transcript':[], 'reads in intron':[]}
+        
+    column_dict = {'transcript':[],'intron start':[],'intron end':[],'transcript size':[],'chromosome':[],'strand':[]}
+    
+    for tx, splice_sites in ss_dict.iteritems():
+        print tx
+        # Get information for overall transcript
+        if organism == 'pombe': iso = tx+'.1'
+        else: iso = tx+'T0'
+        start, end, chrom, strand, CDS_start, CDS_end, exons = GT.tx_info(iso, tx_dict)
+
+        tx_counts = {}
+        for bam, open_bam in open_bams.iteritems():
+            # Count reads in transcript
+            tx_counts[bam] = count_PE_reads(open_bam, chrom, start, end, strand, both_strands=both_strands, count_junctions=True)
+        
+        # Iterate over all annotated introns in transcript
+        for five, three in splice_sites:
+            column_dict['transcript'].append(tx)
+            column_dict['intron start'].append(five)
+            column_dict['intron end'].append(three)
+            column_dict['transcript size'].append(end-start)
+            column_dict['chromosome'].append(chrom)
+            column_dict['strand'].append(strand)
+            
+            for bam, open_bam in open_bams.iteritems():
+                if strand == '+':
+                    intron_counts = count_PE_reads(open_bam, chrom, five, three, strand, both_strands=both_strands, count_junctions=count_junctions)
+                if strand == '-':
+                    intron_counts = count_PE_reads(open_bam, chrom, three, five, strand, both_strands=both_strands, count_junctions=count_junctions)
+                
+                data_dict[bam]['reads in transcript'].append(tx_counts[bam])
+                data_dict[bam]['reads in intron'].append(intron_counts)
+                
+    df = pd.DataFrame(columns=column_dict.keys(), index=range(len(column_dict['transcript'])))
+    for col, info in column_dict.iteritems():
+        df[col] = info
+    df['intron size'] = (df['intron start']-df['intron end']).apply(abs)
+    
+    for bam, data in data_dict.iteritems():
+        df[data[bam]+': reads in transcript'] = data['reads in transcript']
+        df[data[bam]+': reads in intron'] = data['reads in intron']
+        df[data[bam]+': intron retention'] = ((df[data[bam]+': reads in intron']/float(sum(df[data[bam]+': reads in intron'])))/
+                                              (df[data[bam]+': reads in transcript']/float(sum(df[data[bam]+': reads in transcript']))))
+        
+    return df

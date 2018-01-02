@@ -232,7 +232,7 @@ def igv_plots_general(bam_list, gene_list, organism, colors=None, names=None, sa
                     if PE is False:
                         s2 = SP.generate_read_series_B(bam_iter, chrom, start, end, fix_info[strand])
                     else:
-                        s2 = SP.generate_read_series_PE(bam_iter, chorm, start, end, fix_info[strand])
+                        s2 = SP.generate_read_series_PE(bam_iter, chrom, start, end, fix_info[strand])
                     linewidth = 1
                 s = s.add(s2)
             

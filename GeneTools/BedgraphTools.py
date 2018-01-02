@@ -171,7 +171,7 @@ def UTR_windows(tx_dict, wt_reps_plus, wt_reps_minus, mut_reps_plus, mut_reps_mi
 
     return change_set
 
-def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False):
+def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, stranded=False):
     if 'crypto' in organism.lower():
         genome = '/home/jordan/GENOMES/crypto_for_bedgraph.genome'
     elif 'cerev' in organism.lower():
@@ -202,23 +202,31 @@ def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False):
         
     for n in range(len(bam_list)):
         out = bam_list[n].split('/')[-1].split('.')[0]
-        if start_only is False:
-            command1 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand + -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
-        elif start_only is True:
-            command1 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand + -5 -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
-        print command1
-        bg1 = check_output(command1.split(), shell=False)
-        with open('{0}_plus.bedgraph'.format(out),'w') as fout:
-            fout.write(bg1)
-        if start_only is False:
-            command2 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand - -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
-        elif start_only is True:
-            command2 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand - -5 -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
-        bg2 = check_output(command2.split(), shell=False)
-        with open('{0}_minus.bedgraph'.format(out),'w') as fout:
-            fout.write(bg2)
+	if stranded is True:
+            if start_only is False:
+                command1 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand + -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
+            elif start_only is True:
+                command1 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand + -5 -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
+            print command1
+            bg1 = check_output(command1.split(), shell=False)
+            with open('{0}_plus.bedgraph'.format(out),'w') as fout:
+                fout.write(bg1)
+            if start_only is False:
+                command2 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand - -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
+            elif start_only is True:
+                command2 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand - -5 -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
+            bg2 = check_output(command2.split(), shell=False)
+            with open('{0}_minus.bedgraph'.format(out),'w') as fout:
+                fout.write(bg2)
+	else:
+	    if start_only is False:
+                command = 'genomeCoverageBed -ibam {0} -g {1} -bg -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
+	    else:
+		command = 'genomeCoverageBed -ibam {0} -g {1} -bg -5 -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
+	    bg = check_output(command.split(), shell=False)
+	    with open('{0}.bedgraph'.format(out),'w') as fout:
+		fout.write(bg)            
 
-            
 def list_bedgraphs(directory):
     plus_list = []
     minus_list = []
