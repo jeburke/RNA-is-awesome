@@ -195,8 +195,8 @@ def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, st
     ratio_list = []
     n=0
     for n in range(len(bam_list)):
-        print bam_list[n]
-        print total_aligned[n]
+#        print bam_list[n]
+#        print total_aligned[n]
         ratio = float(total_aligned[n])/float(total_aligned[0])
         ratio_list.append(1/ratio)
         
@@ -223,7 +223,8 @@ def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, st
                 command = 'genomeCoverageBed -ibam {0} -g {1} -bg -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
 	    else:
 		command = 'genomeCoverageBed -ibam {0} -g {1} -bg -5 -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
-	    bg = check_output(command.split(), shell=False)
+	    print command
+            bg = check_output(command.split(), shell=False)
 	    with open('{0}.bedgraph'.format(out),'w') as fout:
 		fout.write(bg)            
 

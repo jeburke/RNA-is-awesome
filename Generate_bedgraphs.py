@@ -6,6 +6,7 @@ Include the start_only argument to map only the 5' ends of reads'''
 
 import sys
 import GeneTools as GT
+import Combine_stranded_bedgraphs
 
 directory = sys.argv[1]
 organism = sys.argv[2]
@@ -19,3 +20,5 @@ for arg in sys.argv:
 	stranded = True
 
 GT.generate_scaled_bedgraphs(directory, organism=organism, start_only=start_only, stranded=stranded)
+if stranded is True:
+    Combine_stranded_bedgraphs.main(directory=directory)
