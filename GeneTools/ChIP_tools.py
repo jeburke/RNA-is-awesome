@@ -83,7 +83,7 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
     
     if Z_change is True:
         ax[1,0].plot(df[for_plot[0]],df[for_plot[2]],'o', alpha=0.5, color='0.4')
-        dep_df1 = df[(df[Z_scores[0]] >= 1.8) | (df[Z_scores[0]] <= -1.8)]
+        dep_df1 = df[(df[Z_scores[0]] >= 2) | (df[Z_scores[0]] <= -2)]
         ax[1,0].plot(dep_df1[for_plot[0]],dep_df1[for_plot[2]],'o', alpha=0.6, color='darkorchid')
     
     ax[1,1].set_xlabel(for_plot[1])
@@ -91,9 +91,20 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
     
     if Z_change is True:
         ax[1,1].plot(df[for_plot[1]],df[for_plot[3]],'o', alpha=0.5, color='0.4')
-        dep_df2 = df[(df[Z_scores[1]] >= 1.8) | (df[Z_scores[1]] <= -1.8)]
+        dep_df2 = df[(df[Z_scores[1]] >= 2) | (df[Z_scores[1]] <= -2)]
         ax[1,1].plot(dep_df2[for_plot[1]],dep_df2[for_plot[3]],'o', alpha=0.6, color='darkorchid')
-        
+    
+        up = set(df.index)
+        down = set(df.index)
+        for Z_col in Z_scores:
+            up = up.intersection(df[df[Z_col] >= 2].index)
+            down = down.intersection(df[df[Z_col] <= -2].index)
+        df['Z-change'] = 'Unchanged'
+        df.loc[up, 'Z-change'] = 'Up'
+        df.loc[down, 'Z-change'] = 'Down'
+    
+    df.to_csv(plot_name+'.csv')    
+
     if cen_tel is True:
         cen_df = df[df.index.str.contains('Cen')]
         tel_df = df[df.index.str.contains('tel')]
@@ -153,4 +164,3 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
 
         plt.show()
         plt.clf()
-

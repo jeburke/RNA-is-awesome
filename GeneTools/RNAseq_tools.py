@@ -20,6 +20,7 @@ from decimal import Decimal
 import json
 import matplotlib.patches as patches
 from collections import OrderedDict
+import seaborn as sns
 
 font = {'family': 'sans-serif',
         'color':  'black',
@@ -179,7 +180,7 @@ def count_with_HTseq(base_dir, organism='crypto'):
 def main():
     '''Runs the first part of this module to align, sort, index and count reads'''
     # Input will be RNAseq_tools.py directory number_of_threads_tophat [organism] [SE/PE]
-    # Current organism options: 'crypt', 'pombe', 'cerevisiae'
+    # Current organism options: 'crypto', 'pombe', 'cerevisiae'
     PE = False
     if len(sys.argv) == 3:
         organism = 'crypto'
@@ -347,7 +348,9 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     both_max = max(data_min*-1, data_max)
     fig = plt.figure(figsize=(3,12))
     ax = fig.add_subplot(111)
-    pcm = ax.pcolor(range(len(data.columns)), range(len(data.index)), data[data.columns[:-1]], cmap='PuOr_r', norm=colors.Normalize(vmin=both_max*-1, vmax=both_max))
+    pcm = ax.pcolor(np.arange(len(data.columns)), np.arange(len(data.index)),
+                    data[data.columns[:-1]].as_matrix(), cmap='PuOr_r',
+                    norm=colors.Normalize(vmin=both_max*-1, vmax=both_max))
     ax.yaxis.set_ticks(cluster_sizes)
     ax.yaxis.set_ticklabels(range(len(cluster_sizes)))
     plt.xticks([x+0.5 for x in range(len(data.columns))], sample_names, rotation="vertical")
@@ -462,7 +465,7 @@ def list_of_genes_in_cluster(data, cluster_index, name=None, annotate=False, org
         name = 'cluster'+str(cluster_index)
     
     multi_index = False
-    if type(in_cluster.columns) == pd.indexes.multi.MultiIndex: 
+    if type(in_cluster.columns) == pd.core.indexes.multi.MultiIndex: 
         multi_index = True
     
     in_cluster.to_csv(name+'_genes.csv')
@@ -746,6 +749,8 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
     df = pd.read_csv(csv, index_col=0)
     if df.index[0].startswith('gene'):
         df.index = [x.split('gene:')[1] for x in df.index]
+    if len(df.columns) <= 1:
+	df = pd.read_csv(csv, sep='\t', index_col=0)
     
     if organism == 'crypto': 
         fa_json = '/home/jordan/GENOMES/H99_fa.json'

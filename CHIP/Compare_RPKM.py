@@ -86,7 +86,7 @@ def compare_reads(ChIP_bam1, WCE_bam1, ChIP_bam2, WCE_bam2, prom_dict, prefix, f
     fig = plt.figure(figsize=(8,6))
     ax = sns.regplot(x=name1+' Normalized', y=name2+' Normalized', data=df, fit_reg=fit_reg)
     plt.show()
-    fig.save_fig(prefix+'_scatter.pdf',format='pdf')
+    fig.savefig(prefix+'_scatter.pdf',format='pdf')
     plt.clf()
     
     return df
