@@ -465,8 +465,12 @@ def list_of_genes_in_cluster(data, cluster_index, name=None, annotate=False, org
         name = 'cluster'+str(cluster_index)
     
     multi_index = False
-    if type(in_cluster.columns) == pd.core.indexes.multi.MultiIndex: 
-        multi_index = True
+    try:
+        if type(in_cluster.columns) == pd.core.indexes.multi.MultiIndex: 
+            multi_index = True
+    except AttributeError:
+        if type(in_cluster.columns) == pd.indexes.multi.MultiIndex:
+            multi_index = True
     
     in_cluster.to_csv(name+'_genes.csv')
             
@@ -812,8 +816,8 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
             else:
                 stops.append(chrom_sizes[chrom])
         
-        chrom_df['start'] = starts
-        chrom_df['stop'] = stops
+        chrom_df.loc[:,'start'] = starts
+        chrom_df.loc[:,'stop'] = stops
         chrom_df = chrom_df.sort_values('start')
         
         chrom_patches = []

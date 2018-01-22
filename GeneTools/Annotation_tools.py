@@ -22,6 +22,8 @@ def crypto_annotate(text_file, sep=',', multi_index=False):
     hiten = pd.read_csv('/home/chomer/Code_Base/AnnotateGenes/HitensCryptoAnnot_new.txt', sep='\t', index_col=0)
     
     if multi_index is True:
+        yi.columns = pd.MultiIndex.from_product(['Annotation',yi.columns])
+        hiten.columns = pd.MultiIndex.from_product(['Annotation',hiten.columns])
         df = pd.read_csv(text_file, sep=sep, index_col=0, header=[0,1])
     else:
         df = pd.read_csv(text_file, sep=sep, index_col=0)
