@@ -35,7 +35,7 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
         
     if 'crypto' in organism.lower():
 #        bowtie_ix = '/home/jordan/GENOMES/Crypto_for_gobs'
-	bowtie_ix = '/home/jordan/GENOMES/H99_bt2'
+        bowtie_ix = '/home/jordan/GENOMES/H99_bt2'
         gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
     elif 'cerev' in organism.lower():
         bowtie_ix = '/home/jordan/GENOMES/S288C/S288C'
@@ -44,7 +44,7 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
             bowtie_ix = '/home/jordan/GENOMES/S288C/S288C_DBK'
     elif 'pombe' in organism.lower():
 #        bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe'
-	bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe-2'
+        bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe-2'
         gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
         
     fastq_list = []
@@ -75,7 +75,7 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
                 if directory+name == fastq.split('.fastq')[0]:
                     if 'accepted_hits.bam' in os.listdir(directory+name):
                         fastq_list.remove(fastq)
-                        print "Tophat alread completed on "+fastq
+                        print "Tophat already completed on "+fastq
     
     if len(fastq_list) > 0:
         for n, fastq in enumerate(fastq_list):

@@ -187,46 +187,46 @@ def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, st
     total_aligned = []
     for bam in bam_list:
         command = 'samtools view -F 0x904 -c {0}'.format(bam)
-	aligned_reads = check_output(command.split(), shell=False)
-	total_aligned.append(aligned_reads)
-	print "Total aligned reads in "+bam
-	print aligned_reads
+        aligned_reads = check_output(command.split(), shell=False)
+        total_aligned.append(aligned_reads)
+        print "Total aligned reads in "+bam
+        print aligned_reads
     
-    ratio_list = []
-    n=0
-    for n in range(len(bam_list)):
-#        print bam_list[n]
-#        print total_aligned[n]
-        ratio = float(total_aligned[n])/float(total_aligned[0])
-        ratio_list.append(1/ratio)
-        
+    #ratio_list = []
+    #n=0
+    #for n in range(len(bam_list)):
+    #    ratio = float(total_aligned[n])/float(total_aligned[0])
+    #    ratio_list.append(1/ratio)
+     
+    total_aligned = [float(x)/1000000 for x in total_aligned]
+    
     for n in range(len(bam_list)):
         out = bam_list[n].split('/')[-1].split('.')[0]
-	if stranded is True:
+        if stranded is True:
             if start_only is False:
-                command1 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand + -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
+                command1 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand + -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
             elif start_only is True:
-                command1 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand + -5 -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
+                command1 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand + -5 -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
             print command1
             bg1 = check_output(command1.split(), shell=False)
             with open('{0}_plus.bedgraph'.format(out),'w') as fout:
                 fout.write(bg1)
             if start_only is False:
-                command2 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand - -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
+                command2 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand - -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
             elif start_only is True:
-                command2 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand - -5 -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
+                command2 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand - -5 -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
             bg2 = check_output(command2.split(), shell=False)
             with open('{0}_minus.bedgraph'.format(out),'w') as fout:
                 fout.write(bg2)
-	else:
-	    if start_only is False:
-                command = 'genomeCoverageBed -ibam {0} -g {1} -bg -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
-	    else:
-		command = 'genomeCoverageBed -ibam {0} -g {1} -bg -5 -scale {2}'.format(bam_list[n], genome, str(ratio_list[n]))
-	    print command
+        else:
+            if start_only is False:
+                command = 'genomeCoverageBed -ibam {0} -g {1} -bg -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
+            else:
+                command = 'genomeCoverageBed -ibam {0} -g {1} -bg -5 -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
+            print command
             bg = check_output(command.split(), shell=False)
-	    with open('{0}.bedgraph'.format(out),'w') as fout:
-		fout.write(bg)            
+            with open('{0}.bedgraph'.format(out),'w') as fout:
+                fout.write(bg)            
 
 def list_bedgraphs(directory):
     plus_list = []
@@ -367,3 +367,42 @@ def read_sorted_bedgraph(bedgraph_dict_output, transcript_dict, organism=None):
                         
                         bg_dict[tx] = entry
     return bg_dict
+
+def bedgraph_reader(bedgraph, chromosomes=None):
+    df = pd.read_csv(bedgraph, sep='\t', header=None, names=['chromosome','start','end','RPM'])
+    
+    if chromosomes is not None:
+        df = df[df['chromosome'].isin(chromosomes)]
+        
+    df.index = df['chromosome'].str.cat(df['start'].apply(str),sep=':')
+    
+    return df
+ 
+def normalize_bedgraph(tagged, untagged):
+    tagged_RPM = bedgraph_reader(tagged)
+    untagged_RPM = bedgraph_reader(untagged)
+    
+    total = tagged_RPM.merge(untagged_RPM, right_index=True, left_index=True, how='left')
+    total.loc[:,'norm RPM'] = total['RPM_x']/total['RPM_y']
+    
+    normalized = total[['chromosome_x','start_x','end_x','norm RPM']]
+    normalized = normalized.dropna(how='any')
+    
+    normalized.to_csv(tagged.split('.bedgraph')[0]+'_norm.bedgraph', sep='\t', index=False, header=False)
+    
+def smooth_bedgraphs(bedgraph_list, window):
+    for bedgraph in bedgraph_list:
+        print bedgraph
+        bg_df = bedgraph_reader(bedgraph)
+        new_bg = pd.DataFrame(columns=bg_df.columns)
+        for chrom in set(bg_df['chromosome']):
+            chrom_df = bg_df[bg_df['chromosome'] == chrom]
+            chrom_df = chrom_df.sort_values(['start'])
+            new_intensities = chrom_df['RPM'].rolling(window=window, center=True).mean()
+            chrom_df.loc[:,'RPM'] = new_intensities
+            new_bg = new_bg.append(chrom_df.dropna(how='any'))
+            
+        new_bg = new_bg.sort_values(['chromosome','start'])
+        new_bg.loc[:,'start'] = new_bg['start'].apply(int)
+        new_bg.loc[:,'end'] = new_bg['end'].apply(int)
+        new_bg.to_csv(bedgraph.split('.bedgraph')[0]+'_{0}bp_smooth.bedgraph'.format(str(window)), sep='\t', index=False, header=False)
