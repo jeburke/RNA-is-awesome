@@ -3,6 +3,7 @@ import os
 from subprocess import check_output
 from subprocess import call
 from subprocess import Popen
+from multiprocessing import Pool
 import math
 import numpy as np
 import pandas as pd
@@ -171,6 +172,73 @@ def UTR_windows(tx_dict, wt_reps_plus, wt_reps_minus, mut_reps_plus, mut_reps_mi
 
     return change_set
 
+def count_aligned_reads(bam):
+    command = 'samtools view -F 0x904 -c {0}'.format(bam)
+    aligned_reads = check_output(command.split(), shell=False)
+    aligned_reads = float(aligned_reads)/1000000
+    print '\n'+bam
+    print "{0} million reads".format("%.2f" % aligned_reads)
+    return {bam:aligned_reads}
+
+def run_genomeCoverageBed(command):
+    with open('error.log','a') as fout:
+        process = Popen(command, shell=True, stdout=fout, stderr=fout)
+    ret_code = process.wait()
+    return ret_code
+
+def generate_scaled_bedgraphs2(directory, organism='crypto', start_only=False, stranded=False, threads=1):
+    if 'crypto' in organism.lower():
+        genome = '/home/jordan/GENOMES/crypto_for_bedgraph.genome'
+    elif 'cerev' in organism.lower():
+        genome = '/home/jordan/GENOMES/S288C/S288C_for_bedgraph.genome'
+    elif 'pombe' in organism.lower():
+        genome = '/home/jordan/GENOMES/POMBE/Sp_for_bg.genome'
+    elif 'albicans' in organism.lower() or 'candida' in organism.lower():
+        genome = '/home/jordan/GENOMES/C_albicans_for_bg.genome'
+    
+    bam_list = []
+    for file in os.listdir(directory):
+        if file.lower().endswith("sorted.bam"):
+            bam_list.append(directory+file)
+    
+    p = Pool(threads)
+    totals = {}
+    entries = p.map(count_aligned_reads, bam_list)
+    for x in entries:
+        totals.update(x)
+    
+    commands = {}
+    for n, bam in enumerate(bam_list):
+        command = 'genomeCoverageBed -ibam {0} -g {1} -bg -scale {2} '.format(bam, genome, "%.2f" % totals[bam])
+        commands[bam] = command
+    
+    if start_only is True:
+        commands = [x+'-5 ' for x in comands]
+    if stranded is True:
+        stranded_cmds = {}
+        for bam, command in commands.iteritems():
+            stranded_cmds[bam] = []
+            stranded_cmds[bam].append(command+'-strand + ')
+            stranded_cmds[bam].append(command+'-strand - ')
+        commands = stranded_cmds
+    
+    final_cmds = []
+    for bam, command in commands.iteritems():
+        if type(command) == list:
+            final_cmds.append(command[0]+'> {0}_plus.bedgraph'.format(bam.split('.bam')[0]))
+            final_cmds.append(command[1]+'> {0}_minus.bedgraph'.format(bam.split('.bam')[0]))
+        else:
+            final_cmds.append(command+'> {0}.bedgraph'.format(bam.split('.bam')[0]))
+    
+    #for command in final_cmds:
+    #    print command
+    
+    p = Pool(threads)
+    codes = p.map(run_genomeCoverageBed, final_cmds)
+    
+    return codes
+        
+
 def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, stranded=False):
     if 'crypto' in organism.lower():
         genome = '/home/jordan/GENOMES/crypto_for_bedgraph.genome'
@@ -178,6 +246,8 @@ def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, st
         genome = '/home/jordan/GENOMES/S288C/S288C_for_bedgraph.genome'
     elif 'pombe' in organism.lower():
         genome = '/home/jordan/GENOMES/POMBE/Sp_for_bg.genome'
+    elif 'albicans' in organism.lower() or 'candida' in organism.lower():
+        genome = '/home/jordan/GENOMES/C_albicans_for_bg.genome'
     
     bam_list = []
     for file in os.listdir(directory):
@@ -392,7 +462,6 @@ def normalize_bedgraph(tagged, untagged):
     
 def smooth_bedgraphs(bedgraph_list, window):
     for bedgraph in bedgraph_list:
-        print bedgraph
         bg_df = bedgraph_reader(bedgraph)
         new_bg = pd.DataFrame(columns=bg_df.columns)
         for chrom in set(bg_df['chromosome']):

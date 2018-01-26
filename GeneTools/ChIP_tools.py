@@ -35,6 +35,12 @@ def align_fastq_chip(directory, threads=1, organism='crypto', adaptor='GATCGGAAG
     elif 'pombe' in organism.lower():
         bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe'
         gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
+    elif 'candida' in organism.lower() or 'albicans' in organism.lower():
+        bowtie_ix = '/home/jordan/GENOMES/C_abicans'
+        gff3 = '/home/jordan/GENOMES/C_albicans_SC5314_version_A21-s02-m09-r10_features.gff'
+    else:
+        print "Organism not recognized"
+        return None
         
     fastq_list = []
     for file in os.listdir(directory):
@@ -87,7 +93,6 @@ def align_fastq_chip(directory, threads=1, organism='crypto', adaptor='GATCGGAAG
                     logfile.write('**********Cutadapt output**********\n')
                     processes.append(subprocess.Popen(cutadapt_args, shell=True, universal_newlines=True, stdout=logfile, stderr=logfile))
                     if (n+1) % threads == 0 or n+1 == len(fastq_list):
-                        print "waiting..."
                         for p in processes:
                             p.wait()
                     
@@ -96,22 +101,24 @@ def align_fastq_chip(directory, threads=1, organism='crypto', adaptor='GATCGGAAG
         for n, fastq in enumerate(fastq_list):
             prefix = fastq.split('/')[-1].split('.fastq')[0]
             print prefix
+            trim_name = prefix+'_trim.fastq'
             with open(prefix+'.log', 'a') as logfile:
                 if len([x for x in os.listdir(directory+'MULTI/') if prefix in x]) == 0:
-                    print "Aligning allowing multiple alignments (random assignment)..."
-                    multi_args = "bowtie -p{0} -v2 -M1 --best --un {1}_multi_un.fastq --max {1}_multi.fastq {2} -q {3} --sam {1}_multi.sam".format(str(threads), directory+'MULTI/'+prefix, bowtie_ix, trim_name)
                     logfile.write('\n**********Bowtie multi alignment output**********\n')
+                    print "Aligning allowing multiple alignments (random assignment)..."
+                    
+                    multi_args = "bowtie -p{0} -v2 -M1 --best --un {1}_multi_un.fastq --max {1}_multi.fastq {2} -q {3} --sam {1}_multi.sam".format(str(threads), directory+'MULTI/'+prefix, bowtie_ix, trim_name)
                     ret_code = run(multi_args, logfile)
                 
                 if len([x for x in os.listdir(directory+'UNIQUE/') if prefix in x]) == 0:
-                    print "Aligning allowing only unique alignments...\n"
-                    unique_args = "bowtie -p{0} -v2 -m1 --un {1}_unique_un.fastq  {2} -q {3} --sam {1}_unique.sam".format(str(threads), directory+'UNIQUE/'+prefix, bowtie_ix, trim_name)
                     logfile.write('\n**********Bowtie unique alignment output**********\n')
+                    print "Aligning allowing only unique alignments...\n"
+                    
+                    unique_args = "bowtie -p{0} -v2 -m1 --un {1}_unique_un.fastq  {2} -q {3} --sam {1}_unique.sam".format(str(threads), directory+'UNIQUE/'+prefix, bowtie_ix, trim_name)
                     ret_code = run(unique_args, logfile)
     
     for subdir in ('MULTI/','UNIQUE/'):
         sam_files = [x for x in os.listdir(directory+subdir) if x.endswith('.sam')]
-        print sam_files
         processes = []
         for n, sam in enumerate(sam_files):
             name = sam.split('.sam')[0]
@@ -119,26 +126,23 @@ def align_fastq_chip(directory, threads=1, organism='crypto', adaptor='GATCGGAAG
             processes.append(subprocess.Popen(args.split(' '), stdout=subprocess.PIPE))
             
             if (n+1) % threads == 0 or n+1 == len(sam_files):
-                print "waiting..."
                 for p in processes:
                     p.wait()
                     
         bam_files = [x for x in os.listdir(directory+subdir) if x.endswith('bam') and not x.endswith('_sorted.bam')]
-        print bam_files
         processes = []
         for n, bam in enumerate(bam_files):
             name = bam.split('.bam')[0]
             args = "samtools sort {0}.bam -o {0}_sorted.bam".format(directory+subdir+name)
             processes.append(subprocess.Popen(args.split(' '), stdout=subprocess.PIPE))
             if (n+1) % threads == 0 or n+1 == len(bam_files):
-                print "waiting..."
                 for p in processes:
                     p.wait()
     
         sorted_bams = [x for x in os.listdir(directory+subdir) if x.endswith('_sorted.bam')]
-        print sorted_bams
         processes = []
         for n, bam in enumerate(sorted_bams):
+            print bam
             args = "samtools index {0}".format(directory+subdir+bam)
             processes.append(subprocess.Popen(args.split(' '), stdout=subprocess.PIPE))
             if (n+1) % threads == 1 or n+1 == len(sorted_bams):
@@ -149,7 +153,7 @@ def align_fastq_chip(directory, threads=1, organism='crypto', adaptor='GATCGGAAG
         for sam in [x for x in os.listdir(directory+subdir) if x.endswith('.sam')]:
             os.remove(directory+subdir+sam)
         for bam in [x for x in os.listdir(directory+subdir) if x.endswith('.bam')]:
-            if not name.endswith('_sorted.bam'):
+            if not bam.endswith('_sorted.bam'):
                 os.remove(directory+subdir+bam)
     
     for trim in [x for x in os.listdir(directory) if x.endswith('trim.fastq')]:
@@ -170,7 +174,7 @@ def main():
         elif arg == '--organism':
             organism = sys.argv[n+1]
         elif arg == '--adaptor':
-            adaptor = sys.argv[n+1]
+            alt_adaptor = sys.argv[n+1]
     
     if alt_adaptor is not None:
         adaptor = alt_adaptor
@@ -339,7 +343,8 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
         
 def add_transcript(df, gff3, organism=None):
     tx_dict = GT.build_transcript_dict(gff3, organism=organism)
-    transcripts = []
+    transcripts = set()
+    transcripts_for_df = []
     for ix, r in df.iterrows():
         r_tx = ''
         chrom_tx = {k:v for k, v in tx_dict.items() if v[3] == r['chr']}
@@ -348,13 +353,25 @@ def add_transcript(df, gff3, organism=None):
                 if info[2] == '+':
                     if r['abs_summit'] in range(info[0]-500,info[1]):
                         r_tx = r_tx+tx[:-2]+','
+                        transcripts.add(tx[:-2])
                 if info[2] == '-':
                     if r['abs_summit'] in range(info[0],info[1]+500):
                         r_tx = r_tx+tx[:-2]+','
-        transcripts.append(r_tx)
-    df.loc[:,'transcript'] = transcripts
-    df.loc[df[df['transcript'] == ''].index,'transcript'] = None
-    return df
+                        transcripts.add(tx[:-2])
+        if r_tx == '':
+            for tx, info in chrom_tx.iteritems():
+                if tx[:-2] not in r_tx:
+                    if info[2] == '+':
+                        if r['abs_summit'] in range(info[0]-1000,info[1]):
+                            r_tx = r_tx+tx[:-2]+','
+                            transcripts.add(tx[:-2])
+                    if info[2] == '-':
+                        if r['abs_summit'] in range(info[0],info[1]+1000):
+                            r_tx = r_tx+tx[:-2]+','
+                            transcripts.add(tx[:-2])
+        transcripts_for_df.append(r_tx)
+    df.loc[:,'transcript'] = transcripts_for_df
+    return df, transcripts
         
 def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism):
     if 'crypto' in organism.lower():
@@ -398,6 +415,10 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism):
     filtered = filtered.drop(['In replicate','In untagged'], axis=1)
     
     # Add transcripts
-    filtered = add_transcript(filtered, gff3, organism=organism)
+    filtered, transcripts = add_transcript(filtered, gff3, organism=organism)
     
     filtered.to_csv(rep1_xls.split('.xls')[0]+'_comparison.csv', index=False)
+    
+    with open(rep1_xls.split('.xls')[0]+'_genes_with_peaks.txt', 'w') as fout:
+        for transcript in transcripts:
+            fout.write(transcript+'\n')
