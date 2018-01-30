@@ -847,3 +847,53 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
 
     plt.show()
     plt.clf()
+    
+def RNAseq_log2foldchange_scatter(csv1, csv2, gene_list=None, sep=',', color='0.3'):
+    '''Creates scatter of log2FoldChange from 2 DESeq2 output files. Provide a gene_list (can be a spreadsheet) if you want to filter which points are shown. Each point is a transcript.
+    
+    Parameters
+    ----------
+    csv1 : str
+         DESeq2 output file in csv format.
+    csv2 : str
+         DESeq2 output file in csv format.
+    gene_list : str or list, default ``None``
+         Some kind of text file with the genes you want to plot as the first column. Can also be a Python list.
+    sep : str, default ","
+         Type of separator in the csv1 and csv2 files
+    color : str, default "0.3", which is dark grey
+         Color of points in scatter plot. Look up acceptable names for colors in matplotlib.
+    
+    Returns
+    ------
+    fig : matplotlib figure object
+          fig can be saved using the command fig.savefig("somename.pdf", format="pdf", bbox_inches="tight")'''
+    
+    df1 = pd.read_csv(csv1, sep=sep, index_col=0)
+    df2 = pd.read_csv(csv2, sep=sep, index_col=0)
+    
+    if type(gene_list) == str:
+        gene_list_open = []
+        with open(gene_list) as f:
+            for line in f:
+                gene_list_open.append(line.split(' ')[0].split(',')[0].split('\t')[0].strip())
+        gene_list = gene_list_open
+    
+    df = df1.merge(df2, right_index=True, left_index=True, how='inner')
+    if gene_list is not None:
+        df = df[df.index.isin(gene_list)]
+    
+    fig, ax = plt.subplots(1, figsize=(5,5))
+    
+    cols = [x for x in df.columns if 'log2FoldChange' in x]
+    
+    ax.scatter(df[cols[0]],df[cols[1]], s=15, color=color, alpha=0.5)
+    ax.set_xlim(ax.get_xlim())
+    ax.set_ylim(ax.get_ylim())
+    ax.plot(ax.get_xlim(), ax.get_ylim(), '--', color='0.7', zorder=0)
+    
+    ax.set_xlabel(csv1.split('.csv')[0].split('/')[-1]+'\nlog2FoldChange', fontsize=14)
+    ax.set_ylabel(csv2.split('.csv')[0].split('/')[-1]+'\nlog2FoldChange', fontsize=14)
+    
+    plt.show()
+    return fig

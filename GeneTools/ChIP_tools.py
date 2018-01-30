@@ -163,7 +163,7 @@ def main():
     alt_adaptor = None
     for n, arg in enumerate(sys.argv):
         if arg == '-h' or arg == '--help':
-            print "\nUsage:\npython ChIP_tools.py --directory fastq_directory --threads num_threads --organism crypto/pombe/cerevisiae <--adaptor GATCGGAAGA>\n"
+            print "\nUsage:\npython ChIP_tools.py --directory fastq_directory --threads num_threads --organism crypto/pombe/cerevisiae/candida <--adaptor GATCGGAAGA>\n"
             print "Note: --adaptor argument is optional and will default to the one shown above\n"
             return None
         
@@ -411,7 +411,16 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism):
     df1.loc[:,'In untagged'] = un
     
     # Filter based on reproducibility and untagged
-    filtered = df1[(df1['In replicate'] == True) & (df1['In untagged'] == False)]
+    print "Peaks in "+rep1_xls+":"
+    print len(df1)
+    print "Peaks in "+rep2_xls+":"
+    print len(df2)
+    filtered = df1[df1['In replicate'] == True]
+    print "Peaks in both replicates:"
+    print len(filtered)
+    filtered = df1[df1['In untagged'] == False]
+    print "Peaks not in untagged:"
+    print len(filtered)
     filtered = filtered.drop(['In replicate','In untagged'], axis=1)
     
     # Add transcripts
