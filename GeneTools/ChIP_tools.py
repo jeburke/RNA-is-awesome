@@ -390,14 +390,20 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism):
     
     # Determine if peak is in each replicate
     rep = []
+    enrich2 = []
     for ix, r in df1.iterrows():
+        r_rep = False
         peak = range(r['start'],r['end'])
         rep2_matches = df2[(df2['chr'] == r['chr']) & (df2['abs_summit'].isin(peak))]
         if len(rep2_matches) > 0:
             rep.append(True)
+            r_rep = True
+            enrich2.append(max(rep2_matches['fold_enrichment']))
         else:
             rep.append(False)
+            enrich2.append(np.NaN)
     df1.loc[:,'In replicate'] = rep
+    df1.loc[:,'fold_enrichment2'] = enrich2
     
     # Determine if peak is in untagged
     un = []
@@ -418,7 +424,7 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism):
     filtered = df1[df1['In replicate'] == True]
     print "Peaks in both replicates:"
     print len(filtered)
-    filtered = df1[df1['In untagged'] == False]
+    filtered = filtered[filtered['In untagged'] == False]
     print "Peaks not in untagged:"
     print len(filtered)
     filtered = filtered.drop(['In replicate','In untagged'], axis=1)

@@ -888,8 +888,11 @@ def RNAseq_log2foldchange_scatter(csv1, csv2, gene_list=None, sep=',', color='0.
     cols = [x for x in df.columns if 'log2FoldChange' in x]
     
     ax.scatter(df[cols[0]],df[cols[1]], s=15, color=color, alpha=0.5)
-    ax.set_xlim(ax.get_xlim())
-    ax.set_ylim(ax.get_ylim())
+    min_xy = min(ax.get_xlim()[0], ax.get_ylim()[0])
+    max_xy = max(ax.get_xlim()[1], ax.get_ylim()[1])
+    
+    ax.set_xlim(min_xy, max_xy)
+    ax.set_ylim(min_xy, max_xy)
     ax.plot(ax.get_xlim(), ax.get_ylim(), '--', color='0.7', zorder=0)
     
     ax.set_xlabel(csv1.split('.csv')[0].split('/')[-1]+'\nlog2FoldChange', fontsize=14)
