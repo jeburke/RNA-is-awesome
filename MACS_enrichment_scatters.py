@@ -1,3 +1,20 @@
+'''
+Usage:
+python MACS_enrichment_scatters.py csv1 csv2 plot_name <--min_overlap 0.5>
+
+Required
+--------
+csv1 : Output from GeneTools.compare_MACS_output - plotted on x axis
+csv2 : Output from GeneTools.compare_MACS_output - plotted on y axis
+plot_name : Prefix name for your scatter plots (will save as .pdf)
+
+Optional
+--------
+--min_overlap : Minimum overlap for comparing peaks between mutant and wild type. 
+                Default (0.5) will identify peaks that overlap by at least 50%.
+'''
+
+
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
@@ -73,6 +90,24 @@ def scatter_plots(df, csv1, csv2):
     return fig
 
 def main():
+    if sys.argv[1] == "--help" or sys.argv[1] == '-h':
+        print '''
+Usage:
+python MACS_enrichment_scatters.py csv1 csv2 plot_name <--min_overlap 0.5>
+
+Required
+--------
+csv1 : Output from GeneTools.compare_MACS_output - plotted on x axis
+csv2 : Output from GeneTools.compare_MACS_output - plotted on y axis
+plot_name : Prefix name for your scatter plots (will save as .pdf)
+
+Optional
+--------
+--min_overlap : Minimum overlap for comparing peaks between mutant and wild type. 
+                Default (0.5) will identify peaks that overlap by at least 50%.
+        '''
+        return None
+    
     csv1 = sys.argv[1]
     csv2 = sys.argv[2]
     plot_name = sys.argv[3]

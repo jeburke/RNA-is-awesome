@@ -12,7 +12,6 @@ from matplotlib import pyplot as plt
 import subprocess
 import os
 
-
 def run(cmd, logfile):
     p = subprocess.Popen(cmd, shell=True, universal_newlines=True, stdout=logfile, stderr=logfile)
     ret_code = p.wait()
@@ -373,7 +372,7 @@ def add_transcript(df, gff3, organism=None):
     df.loc[:,'transcript'] = transcripts_for_df
     return df, transcripts
         
-def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism):
+def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism, return_df=False):
     if 'crypto' in organism.lower():
         gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
         organism = None
@@ -391,6 +390,8 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism):
     # Determine if peak is in each replicate
     rep = []
     enrich2 = []
+    starts = []
+    ends = []
     for ix, r in df1.iterrows():
         r_rep = False
         peak = range(r['start'],r['end'])
@@ -398,12 +399,27 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism):
         if len(rep2_matches) > 0:
             rep.append(True)
             r_rep = True
-            enrich2.append(max(rep2_matches['fold_enrichment']))
+            
+            # Determine the nearest absolute summit and record fold enrichment in replicate
+            s = (rep2_matches['abs_summit']-r['abs_summit']).apply(abs)
+            min_dist = s[s == min(s)].index[0]
+            enrich2.append(rep2_matches.loc[min_dist,'fold_enrichment'])
+            
+            # Contract peak window to the reproducible region
+            new_start = max(rep2_matches.loc[min_dist,'start'], r['start'])
+            new_end = min(rep2_matches.loc[min_dist,'end'], r['end'])
+            starts.append(new_start)
+            ends.append(new_end)
         else:
             rep.append(False)
             enrich2.append(np.NaN)
+            starts.append(r['start'])
+            ends.append(r['end'])
+            
     df1.loc[:,'In replicate'] = rep
     df1.loc[:,'fold_enrichment2'] = enrich2
+    df1.loc[:,'start'] = starts
+    df1.loc[:,'end'] = ends
     
     # Determine if peak is in untagged
     un = []
@@ -417,7 +433,7 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism):
     df1.loc[:,'In untagged'] = un
     
     # Filter based on reproducibility and untagged
-    print "Peaks in "+rep1_xls+":"
+    print "\nPeaks in "+rep1_xls+":"
     print len(df1)
     print "Peaks in "+rep2_xls+":"
     print len(df2)
@@ -429,6 +445,12 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism):
     print len(filtered)
     filtered = filtered.drop(['In replicate','In untagged'], axis=1)
     
+    # Remove redundant peaks
+    df1 = df1.sort_values(['fold_enrichment'], ascending=False)
+    df1 = df1.drop_duplicates(subset=['chr','start','end'])
+    print "Peaks remaining after removing summits within the same peak region:"
+    print len(df1)
+    
     # Add transcripts
     filtered, transcripts = add_transcript(filtered, gff3, organism=organism)
     
@@ -437,3 +459,143 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism):
     with open(rep1_xls.split('.xls')[0]+'_genes_with_peaks.txt', 'w') as fout:
         for transcript in transcripts:
             fout.write(transcript+'\n')
+    if return_df is True:
+        return filtered
+    else:
+        return None
+
+def wt_v_mut_MACS(df1, df2, min_overlap=0.5):
+    enrich_mut1 = []
+    enrich_mut2 = []
+    for ix, r in df1.iterrows():
+        match = False
+        chrom_df = df2[df2['chr'] == r['chr']]
+        range1 = set(range(r['start'],r['end']))
+        for ix2, r2 in chrom_df.iterrows():
+            range2 = range(r2['start'],r2['end'])
+            if len(range1.intersection(range2))/float(len(range1)) >= min_overlap:
+                enrich_mut1.append(r2['fold_enrichment'])
+                enrich_mut2.append(r2['fold_enrichment2'])
+                match = True
+                break
+        if match is False:
+            enrich_mut1.append(np.NaN)
+            enrich_mut2.append(np.NaN)
+    df1.loc[:,'fold_enrichment mut1'] = enrich_mut1
+    df1.loc[:,'fold_enrichment mut2'] = enrich_mut2
+    return df1    
+    
+def MACS_scatter_plots(df, xls_pair1, xls_pair2):
+    WT_a = [x for x in df.columns if x in xls_pair1[0]][0]
+    WT_b = [x for x in df.columns if x in xls_pair1[1]][0]
+    MUT_a = [x for x in df.columns if x in xls_pair2[0]][0]
+    MUT_b = [x for x in df.columns if x in xls_pair2[1]][0]
+    
+    fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(10,10))
+    ax[0][0].scatter(df[WT_a], df[WT_b], s=15, color='0.3', alpha=0.5)
+    ax[0][1].scatter(df[MUT_a], df[MUT_b], s=15, color='0.3', alpha=0.5)
+    ax[1][0].scatter(df[WT_a], df[MUT_a], s=15, color='0.3', alpha=0.5)
+    ax[1][1].scatter(df[WT_b], df[MUT_b], s=15, color='0.3', alpha=0.5)
+
+    min_xy = min(ax[0][0].get_xlim()[0], ax[0][0].get_ylim()[0])
+    max_xy = max(ax[0][0].get_xlim()[1], ax[0][0].get_ylim()[1])
+    
+    for subax in ax:
+        for sub in subax:
+            min_xy = min(min_xy, sub.get_xlim()[0], sub.get_ylim()[0])
+            max_xy = max(max_xy, sub.get_xlim()[1], sub.get_ylim()[1])
+
+    for subax in ax:
+        for sub in subax:
+            sub.set_xlim(min_xy,max_xy)
+            sub.set_ylim(min_xy,max_xy)
+
+    ax[0][0].plot((min_xy,max_xy),(min_xy,max_xy),'--',color='0.7',zorder=0)
+    ax[0][1].plot((min_xy,max_xy),(min_xy,max_xy),'--',color='0.7',zorder=0)
+    ax[1][0].plot((min_xy,max_xy),(min_xy,max_xy),'--',color='0.7',zorder=0)
+    ax[1][1].plot((min_xy,max_xy),(min_xy,max_xy),'--',color='0.7',zorder=0)
+
+    ax[0][0].set_xlabel(xls_pair1[0].split('/')[-1].split('_sorted')[0]+'\n Enrichment over WCE', fontsize=14)
+    ax[0][0].set_ylabel(xls_pair1[1].split('/')[-1].split('_sorted')[0]+'\n Enrichment over WCE', fontsize=14)
+
+    ax[0][1].set_xlabel(xls_pair2[0].split('/')[-1].split('_sorted')[0]+'\n Enrichment over WCE', fontsize=14)
+    ax[0][1].set_ylabel(xls_pair2[1].split('/')[-1].split('_sorted')[0]+'\n Enrichment over WCE', fontsize=14)
+
+    ax[1][0].set_xlabel(xls_pair1[0].split('/')[-1].split('_sorted')[0]+'\n Enrichment over WCE', fontsize=14)
+    ax[1][0].set_ylabel(xls_pair2[0].split('/')[-1].split('_sorted')[0]+'\n Enrichment over WCE', fontsize=14)
+
+    ax[1][1].set_xlabel(xls_pair1[1].split('/')[-1].split('_sorted')[0]+'\n Enrichment over WCE', fontsize=14)
+    ax[1][1].set_ylabel(xls_pair2[1].split('/')[-1].split('_sorted')[0]+'\n Enrichment over WCE', fontsize=14)
+
+    fig.tight_layout()
+    plt.show()
+    plt.clf()
+    return fig
+    
+def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_bam_list, name, organism='crypto', min_overlap=0.5):
+    if len(bam_list) != len(WCE_bam_list):
+        if len(WCE_bam_list) != 1:
+            print "Must provide only 1 WCE bam file or a matched WCE bam file for each sample in the bam_list!"
+            return None
+    
+    # First run the comparison script to get peaks that align between replicates and to contract peak regions
+    df_wt = compare_MACS_output(xls_pair1[0], xls_pair1[1], untagged_xls, organism, return_df=True)
+    df_mut = compare_MACS_output(xls_pair2[0], xls_pair2[1], untagged_xls, organism, return_df=True)
+    
+    # Now need to run through and compare peaks between genotypes - see code for MACS enrichment scatters
+    compare_df_A = wt_v_mut_MACS(df_wt, df_mut, min_overlap=min_overlap)
+    compare_df_B = wt_v_mut_MACS(df_mut, df_wt, min_overlap=min_overlap)
+    print "\nPeaks in both WT and Mut:"
+    print len(compare_df_A)
+    print ''
+    
+    # Record peaks that are missing in either direction
+    wt_not_mut = compare_df_A[compare_df_A['fold_enrichment mut1'].apply(str) == 'nan']
+    mut_not_wt = compare_df_B[compare_df_B['fold_enrichment mut1'].apply(str) == 'nan']
+    wt_not_mut.to_csv(name+'_wt_not_mut.csv')
+    mut_not_wt.to_csv(name+'_mut_not_wt.csv')
+    
+    # Generate dictionary of peaks to quantitate
+    peak_dict = {}
+    for ix, r in compare_df_A.iterrows():
+        key = r['chr']+':'+str(r['start'])+'-'+str(r['end'])
+        peak_dict[key] = [r['start'],r['end'],'+',r['chr'], r['transcript']]
+    
+    # Then need to count reads in each bam file
+    print "\nCalculating RPKM in peak regions..." 
+    data_dict = {}
+    bam_names = []
+    for bam_file in bam_list: 
+        bam_name = bam_file.split('_sorted')[0].split('/')[-1]
+        bam_names.append(bam_name)
+        print bam_name
+        data_dict[bam_name] = Compare_RPKM.count_reads_in_ChIP(peak_dict, bam_file)
+        new_ix = data_dict[bam_name].index
+
+    # Assemble dataframe from results
+    data_df_columns = data_dict.keys()
+    data_df = pd.DataFrame(index=new_ix, columns=data_df_columns)
+    for col in data_df.columns:
+        data_df.loc[:,col] = data_dict[col]
+        
+    # Count whole cell extract and normalize
+    for n, bam_file in enumerate(WCE_bam_list):
+        WCE = Compare_RPKM.count_reads_in_ChIP(peak_dict, bam_file)
+        if len(WCE_bam_list) == 1:
+            for bam in bam_names:
+                data_df.loc[:,bam] = data_df[bam]/WCE
+        elif len(WCE_bam_list) == len(bam_list):
+            data_df.loc[:,bam_names[n]] = data_df[bam_names[n]]/WCE
+
+    tx_list = []
+    for ix, r in data_df.iterrows():
+        tx_list.append(peak_dict[ix][4])
+        
+    data_df.loc[:,'transcript'] = tx_list
+    
+    # Make scatter plots - 0v1, 2v3, 0v2, 1v3
+    fig = MACS_scatter_plots(data_df, xls_pair1, xls_pair2)
+    fig.savefig(name+'.pdf',format='pdf',bbox_inches='tight')
+    
+    data_df.to_csv(name+'.csv')
+    return data_df 
