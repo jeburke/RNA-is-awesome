@@ -75,6 +75,8 @@ def main():
 
     if normalize is True:
         print "Normalizing to untagged..."
+        if untagged.endswith('.bam'):
+            untagged = untagged.split('.bam')[0]
         bg_list = [x for x in os.listdir(directory) if x.endswith('.bedgraph')]
         untagged_bg = [x for x in bg_list if untagged in x][0]
         bg_list.remove(untagged_bg)
