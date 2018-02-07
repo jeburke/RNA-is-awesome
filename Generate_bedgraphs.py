@@ -22,7 +22,12 @@ def main():
         return None
     
     directory = sys.argv[1]
+    if not directory.endswith('/'):
+        directory = directory+'/'
     organism = sys.argv[2]
+    if 'crypto' not in organism.lower() and 'pombe' not in organism.lower() and 'candida' not in organism.lower() and 'cerev' not in organism.lower():
+        print "Unrecognized organism"
+        return None 
 
     threads=1
     start_only = False
@@ -74,10 +79,10 @@ def main():
         Combine_stranded_bedgraphs.main(directory=directory)
 
     if normalize is True:
-        print "Normalizing to untagged..."
+        print "\nNormalizing to untagged..."
         if untagged.endswith('.bam'):
             untagged = untagged.split('.bam')[0]
-        bg_list = [x for x in os.listdir(directory) if x.endswith('.bedgraph')]
+        bg_list = [directory+x for x in os.listdir(directory) if x.endswith('.bedgraph')]
         untagged_bg = [x for x in bg_list if untagged in x][0]
         bg_list.remove(untagged_bg)
 
@@ -85,8 +90,8 @@ def main():
             GT.normalize_bedgraph(bg, untagged_bg)
 
     if smooth is True:
-        print "Smoothing with {0} bp window...".format(str(window))
-        bg_list = [x for x in os.listdir(directory) if x.endswith('.bedgraph')]
+        print "\nSmoothing with {0} bp window...".format(str(window))
+        bg_list = [directory+x for x in os.listdir(directory) if x.endswith('.bedgraph')]
         GT.smooth_bedgraphs(bg_list, window)
         
 if __name__ == "__main__":

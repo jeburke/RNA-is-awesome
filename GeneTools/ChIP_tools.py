@@ -599,3 +599,18 @@ def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_ba
     
     data_df.to_csv(name+'.csv')
     #return data_df 
+    
+def get_transcripts_from_peak_csv(csv):
+    df = pd.read_csv(csv, index_col=0)
+
+    transcripts = []
+    for ix, r in df.iterrows():
+        if type(r['transcript']) == str:
+            r_tx = r['transcript'].split(',')
+            transcripts = transcripts + r_tx
+    transcripts = set([x for x in transcripts if len(x) > 0])
+    print len(transcripts)
+
+    with open(csv.split('.csv')[0]+'_transcripts.txt','w') as fout:
+        for tx in transcripts:
+            fout.write(tx+'\n')

@@ -178,7 +178,7 @@ def count_aligned_reads(bam):
     aligned_reads = float(aligned_reads)/1000000
     print '\n'+bam
     print "{0} million reads".format("%.2f" % aligned_reads)
-    return {bam:aligned_reads}
+    return {bam:1/aligned_reads}
 
 def run_genomeCoverageBed(command):
     with open('error.log','a') as fout:
