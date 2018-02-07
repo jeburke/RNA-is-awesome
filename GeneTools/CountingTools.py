@@ -207,19 +207,25 @@ def PE_intron_retention_from_annotation(bam_list, organism, both_strands=False, 
 def PE_fragment_size(bam_file):
     bam = pysam.Samfile(bam_file)
     sizes = []
-    for read in bam:
+    try:
+        reads = bam.fetch('chr1',1000,20000)
+    except ValueError:
+        reads = bam.fetch('I',1000,20000)
+    for read in reads:
         if read.is_paired:
             try:
-                size = np.NaN
                 mate = bam.mate(read)
                 if read.reference_name == mate.reference_name:
                     if read.is_reverse and not mate.is_reverse:
-                        size = mate.reference_end-read.reference_start
+                        size = read.reference_end-mate.reference_start
+                        if size > 0 and size < 5000:
+                            sizes.append(size)
                     elif not read.is_reverse and mate.is_reverse:
                         size = mate.reference_end-read.reference_start
-                    sizes.append(size)
+                        if size > 0 and size < 5000:
+                            sizes.append(size)
             except ValueError:
                 pass
     print "Average fragment size: "+str(np.mean(sizes))
-    print "Standard deviation: "+str(np.mean(sizes))
+    print "Standard deviation: "+str(np.std(sizes))
     
