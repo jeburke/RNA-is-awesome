@@ -38,7 +38,7 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
         bowtie_ix = '/home/jordan/GENOMES/H99_bt2'
         gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
     elif 'cerev' in organism.lower():
-        bowtie_ix = '/home/jordan/GENOMES/S288C/S288C'
+        bowtie_ix = '/home/jordan/GENOMES/S288C/S288C_2'
         gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
         if 'DBK' in organism:
             bowtie_ix = '/home/jordan/GENOMES/S288C/S288C_DBK'
@@ -835,7 +835,7 @@ def map_to_chromosomes(csv, organism, fig_name="chrom_map"):
                 else:
                     color = 'slateblue'
             else:
-                color = '0.3'
+                color = 'red'
             x = 0.1+r['start']/divis
             width = (r['stop']-r['start'])/divis
             chrom_patches.append((patches.Rectangle((x, 0.13), width, 0.57, color=color, linewidth=1, alpha=0.6)))

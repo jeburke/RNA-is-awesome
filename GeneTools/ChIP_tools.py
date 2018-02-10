@@ -11,6 +11,7 @@ from scipy import stats
 from matplotlib import pyplot as plt
 import subprocess
 import os
+import pysam
 
 def run(cmd, logfile):
     p = subprocess.Popen(cmd, shell=True, universal_newlines=True, stdout=logfile, stderr=logfile)
@@ -446,10 +447,10 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism, return_df=Fa
     filtered = filtered.drop(['In replicate','In untagged'], axis=1)
     
     # Remove redundant peaks
-    df1 = df1.sort_values(['fold_enrichment'], ascending=False)
-    df1 = df1.drop_duplicates(subset=['chr','start','end'])
+    filtered = filtered.sort_values(['fold_enrichment'], ascending=False)
+    filtered = filtered.drop_duplicates(subset=['chr','start','end'])
     print "Peaks remaining after removing summits within the same peak region:"
-    print len(df1)
+    print len(filtered)
     
     # Add transcripts
     filtered, transcripts = add_transcript(filtered, gff3, organism=organism)
@@ -481,8 +482,32 @@ def wt_v_mut_MACS(df1, df2, min_overlap=0.5):
         if match is False:
             enrich_mut1.append(np.NaN)
             enrich_mut2.append(np.NaN)
+    
     df1.loc[:,'fold_enrichment mut1'] = enrich_mut1
     df1.loc[:,'fold_enrichment mut2'] = enrich_mut2
+    
+    print len(df1)
+    counter = 0
+    for ix, r in df2.iterrows():
+        match = False
+        chrom_df = df1[df1['chr'] == r['chr']]
+        range1 = set(range(r['start'],r['end']))
+        for ix2 in chrom_df.index:
+            range2 = range(chrom_df.loc[ix2,'start'], chrom_df.loc[ix2,'end'])
+            if len(range1.intersection(range2))/float(len(range1)) >= min_overlap:
+                match = True
+                break
+        if match is False:
+            new_row = df2.loc[ix,:]
+            new_row = new_row.rename({'fold_enrichment': 'fold_enrichment mut1', 'fold_enrichment2': 'fold_enrichment mut2'})
+            df1 = df1.append(new_row)
+            df1 = df1.reset_index(drop=True)
+            counter += 1
+    print counter
+    print len(df1)
+    
+    df1.index = df1['chr'].str.cat(df1['start'].apply(str),sep=':').str.cat(df1['end'].apply(str),sep='-')
+            
     return df1    
     
 def MACS_scatter_plots(df, xls_pair1, xls_pair2):
@@ -492,10 +517,10 @@ def MACS_scatter_plots(df, xls_pair1, xls_pair2):
     MUT_b = [x for x in df.columns if x in xls_pair2[1]][0]
     
     fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(10,10))
-    ax[0][0].scatter(df[WT_a], df[WT_b], s=15, color='0.3', alpha=0.5)
-    ax[0][1].scatter(df[MUT_a], df[MUT_b], s=15, color='0.3', alpha=0.5)
-    ax[1][0].scatter(df[WT_a], df[MUT_a], s=15, color='0.3', alpha=0.5)
-    ax[1][1].scatter(df[WT_b], df[MUT_b], s=15, color='0.3', alpha=0.5)
+    ax[0][0].scatter(df[WT_a].apply(np.log2), df[WT_b].apply(np.log2), s=15, color='0.3', alpha=0.5)
+    ax[0][1].scatter(df[MUT_a].apply(np.log2), df[MUT_b].apply(np.log2), s=15, color='0.3', alpha=0.5)
+    ax[1][0].scatter(df[WT_a].apply(np.log2), df[MUT_a].apply(np.log2), s=15, color='0.3', alpha=0.5)
+    ax[1][1].scatter(df[WT_b].apply(np.log2), df[MUT_b].apply(np.log2), s=15, color='0.3', alpha=0.5)
 
     min_xy = min(ax[0][0].get_xlim()[0], ax[0][0].get_ylim()[0])
     max_xy = max(ax[0][0].get_xlim()[1], ax[0][0].get_ylim()[1])
@@ -531,7 +556,65 @@ def MACS_scatter_plots(df, xls_pair1, xls_pair2):
     plt.show()
     plt.clf()
     return fig
+
+def genome_tiles(chromosome_sizes, tile_size=1000):
+    names = []
+    chroms = []
+    start = []
+    end = []
+    with open(chromosome_sizes) as f:
+        for line in f:
+            chrom = line.split('\t')[0]
+            size = int(line.split('\t')[1].strip())
+            n = 0
+            while n*tile_size < size-tile_size:
+                chroms.append(chrom)
+                names.append(chrom+'-'+str(n))
+                start.append(n*tile_size)
+                end.append(n*tile_size+tile_size)
+                n += 1
+            chroms.append(chrom)
+            names.append(chrom+'-'+str(n))
+            start.append(n*tile_size)
+            end.append(size)
+    df = pd.DataFrame(index=names)
+    df.loc[:,'chromosome'] = chroms
+    df.loc[:,'start'] = start
+    df.loc[:,'end'] = end
+    return df
+
+def count_reads_in_tiles(bam_list, WCE, chromosome_sizes, tile_size=1000):
+    df = genome_tiles(chromosome_sizes)
     
+    bam_list.append(WCE)
+    names = []
+    for bam in bam_list:
+        bam_name = bam.split('/')[-1].split('_sorted.bam')[0]
+        if bam == WCE:
+            WCE_name = bam_name
+        else:
+            names.append(bam_name)
+        open_bam = pysam.Samfile(bam)
+
+        read_dens = []
+        for ix, r in df.iterrows():
+            read_counter = 0
+            try:
+                for read in open_bam.fetch(r['chromosome'],r['start'],r['end']):
+                    read_counter += 1
+                read_dens.append(read_counter/((r['end']-r['start'])/1000.))
+            except ValueError:
+                read_dens.append(np.NaN)
+        
+        df.loc[:,bam_name] = read_dens
+        df.loc[:,bam_name] = df[bam_name].divide(sum(df[bam_name].dropna())/1000000.)
+    for name in names:
+        df.loc[:,name+' norm to WCE'] = df[name]/df[WCE_name]
+    
+    df = df.dropna(how='any')
+    return df
+
+
 def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_bam_list, name, organism='crypto', min_overlap=0.5):
     if len(bam_list) != len(WCE_bam_list):
         if len(WCE_bam_list) != 1:
@@ -544,16 +627,17 @@ def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_ba
     
     # Now need to run through and compare peaks between genotypes - see code for MACS enrichment scatters
     compare_df_A = wt_v_mut_MACS(df_wt, df_mut, min_overlap=min_overlap)
-    compare_df_B = wt_v_mut_MACS(df_mut, df_wt, min_overlap=min_overlap)
-    print "\nPeaks in both WT and Mut:"
-    print len(compare_df_A)
-    print ''
+    compare_df_A.to_csv(name+'_MACS_wt_mut_merge.csv')
+    #compare_df_B = wt_v_mut_MACS(df_mut, df_wt, min_overlap=min_overlap)
+    #print "\nPeaks in both WT and Mut:"
+    #print len(compare_df_A)
+    #print ''
     
     # Record peaks that are missing in either direction
-    wt_not_mut = compare_df_A[compare_df_A['fold_enrichment mut1'].apply(str) == 'nan']
-    mut_not_wt = compare_df_B[compare_df_B['fold_enrichment mut1'].apply(str) == 'nan']
-    wt_not_mut.to_csv(name+'_wt_not_mut.csv')
-    mut_not_wt.to_csv(name+'_mut_not_wt.csv')
+    #wt_not_mut = compare_df_A[compare_df_A['fold_enrichment mut1'].apply(str) == 'nan']
+    #mut_not_wt = compare_df_B[compare_df_B['fold_enrichment mut1'].apply(str) == 'nan']
+    #wt_not_mut.to_csv(name+'_wt_not_mut.csv')
+    #mut_not_wt.to_csv(name+'_mut_not_wt.csv')
     
     # Generate dictionary of peaks to quantitate
     peak_dict = {}
@@ -577,6 +661,20 @@ def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_ba
     data_df = pd.DataFrame(index=new_ix, columns=data_df_columns)
     for col in data_df.columns:
         data_df.loc[:,col] = data_dict[col]
+    in_wt = []
+    in_mut = []
+    for ix, r in data_df.iterrows():
+        if str(compare_df_A.loc[ix,'fold_enrichment']) == 'nan':
+            in_wt.append(False)
+        else:
+            in_wt.append(True)
+        
+        if str(compare_df_A.loc[ix,'fold_enrichment mut1']) == 'nan':
+            in_mut.append(False)
+        else:
+            in_mut.append(True)
+    data_df.loc[:,'In WT'] = in_wt
+    data_df.loc[:,'In Mut'] = in_mut
         
     # Count whole cell extract and normalize
     for n, bam_file in enumerate(WCE_bam_list):
@@ -587,17 +685,39 @@ def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_ba
         elif len(WCE_bam_list) == len(bam_list):
             data_df.loc[:,bam_names[n]] = data_df[bam_names[n]]/WCE
 
+    # Now get the background level and apply adjustment
+    print "\n Adjusting for biases..."
+    chromosome_sizes = '/home/jordan/GENOMES/crypto_for_bedgraph.genome'
+    tile_df = count_reads_in_tiles(bam_list, WCE_bam_list[0], chromosome_sizes)
+    
+    for bam_name in bam_names:
+        if bam_name in xls_pair1[0] or bam_name in xls_pair1[1]:
+            peak_min = np.percentile(data_df[data_df['In WT'] == True][bam_name], 0.5)
+        elif bam_name in xls_pair2[0] or bam_name in xls_pair2[1]:
+            peak_min = np.percentile(data_df[data_df['In Mut'] == True][bam_name], 0.5)
+        
+        
+        s = tile_df.sort_values(bam_name+' norm to WCE').reset_index()[bam_name+' norm to WCE']
+        top = max(s[(s <= peak_min)].index)
+        slope = stats.linregress(tile_df.sort_values(bam_name).reset_index().iloc[1000:top].index,
+            tile_df.sort_values(bam_name).reset_index().iloc[1000:top][bam_name])[0]
+        print bam_name
+        print slope
+        
+        data_df.loc[:,bam_name] = data_df[bam_name].divide(slope*1000)
+    
+    # Add transcripts to spreadsheet
     tx_list = []
     for ix, r in data_df.iterrows():
         tx_list.append(peak_dict[ix][4])
         
     data_df.loc[:,'transcript'] = tx_list
+    data_df.to_csv(name+'.csv')
     
     # Make scatter plots - 0v1, 2v3, 0v2, 1v3
     fig = MACS_scatter_plots(data_df, xls_pair1, xls_pair2)
     fig.savefig(name+'.pdf',format='pdf',bbox_inches='tight')
     
-    data_df.to_csv(name+'.csv')
     #return data_df 
     
 def get_transcripts_from_peak_csv(csv):
