@@ -734,3 +734,72 @@ def get_transcripts_from_peak_csv(csv):
     with open(csv.split('.csv')[0]+'_transcripts.txt','w') as fout:
         for tx in transcripts:
             fout.write(tx+'\n')
+            
+def MACS_Z_score(csv, wt, mut):
+    data_df = pd.read_csv(csv, index_col=0)
+    wt_names = [x for x in data_df.columns if wt in x]
+    mut_names = [x for x in data_df.columns if mut in x]
+
+    s1 = (data_df[mut_names[0]]/data_df[wt_names[0]]).apply(np.log2)
+    s1_Z = pd.Series(stats.mstats.zscore(s1), index=data_df.index)
+
+    s2 = (data_df[mut_names[1]]/data_df[wt_names[1]]).apply(np.log2)
+    s2_Z = pd.Series(stats.mstats.zscore(s2), index=data_df.index)
+
+    up = set(s1_Z[s1_Z >= 1.8].index).intersection(s2_Z[s2_Z >= 1.8].index)
+    print "Genes up in mutant: "+str(len(up))
+    down = set(s1_Z[s1_Z <= -1.8].index).intersection(s2_Z[s2_Z <= -1.8].index)
+    print "Genes down in mutant: "+str(len(down))
+    
+    fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(10,10))
+    ax[0][0].scatter(data_df[wt_names[0]].apply(np.log2), data_df[wt_names[1]].apply(np.log2), s=15, color='0.3', alpha=0.5)
+    ax[0][1].scatter(data_df[mut_names[0]].apply(np.log2), data_df[mut_names[1]].apply(np.log2), s=15, color='0.3', alpha=0.5)
+
+    up_df = data_df[data_df.index.isin(up)]
+    up_df.to_csv(csv.split('.csv')[0]+'_up_in_mut.csv')
+    down_df = data_df[data_df.index.isin(down)]
+    down_df.to_csv(csv.split('.csv')[0]+'_down_in_mut.csv')
+    other_df = data_df[(~data_df.index.isin(up)) & (~data_df.index.isin(down))]
+
+    ax[1][0].scatter(other_df[wt_names[0]].apply(np.log2), other_df[mut_names[0]].apply(np.log2), s=15, color='0.7', alpha=0.5)
+    ax[1][0].scatter(up_df[wt_names[0]].apply(np.log2), up_df[mut_names[0]].apply(np.log2), s=15, color='orangered')
+    ax[1][0].scatter(down_df[wt_names[0]].apply(np.log2), down_df[mut_names[0]].apply(np.log2), s=15, color='royalblue')
+
+    ax[1][1].scatter(other_df[wt_names[1]].apply(np.log2), other_df[mut_names[1]].apply(np.log2), s=15, color='0.7', alpha=0.5)
+    ax[1][1].scatter(up_df[wt_names[1]].apply(np.log2), up_df[mut_names[1]].apply(np.log2), s=15, color='orangered')
+    ax[1][1].scatter(down_df[wt_names[1]].apply(np.log2), down_df[mut_names[1]].apply(np.log2), s=15, color='royalblue')
+
+    min_xy = min(ax[0][0].get_xlim()[0], ax[0][0].get_ylim()[0])
+    max_xy = max(ax[0][0].get_xlim()[1], ax[0][0].get_ylim()[1])
+
+    for subax in ax:
+        for sub in subax:
+            min_xy = min(min_xy, sub.get_xlim()[0], sub.get_ylim()[0])
+            max_xy = max(max_xy, sub.get_xlim()[1], sub.get_ylim()[1])
+
+    for subax in ax:
+        for sub in subax:
+            sub.set_xlim(min_xy,max_xy)
+            sub.set_ylim(min_xy,max_xy)
+
+    ax[0][0].plot((min_xy,max_xy),(min_xy,max_xy),'--',color='0.7',zorder=0)
+    ax[0][1].plot((min_xy,max_xy),(min_xy,max_xy),'--',color='0.7',zorder=0)
+    ax[1][0].plot((min_xy,max_xy),(min_xy,max_xy),'--',color='0.7',zorder=0)
+    ax[1][1].plot((min_xy,max_xy),(min_xy,max_xy),'--',color='0.7',zorder=0)
+
+    ax[0][0].set_xlabel(wt_names[0]+'\n Enrichment over WCE', fontsize=14)
+    ax[0][0].set_ylabel(wt_names[1]+'\n Enrichment over WCE', fontsize=14)
+
+    ax[0][1].set_xlabel(mut_names[0]+'\n Enrichment over WCE', fontsize=14)
+    ax[0][1].set_ylabel(mut_names[1]+'\n Enrichment over WCE', fontsize=14)
+
+    ax[1][0].set_xlabel(wt_names[0]+'\n Enrichment over WCE', fontsize=14)
+    ax[1][0].set_ylabel(mut_names[0]+'\n Enrichment over WCE', fontsize=14)
+
+    ax[1][1].set_xlabel(wt_names[1]+'\n Enrichment over WCE', fontsize=14)
+    ax[1][1].set_ylabel(mut_names[1]+'\n Enrichment over WCE', fontsize=14)
+
+    fig.tight_layout()
+    fig.savefig(csv.split('.csv')[0]+'_Z_scatter.pdf', format='pdf', bbox_inches='tight')
+    plt.show()
+    plt.clf()
