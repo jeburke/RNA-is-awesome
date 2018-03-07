@@ -615,7 +615,7 @@ def count_reads_in_tiles(bam_list, WCE, chromosome_sizes, tile_size=1000):
     return df
 
 
-def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_bam_list, name, organism='crypto', min_overlap=0.5):
+def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_bam_list, name, organism='crypto', min_overlap=0.5, exclude_chrom=None):
     if len(bam_list) != len(WCE_bam_list):
         if len(WCE_bam_list) != 1:
             print "Must provide only 1 WCE bam file or a matched WCE bam file for each sample in the bam_list!"
@@ -628,22 +628,22 @@ def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_ba
     # Now need to run through and compare peaks between genotypes - see code for MACS enrichment scatters
     compare_df_A = wt_v_mut_MACS(df_wt, df_mut, min_overlap=min_overlap)
     compare_df_A.to_csv(name+'_MACS_wt_mut_merge.csv')
-    #compare_df_B = wt_v_mut_MACS(df_mut, df_wt, min_overlap=min_overlap)
-    #print "\nPeaks in both WT and Mut:"
-    #print len(compare_df_A)
-    #print ''
-    
-    # Record peaks that are missing in either direction
-    #wt_not_mut = compare_df_A[compare_df_A['fold_enrichment mut1'].apply(str) == 'nan']
-    #mut_not_wt = compare_df_B[compare_df_B['fold_enrichment mut1'].apply(str) == 'nan']
-    #wt_not_mut.to_csv(name+'_wt_not_mut.csv')
-    #mut_not_wt.to_csv(name+'_mut_not_wt.csv')
     
     # Generate dictionary of peaks to quantitate
     peak_dict = {}
     for ix, r in compare_df_A.iterrows():
         key = r['chr']+':'+str(r['start'])+'-'+str(r['end'])
         peak_dict[key] = [r['start'],r['end'],'+',r['chr'], r['transcript']]
+    
+    if exclude_chrom is not None:
+        if type(exclude_chrom) == list:
+            for chrom in exclude_chrom:
+                peak_dict = {k:v for k,v in peak_dict.items() if v[3] != chrom}
+        elif type(exclude_chrom) == str:
+            print exclude_chrom
+            print len(peak_dict)
+            peak_dict = {k:v for k,v in peak_dict.items() if v[3] != exclude_chrom}
+            print len(peak_dict)
     
     # Then need to count reads in each bam file
     print "\nCalculating RPKM in peak regions..." 
@@ -803,3 +803,9 @@ def MACS_Z_score(csv, wt, mut):
     fig.savefig(csv.split('.csv')[0]+'_Z_scatter.pdf', format='pdf', bbox_inches='tight')
     plt.show()
     plt.clf()
+    
+def RNAseq_ChIP_overlap_volcano(DESeq2_csv, ChIP_gene_list):
+    RNA = GT.load_DESeq2_results([DESeq2_csv])
+    chip = pd.read_csv(ChIP_gene_list, index_col=0, header=None)
+    RNA = RNA[RNA.index.isin(chip.index)]
+    GT.volcano_plot(RNA)

@@ -21,9 +21,12 @@ def crypto_annotate(text_file, sep=',', multi_index=False):
     yi = yi.drop_duplicates()
     hiten = pd.read_csv('/home/chomer/Code_Base/AnnotateGenes/HitensCryptoAnnot_new.txt', sep='\t', index_col=0)
     
+    interpro_df = pd.read_pickle('/home/jordan/GENOMES/InterproDomains.pickle')
+    
     if multi_index is True:
         yi.columns = pd.MultiIndex.from_product(['Annotation',yi.columns])
         hiten.columns = pd.MultiIndex.from_product(['Annotation',hiten.columns])
+        interpro_df.columns = pd.MultiIndex.from_product(['Annotation',interpro_df.columns])
         df = pd.read_csv(text_file, sep=sep, index_col=0, header=[0,1])
     else:
         df = pd.read_csv(text_file, sep=sep, index_col=0)
@@ -38,6 +41,7 @@ def crypto_annotate(text_file, sep=',', multi_index=False):
     
     df = df.merge(hiten, right_index=True, left_index=True, how='left')
     df = df.merge(yi, right_index=True, left_index=True, how='left')
+    df = df.merge(interpro_df, right_index=True, left_index=True, how='left')
     df = df.groupby(df.index).first()
     
     print text_file.split('.')[-2]+'_annotated.csv'
