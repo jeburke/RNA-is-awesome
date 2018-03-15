@@ -19,12 +19,15 @@ def run(cmd, logfile):
     logfile.flush()
     return ret_code
 
-def align_fastq_chip(directory, threads=1, organism='crypto', adaptor='GATCGGAAGA'):
+def align_fastq_chip(directory, threads=1, organism=None, adaptor='GATCGGAAGA', gff3=None, bowtie_ix=None):
     '''Automatically aligns all fastq.gz files in a drectory using TopHat'''
     if directory[-1] != '/':
         directory = directory+'/'
         
-    if 'crypto' in organism.lower():
+    if organism is None:
+        gff3=gff3
+        bowtie_ix=bowtie_ix
+    elif 'crypto' in organism.lower():
         bowtie_ix = '/home/jordan/GENOMES/Crypto_for_gobs'
         gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
     elif 'cerev' in organism.lower():
@@ -36,7 +39,7 @@ def align_fastq_chip(directory, threads=1, organism='crypto', adaptor='GATCGGAAG
         bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe'
         gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
     elif 'candida' in organism.lower() or 'albicans' in organism.lower():
-        bowtie_ix = '/home/jordan/GENOMES/C_abicans'
+        bowtie_ix = '/home/jordan/GENOMES/C_albicans'
         gff3 = '/home/jordan/GENOMES/C_albicans_SC5314_version_A21-s02-m09-r10_features.gff'
     else:
         print "Organism not recognized"
@@ -161,10 +164,13 @@ def align_fastq_chip(directory, threads=1, organism='crypto', adaptor='GATCGGAAG
 
 def main():
     alt_adaptor = None
+    gff3 = None
+    index = None
     for n, arg in enumerate(sys.argv):
         if arg == '-h' or arg == '--help':
-            print "\nUsage:\npython ChIP_tools.py --directory fastq_directory --threads num_threads --organism crypto/pombe/cerevisiae/candida <--adaptor GATCGGAAGA>\n"
-            print "Note: --adaptor argument is optional and will default to the one shown above\n"
+            print "\nUsage:\npython ChIP_tools.py --directory fastq_directory --threads num_threads --organism crypto/pombe/cerevisiae/candida <--adaptor GATCGGAAGA> <--gff3 gff3_file> <--index bowtie_index_prefix>\n"
+            print "Note: --adaptor argument is optional and will default to the one shown above\n
+            --gff3 and --index must both be provided if not using the default files for your organism.\n"
             return None
         
         elif arg == '--directory':
@@ -175,13 +181,20 @@ def main():
             organism = sys.argv[n+1]
         elif arg == '--adaptor':
             alt_adaptor = sys.argv[n+1]
+        elif arg == '--gff3':
+            gff3 = sys.argv[n+1]
+        elif arg == '--index':
+            index = sys.argv[n+1]
     
     if alt_adaptor is not None:
         adaptor = alt_adaptor
     else:
         adaptor = 'GATCGGAAGA'
         
-    align_fastq_chip(directory, threads=threads, organism=organism, adaptor=adaptor)
+    if gff3 is not None and index is not None:
+        organism=None
+        
+    align_fastq_chip(directory, threads=threads, organism=organism, adaptor=adaptor, gff3=gff3, bowtie_ix=index)
     
 if __name__ == "__main__":
     main()
