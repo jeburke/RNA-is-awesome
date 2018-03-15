@@ -21,6 +21,7 @@ import json
 import matplotlib.patches as patches
 from collections import OrderedDict
 import seaborn as sns
+from scipy import stats
 
 font = {'family': 'sans-serif',
         'color':  'black',
@@ -888,6 +889,10 @@ def RNAseq_log2foldchange_scatter(csv1, csv2, gene_list=None, sep=',', color='0.
     cols = [x for x in df.columns if 'log2FoldChange' in x]
     
     ax.scatter(df[cols[0]],df[cols[1]], s=15, color=color, alpha=0.5)
+    r, p = stats.pearsonr(df[cols[0]],df[cols[1]])
+    print "Pearson R: " + "%.2f" % r
+    print "p-value: " + "%.2E" % p
+    
     min_xy = min(ax.get_xlim()[0], ax.get_ylim()[0])
     max_xy = max(ax.get_xlim()[1], ax.get_ylim()[1])
     
