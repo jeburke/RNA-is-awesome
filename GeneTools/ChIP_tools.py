@@ -822,3 +822,48 @@ def RNAseq_ChIP_overlap_volcano(DESeq2_csv, ChIP_gene_list):
     chip = pd.read_csv(ChIP_gene_list, index_col=0, header=None)
     RNA = RNA[RNA.index.isin(chip.index)]
     GT.volcano_plot(RNA)
+
+def get_peak_sequence(csv, gene_list=None, fa_dict_loc='/home/jordan/GENOMES/H99_fa.json'):
+    if type(gene_list) == str:
+        holder = []
+        with open(gene_list) as f:
+            for line in f:
+                holder.append(line.strip())
+        gene_list = holder
+    
+    with open(fa_dict_loc) as f: fa_dict = json.load(f)
+    df = pd.read_csv(csv, index_col=0)
+    
+    seq_list = []
+    seq_list2 = []
+    for ix, r in df.iterrows():
+        chrom = ix.split(':')[0]
+        start = int(ix.split(':')[1].split('-')[0])
+        end = int(ix.split(':')[1].split('-')[1])
+        seq = GT.seq_simple(chrom, start, end, '+', fa_dict)
+        try:
+            transcripts = [x for x in r['transcript'].split(',') if '_1' not in x]
+        except AttributeError:
+            transcripts = ['']
+        if gene_list is not None:
+            other = set(transcripts).difference(gene_list)
+            transcripts = set(transcripts).intersection(gene_list)
+            
+            if len(transcripts) > 0:
+                seq_list.append((','.join(transcripts), seq))
+            else:
+                seq_list2.append((','.join(other), seq))
+        else:
+            seq_list.append((','.join(transcripts), seq))
+    
+    print csv.split('/')[-1].split('.csv')[0]+'_sequences.fasta'
+    with open(csv.split('/')[-1].split('.csv')[0]+'_sequences.fasta', 'w') as fout:
+        for tx, seq in seq_list:
+            fout.write('>'+tx+'\n')
+            fout.write(seq+'\n')
+            
+    if gene_list is not None:
+        with open(csv.split('/')[-1].split('.csv')[0]+'_other_sequences.fasta', 'w') as fout:
+            for tx, seq in seq_list2:
+                fout.write('>'+tx+'\n')
+                fout.write(seq+'\n')
