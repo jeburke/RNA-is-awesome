@@ -148,11 +148,16 @@ def read_size_distribution(df, bam_list, tx_list=None):
     return fig
 
 def main():
+    if sys.argv[1] == '--help' or sys.argv[1] == '-h':
+        print "Usage: python RNAiTools.py [bam_files] output_name"
+        return None
+    
     bam_list = []
     for arg in sys.argv[1:-1]:
         bam_list.append(arg)
+
     if len(bam_list)%4 != 0:
-        "Uneven number of bam files provided!"
+        print "Uneven number of bam files provided!"
         return None
     
     bam_names = []

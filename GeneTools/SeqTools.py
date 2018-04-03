@@ -80,12 +80,16 @@ def seq_simple(chrom, start, end, strand, fasta_dict):
     return seq
             
 def get_peak_sequence(input_file, fasta_file, gff3_file, window=1000):
-    #File where 1st column is transcript (3P prefix sometimes), 2nd column is chr, 3rd column is peak center
+    # File where 1st column is transcript (3P prefix sometimes), 2nd column is chr, 3rd column is peak center
     tx_dict = SP.build_transcript_dict(gff3_file)
     if type(fasta_file) == dict:
         fa_dict = fasta_file
     else:
-        fa_dict = SP.make_fasta_dict(fasta_file)
+        if fasta_file.endswith('json'):
+            with open(fasta_file) as f:
+                fa_dict = json.load(f)
+        else:
+            fa_dict = SP.make_fasta_dict(fasta_file)
     seq_list = []
     with open(input_file,'r') as csv_file:
         f = csv.reader(csv_file, dialect=csv.excel)
