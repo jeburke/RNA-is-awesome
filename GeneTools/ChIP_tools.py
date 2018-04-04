@@ -291,10 +291,12 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
     ax[0,0].set_xlabel(for_plot[0])
     ax[0,0].set_ylabel(for_plot[1])
     ax[0,0].plot(df[for_plot[0]],df[for_plot[1]],'o', alpha=0.8, color='0.4')
+    print stats.pearsonr(df[for_plot[0]],df[for_plot[1]])
     
     ax[0,1].set_xlabel(for_plot[2])
     ax[0,1].set_ylabel(for_plot[3])
     ax[0,1].plot(df[for_plot[2]],df[for_plot[3]],'o', alpha=0.8, color='0.4')
+    print stats.pearsonr(df[for_plot[2]],df[for_plot[3]])
     
     ax[1,0].set_xlabel(for_plot[0])
     ax[1,0].set_ylabel(for_plot[2])
@@ -327,10 +329,12 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
         cen_df = df[df.index.str.contains('Cen')]
         tel_df = df[df.index.str.contains('tel')]
         ax[1,0].plot(cen_df[for_plot[0]], cen_df[for_plot[2]], 'o', alpha=0.8, color='crimson', label='Centromeres')
+        print stats.pearsonr(cen_df[for_plot[0]], cen_df[for_plot[2]])
         ax[1,0].plot(tel_df[for_plot[0]], tel_df[for_plot[2]], 'o', alpha=0.8, color='mediumblue', label='Telomeres')
         ax[1,0].legend()
         
         ax[1,1].plot(cen_df[for_plot[1]], cen_df[for_plot[3]], 'o', alpha=0.8, color='crimson', label='Centromeres')
+        print stats.pearsonr(cen_df[for_plot[1]], cen_df[for_plot[3]])
         ax[1,1].plot(tel_df[for_plot[1]], tel_df[for_plot[3]], 'o', alpha=0.8, color='mediumblue', label='Telomeres')
         ax[1,1].legend()
 
@@ -510,9 +514,9 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism, return_df=Fa
     # Add transcripts
     filtered, transcripts = add_transcript(filtered, gff3, organism=organism)
     
-    filtered.to_csv(rep1_xls.split('.xls')[0]+'_comparison.csv', index=False)
+    filtered.to_csv(rep1_xls.split('/')[-1].split('.xls')[0]+'_comparison.csv', index=False)
     
-    with open(rep1_xls.split('.xls')[0]+'_genes_with_peaks.txt', 'w') as fout:
+    with open(rep1_xls.split('/')[-1].split('.xls')[0]+'_genes_with_peaks.txt', 'w') as fout:
         for transcript in transcripts:
             fout.write(transcript+'\n')
     if return_df is True:

@@ -14,6 +14,22 @@ import csv
 import json
 
 def build_transcript_dict(gff3_file, organism=None):
+    '''Creates a dictionary from gff3 file where keys are transcript names and values are [start, end, strand, chromosome, CDS_starts(list), CDS_ends(list]
+    Note: change organism to 'pombe' if using pombe. Otherwise no need to indicate
+    Additional note: See the tx_info function for retrieving gene information
+    
+    Parameters
+    ----------
+    gff3_file : str
+              gff3 for your organism - tested on H99 C. neoformans, S288C S. cerevisiae, S. pombe and C. albicans
+    organism : str, default `None`
+              Change only if using pombe - then should be 'pombe'
+    
+    Returns
+    -------
+    tx_dict : File (comma separated) with annotation appended to each row.
+              '''
+    
     with open(gff3_file,"r") as gff3:
         transcript_dict = {}
         for line in gff3:
