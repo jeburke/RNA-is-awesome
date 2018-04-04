@@ -14,13 +14,14 @@ import os
 import pysam
 
 def run(cmd, logfile):
+    '''Function to open subprocess, wait until it finishes and write all output to the logfile'''
     p = subprocess.Popen(cmd, shell=True, universal_newlines=True, stdout=logfile, stderr=logfile)
     ret_code = p.wait()
     logfile.flush()
     return ret_code
 
 def align_fastq_chip(directory, threads=1, organism=None, adaptor='GATCGGAAGA', gff3=None, bowtie_ix=None):
-    '''Automatically aligns all fastq.gz files in a drectory using TopHat'''
+    '''Automatically aligns all fastq.gz files in a drectory using Bowtie'''
     if directory[-1] != '/':
         directory = directory+'/'
         
@@ -217,6 +218,34 @@ def plot_min_max(lists, ax):
     return ax
 
 def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_name, Z_change=False, cen_tel=False):
+    '''Plots RPKM as scatter plots from two different samples - can do promoters or just centromeres and telomeres
+    
+    Parameters
+    ----------
+    WCE_bam : str
+            Whole cell extract bam file
+    WT1_bam : str
+            Wild type (or first condition) bam file - replicate 1
+    WT2_bam : str
+            Wild type (or first condition) bam file - replicate 2
+    Mut1_bam : str
+            Mutant (or second condition) bam file - replicate 1
+    Mut2_bam : str
+            Mutant (or second condition) bam file - replicate 2
+    gff3 : str
+            gff3 file - if plotting centromeres and telomeres, provide a custom gff3 file with their locations.
+            Otherwise provide the standard gff3 file for your organism
+    plot_name : str
+            name to save plot under (will be a .eps file)
+    Z_change : bool, default `False`
+            Whether or not to evaluate outliers that change in the mutant based on Z score
+    cen_tel : bool, default `False`
+            Whether to plot the RPKM for the promoter (1 kb upstream)+ORF (False) or for centromeres/telomeres (True)
+            
+    Outputs
+    ------
+    scatter plot : eps file'''
+    
     tx_dict = GT.build_transcript_dict(gff3)
     if cel_tel is False:
         tx_dict = Compare_RPKM.make_promoter_dict(tx_dict, '/home/jordan/GENOMES/H99_chrom_lengths.json')
@@ -355,6 +384,7 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
         plt.clf()
         
 def add_transcript(df, gff3, organism=None):
+    ''' Used by MACS_peak_RPKM_scatters'''
     tx_dict = GT.build_transcript_dict(gff3, organism=organism)
     transcripts = set()
     transcripts_for_df = []
@@ -386,7 +416,9 @@ def add_transcript(df, gff3, organism=None):
     df.loc[:,'transcript'] = transcripts_for_df
     return df, transcripts
         
-def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism, return_df=False):
+def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism, return_df=False, min_overlap=0.5):
+    ''' Used by MACS_peak_RPKM_scatters'''
+    
     if 'crypto' in organism.lower():
         gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
         organism = None
@@ -409,7 +441,17 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism, return_df=Fa
     for ix, r in df1.iterrows():
         r_rep = False
         peak = range(r['start'],r['end'])
-        rep2_matches = df2[(df2['chr'] == r['chr']) & (df2['abs_summit'].isin(peak))]
+        
+        # Check if there are peaks in the second replicate with the minimum overlap
+        rep2_df = df2[df2['chr'] == r['chr']]
+        rep2_matches = []
+        for ix2, r2 in rep2_df.iterrows():
+            peak_overlap = len(set(peak).intersection(range(r2['start'],r2['end'])))
+            if peak_overlap/float(len(peak)) > min_overlap:
+                rep2_matches.append(ix2)
+        
+        
+        rep2_matches = rep2_df[rep2_df.index.isin(rep2_matches)]
         if len(rep2_matches) > 0:
             rep.append(True)
             r_rep = True
@@ -479,6 +521,7 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism, return_df=Fa
         return None
 
 def wt_v_mut_MACS(df1, df2, min_overlap=0.5):
+    ''' Used by MACS_peak_RPKM_scatters'''
     enrich_mut1 = []
     enrich_mut2 = []
     for ix, r in df1.iterrows():
@@ -524,6 +567,7 @@ def wt_v_mut_MACS(df1, df2, min_overlap=0.5):
     return df1    
     
 def MACS_scatter_plots(df, xls_pair1, xls_pair2):
+    ''' Used by MACS_peak_RPKM_scatters'''
     WT_a = [x for x in df.columns if x in xls_pair1[0]][0]
     WT_b = [x for x in df.columns if x in xls_pair1[1]][0]
     MUT_a = [x for x in df.columns if x in xls_pair2[0]][0]
@@ -571,6 +615,7 @@ def MACS_scatter_plots(df, xls_pair1, xls_pair2):
     return fig
 
 def genome_tiles(chromosome_sizes, tile_size=1000):
+    ''' Used by MACS_peak_RPKM_scatters'''
     names = []
     chroms = []
     start = []
@@ -597,6 +642,7 @@ def genome_tiles(chromosome_sizes, tile_size=1000):
     return df
 
 def count_reads_in_tiles(bam_list, WCE, chromosome_sizes, tile_size=1000):
+    ''' Used by MACS_peak_RPKM_scatters'''
     df = genome_tiles(chromosome_sizes)
     
     bam_list.append(WCE)
@@ -629,6 +675,49 @@ def count_reads_in_tiles(bam_list, WCE, chromosome_sizes, tile_size=1000):
 
 
 def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_bam_list, name, organism='crypto', min_overlap=0.5, exclude_chrom=None):
+    
+    '''This function does several things:
+        1: It compares the MACS output from replicate ChIP-seq experiments and defines a minimal set of reproducible peaks.
+               Importantly, it gives the peak summit as the largest peak in the region and trims the peak boundaries to the
+               minimum width that is reproducible in both replicates
+        2: It looks for  peaks that appear in the untagged sample and removes them.
+        3: It compares mutant to wild type and finds which peaks are present on both or just one.
+        4: It counts reads in the newly defined peak set to quantitatively compare between samples (and normalizes to WCE)
+        5: It adjusts for amplification or efficiency bias by performing a linear fit to the background
+        6: It assigns transcripts based on whether the peak is within or upstream of an ORF - tries within 500 bp first then
+           expands search to 1 kb
+        
+    
+    Parameters
+    ----------
+    xls_pair1 : tuple of str
+            Wild type or condition 1 replicates - .xls output from MACS
+    xls_pair2 : tuple of str
+            Mutant or condition 2 replicates - .xls output from MACS
+    untagged_xls : str
+            Untagged or no antibody .xls output from MACS
+    bam_list : list of str
+            The bam files to use for re-quantitating the peak enrichments
+    WCE_bam_list : list of str
+            The corresponding whole cell extract bam files - make sure they match the length of the bam_list and correspond
+            in position to the bam_list
+    name : str
+            Prefix for saving files
+    organism : str, default 'crypto'
+            change to 'pombe' or 'cerevisiae' if using with another organism
+    min_overlap : float, default 0.5
+            minimum overlap required for peaks to be considered reproducible (default is 50%)
+    exclude_chrom : str or list, default `None`
+            Chromosome(s) to exclude from analysis
+            
+    Outputs
+    ------
+    Comparison csv files : csv files containing the reproducible, reduced set of MACS peaks
+    Genes with peaks : files with a list of genes that had at least one reproducible peak
+    Scatter spreadsheet : The data the corresponds to the scatter plots - RPKM of each peak normalized to whole cell extract
+    Scatter plot : pdf file with scatter plot
+    '''
+    
     if len(bam_list) != len(WCE_bam_list):
         if len(WCE_bam_list) != 1:
             print "Must provide only 1 WCE bam file or a matched WCE bam file for each sample in the bam_list!"

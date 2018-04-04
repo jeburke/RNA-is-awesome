@@ -615,6 +615,7 @@ def hypergeometric(N, n, K, J, k):
     return p
 
 def venn_2sample(n,K,k,J, name1, name2, colors, p):
+    '''Called by gene_venn'''
     A_only = K-k
     B_only = J-k
     AB = k
