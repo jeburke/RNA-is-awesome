@@ -7,8 +7,7 @@ import pandas as pd
 sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/')
 sys.path.insert(0, '/home/jordan/RNA-is-awesome/')
 sys.path.insert(0, '/Users/jordanburke/CodeBase/RNA-is-awesome/')
-import GeneUtility
-import SPTools as SP
+import GeneTools as GT
 from collections import OrderedDict
 import csv
 import pysam
@@ -92,6 +91,164 @@ def tx_info(tx, tx_dict):
         
     return start, end, chrom, strand, CDS_start, CDS_end, exons
 
+def list_splice_sites(gff3_file, chromosome="All", gene_list=None, organism=None):
+    '''Function to build dictionary of splice sites in each transcript.
+    Parameters
+    ----------
+    gff3_file : str
+                location and name of gff3 file
+    chromosome : str, default "All"
+               If not "All", will only list transcripts on the selected chromosome
+    gene_list : list, default ``None``
+               List of genes to limit the dictionary. Useful for optimizing performance of downstream functions.
+    organism : str, default ``None``
+                only necessary for S. pombe - then use 'pombe'
+                
+    Returns
+    --------
+    splice_site_dict : dict
+                    Dictionary where transcript names are keys and values are list as follows:
+                    [[intron starts], [intron stops]]
+    intron flag : bool
+                    True if introns rather than exons are defined in the gff3 file.
+                    '''
+        
+    transcript_dict = build_transcript_dict(gff3_file, organism=organism)
+    
+    splice_site_dict = {}
+    n = 1
+    with open(gff3_file,"r") as fin:
+        for line in fin:
+            columns = re.split(r'\t+', line.strip())
+
+            if organism == 'pombe' and len(columns)>1:
+                intron_flag = False
+                if columns[2] == 'exon':
+                    chr_rom = columns[0]
+                    rom_lat = {'I':'chr1','II':'chr2','III':'chr3','MT':'MT'}
+                    chrom = rom_lat[chr_rom]
+                    transcript = columns[8].split(':')[0].split('=')[1]
+
+                    if transcript not in splice_site_dict:
+                        splice_site_dict[transcript] = [[],[],chrom]
+                    if columns[6] == "+":
+                        splice_site_dict[transcript][0].append(int(columns[4])-1)
+                        splice_site_dict[transcript][1].append(int(columns[3])-2)
+                    elif columns[6] == "-":
+                        splice_site_dict[transcript][0].append(int(columns[3])-1)
+                        splice_site_dict[transcript][1].append(int(columns[4]))
+
+            if len(columns) > 1 and organism is None:
+                if columns[2] == "mRNA" or columns[2] == "snoRNA_gene" or columns[2] == "tRNA_gene":
+                    transcript = columns[8].strip()
+                    transcript = transcript.split("=")[1]
+                    transcript = transcript.split(";")[0]
+                    if transcript.endswith("mRNA"):
+                        transcript = transcript.split("_")[0]
+                    if transcript[-2] != 'T':
+                        transcript = transcript+'T0'
+                    if transcript not in splice_site_dict:
+                        splice_site_dict[transcript] = [[],[],columns[0]]
+
+                elif columns[2] == "exon":
+                    intron_flag=False
+                    transcript = columns[8].strip()
+                    transcript = transcript[-12:]
+                    if transcript[-2] != 'T':
+                        transcript = transcript+'T0'
+                    if gene_list is None:
+                        if columns[6] == "+":
+                            splice_site_dict[transcript][0].append(int(columns[4])-1)
+                            splice_site_dict[transcript][1].append(int(columns[3])-2)
+                        if columns[6] == "-":
+                            splice_site_dict[transcript][0].append(int(columns[3])-1)
+                            splice_site_dict[transcript][1].append(int(columns[4]))
+                    else:
+                        if transcript in gene_list:
+                            if columns[6] == "+":
+                                splice_site_dict[transcript][0].append(int(columns[4])-1)
+                                splice_site_dict[transcript][1].append(int(columns[3])-2)
+                            if columns[6] == "-":
+                                splice_site_dict[transcript][0].append(int(columns[3])-1)
+                                splice_site_dict[transcript][1].append(int(columns[4]))
+
+                #For organisms where introns are annotated instead of exons (e.g. S. cerevisiae)
+                elif "intron" in columns[2]: 
+                    intron_flag=True
+                    transcript = columns[8].strip()
+                    transcript = transcript.split("=")[1]
+                    transcript = transcript.split(";")[0]
+                    if transcript.endswith("mRNA"):
+                        transcript = transcript.split("_")[0]
+                    if transcript[-2] != 'T':
+                        transcript = transcript+'T0'
+                    if transcript not in splice_site_dict:
+                        splice_site_dict[transcript] = [[],[],columns[0]]
+                    if gene_list is None:
+                        if columns[6] == "+":
+                            splice_site_dict[transcript][0].append(int(columns[3])-1)
+                            splice_site_dict[transcript][1].append(int(columns[4]))
+                        elif columns[6] == "-":
+                            splice_site_dict[transcript][0].append(int(columns[4]))
+                            splice_site_dict[transcript][1].append(int(columns[3])-1)
+                    else:
+                        if transcript in gene_list:
+                            if columns[6] == "+":
+                                splice_site_dict[transcript][0].append(int(columns[3])-2)
+                                splice_site_dict[transcript][1].append(int(columns[4])-1)
+                            elif columns[6] == "-":
+                                splice_site_dict[transcript][0].append(int(columns[4]))
+                                splice_site_dict[transcript][1].append(int(columns[3])-1)
+    
+    
+    #Trim to entries in gene list
+    if gene_list is not None:
+        splice_site_dict = {transcript: splice_site_dict[transcript] for transcript in gene_list}
+        
+    if chromosome != "All":
+        splice_site_dict = dict([(transcript, coords) for transcript, coords in splice_site_dict.iteritems() if coords[2] == chromosome])
+    
+    if intron_flag is False:
+        for transcript, sites in splice_site_dict.iteritems():
+            sites5 = sorted(sites[0])
+            sites3 = sorted(sites[1])
+            if transcript_dict[transcript][2] == "+":
+                sites5 = sites5[:-1]
+                sites3 = sites3[1:]
+            elif transcript_dict[transcript][2] == "-":
+                sites5 = sites5[1:]
+                sites3 = sites3[:-1]
+            splice_site_dict[transcript] = [sites5, sites3]
+        
+    return (splice_site_dict, intron_flag)    
+
+def collapse_ss_dict(splice_site_dict):
+    '''Function to list introns by gene rather than isoform - removes redundant introns
+    
+    Parameters
+    ----------
+    splice_site_dict : dict
+                splice site dictionary generated by list_splice_sites
+                
+    Returns
+    --------
+    splice_by_gene : dict
+                    Dictionary where gene names (no "T0" or ".1" at the end) are keys and values are set as follows:
+                    ([intron starts], [intron stops])
+                    '''
+    ss_by_gene = {}
+    transcripts = splice_site_dict.keys()
+    transcripts = [x[:-2] for x in transcripts]
+    genes = list(set(transcripts))
+    for gene in genes:
+        for transcript, sites in splice_site_dict.iteritems():
+            if gene in transcript:
+                if gene not in ss_by_gene:
+                    ss_by_gene[gene] = set()
+                ss_by_gene[gene].update(set(zip(sites[0],sites[1])))
+    return ss_by_gene
+
+
 def count_aligned_reads(bam_file):
     '''Counts aligned reads in bam file reads using Samtools
     
@@ -157,7 +314,7 @@ def map_all_transcripts(gff3, bam_file):
     organism=None
     if 'pombe' in gff3:
         organism = 'pombe'
-    tx_dict = SP.build_transcript_dict(gff3, organism=organism)
+    tx_dict = GT.build_transcript_dict(gff3, organism=organism)
     
     bam = pysam.Samfile(bam_file)
     series_dict = {}
@@ -231,8 +388,8 @@ def PE_intron_retention_from_annotation(bam_list, organism, both_strands=False, 
         organism=None
         
     tx_dict = GT.build_transcript_dict(gff3, organism=organism)
-    ss_dict, flag = SP.list_splice_sites(gff3, organism=organism)
-    ss_dict = SP.collapse_ss_dict(ss_dict)
+    ss_dict, flag = list_splice_sites(gff3, organism=organism)
+    ss_dict = collapse_ss_dict(ss_dict)
     #ss_dict = {k:v for k, v in ss_dict.items() if k in ss_dict.keys()[:100]}
     
     open_bams = {}

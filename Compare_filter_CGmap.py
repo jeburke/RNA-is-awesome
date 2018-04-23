@@ -56,6 +56,7 @@ def filter_CGmap(df, min_counts1, min_counts2, min_meth, output_file_path):
     print len(df[df['counts 1'] >= min_counts1])
     print len(df[df['counts 2'] >= min_counts2])
     
+    # Initial filter for number of counts and fraction methylated to minimize data frame size while iterating
     df = df[(df['counts 1'] >= min_counts1) & (df['counts 2'] >= min_counts2)]
     df = df[(df['fraction methylated 1'] >= min_meth-0.1) | (df['fraction methylated 2'] >= min_meth-0.1)]
 
@@ -76,6 +77,7 @@ def filter_CGmap(df, min_counts1, min_counts2, min_meth, output_file_path):
     col_dict['Filter 1'] = []
     col_dict['Filter 2'] = []
     
+    # Iterate through matrix to check that each site has a sequential partner
     n=0
     nonseq = 0
     while n in range(len(df_array)-1):
@@ -87,21 +89,26 @@ def filter_CGmap(df, min_counts1, min_counts2, min_meth, output_file_path):
             # Check if either data set falls below the cutoffs
             flag1=True
             flag2=True
+            # Check if first sample has requisite minimum counts and methylation
             if (r[7]<min_counts1 or next_r[7]<min_counts1 or r[5]<min_meth or 
                 next_r[5]<min_meth or str(r[7]) == 'nan'):
                 flag1=False
+                
+            # Check if second sample has requisite minimum counts and methylation    
             if (r[10]<min_counts2 or next_r[10]<min_counts2 or r[8]<min_meth or 
                 next_r[8]<min_meth or str(r[10]) == 'nan'):
                 flag2=False
 
-            # If either passes the filter
-            #if flag1 or flag2:
             new_ix.append(df.index[n])
             new_ix.append(df.index[n+1])
+            
+            # Build new columns from data in original matrix according to new index
             for key in col_dict:
                 if 'Filter' not in key:
                     col_dict[key].append(r[col_ix[key]])
                     col_dict[key].append(next_r[col_ix[key]])
+            
+            # Categorize pairs of CGs as pass or fail based on filters above
             if flag1:
                 col_dict['Filter 1'].append('Pass')
                 col_dict['Filter 1'].append('Pass')
@@ -173,7 +180,7 @@ def make_bedgraphs(df, CG_file1, CG_file2, output_file_path, out_path):
     bg4.to_csv(output_file_path.split('.CGmap')[0].split('.csv')[0]+'_filt_log2ratio.bedgraph', sep='\t', header=False, index=False)
 
 def main():
-    arguments=docopt(__doc__,version="filter_CGmap 0.1")
+    arguments=docopt(__doc__,version="Compare_filter_CGmap 0.1")
     for k,v in arguments.iteritems():
         print k+': '+v
     input1_file_path=arguments["--input1_file_path"]

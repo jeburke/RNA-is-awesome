@@ -169,8 +169,8 @@ def main():
     index = None
     for n, arg in enumerate(sys.argv):
         if arg == '-h' or arg == '--help':
-            print "\nUsage:\npython ChIP_tools.py --directory fastq_directory --threads num_threads --organism crypto/pombe/cerevisiae/candida <--adaptor GATCGGAAGA> <--gff3 gff3_file> <--index bowtie_index_prefix>\n"
-            print "Note: --adaptor argument is optional and will default to the one shown above\n --gff3 and --index must both be provided if not using the default files for your organism.\n"
+            print "\nUsage:\npython ChIP_tools.py --directory fastq_directory --threads num_threads --organism crypto/pombe/cerevisiae/candida <--adaptor GATCGGAAGA> <--gff3 gff3_file> <--index bowtie_index_prefix>"
+            print "Note: --adaptor argument is optional and will default to the one shown above\n --gff3 and --index must both be provided if not using the default files for your organism."
             return None
         
         elif arg == '--directory':
@@ -247,7 +247,7 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
     scatter plot : eps file'''
     
     tx_dict = GT.build_transcript_dict(gff3)
-    if cel_tel is False:
+    if cen_tel is False:
         tx_dict = Compare_RPKM.make_promoter_dict(tx_dict, '/home/jordan/GENOMES/H99_chrom_lengths.json')
     
     df = pd.DataFrame(index=tx_dict.keys())
