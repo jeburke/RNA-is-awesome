@@ -247,7 +247,7 @@ def load_DESeq2_results(csv_list):
     return df
 
 def load_HTSeq_results(csv_list):
-    '''This function loads DESeq2 output csv files into a dataframe.
+    '''This function loads HTseq output csv files into a dataframe.
     
     Parameters
     -----------

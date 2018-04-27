@@ -916,7 +916,7 @@ def RNAseq_ChIP_overlap_volcano(DESeq2_csv, ChIP_gene_list):
     RNA = RNA[RNA.index.isin(chip.index)]
     GT.volcano_plot(RNA)
 
-def get_peak_sequence(csv, gene_list=None, fa_dict_loc='/home/jordan/GENOMES/H99_fa.json'):
+def get_peak_sequence2(csv, gene_list=None, fa_dict_loc='/home/jordan/GENOMES/H99_fa.json'):
     if type(gene_list) == str:
         holder = []
         with open(gene_list) as f:
