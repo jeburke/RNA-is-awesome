@@ -211,3 +211,74 @@ def seq_file_from_df(df, column_name, file_name):
         seq_list = df[column_name].tolist()
         for seq in seq_list:
             fout.write(seq+'\n')
+
+def get_peak_sequence3(input_file, fasta_file, gff3_file, gene_list,window=1000):
+    '''Makes a fasta file of peak sequences based on an input file.
+    Input file columns - 1: transcript, 2: chromosome, 3: peak center
+    Remember to save the input file as an MS-DOS CSV file if exporting from Excel
+    Note: retrieves sequence
+    
+    Parameters
+    ----------
+    input_file : str
+            CSV file - see above
+    fasta_file : str
+            .json dictionary of chromosome sequences or fasta file (.json will load faster)
+    gff3_file : str
+            gff3 file for your organism
+    gene_list: str
+             CSV file 
+    window : int, default 1000
+            Size of sequence to retrieve (peak boundaries are window/2 on either side of peak summit)
+            
+    Outputs
+    ------
+    peak_fasta : fasta file with all peak sequences
+    '''
+
+    tx_dict = SP.build_transcript_dict(gff3_file)
+    if type(fasta_file) == dict:
+        fa_dict = fasta_file
+    else:
+        if fasta_file.endswith('json'):
+            with open(fasta_file) as f:
+                fa_dict = json.load(f)
+        else:
+            fa_dict = SP.make_fasta_dict(fasta_file)
+    seq_list = []
+    no_tx_n = 1
+    with open(input_file,'r') as csv_file:
+        f = csv.reader(csv_file, dialect=csv.excel)
+        for row in f:
+            tx_list = row[0].split(',')
+            for tx in tx_list:
+                tx = tx+'T0'
+                if tx.startswith('3P'): tx = tx.split('3P')[1]
+
+                chrom = row[1]
+                if not chrom.startswith('chr'):
+                    chrom = 'chr'+str(chrom)
+                try:
+                    center = int(row[2])
+                    start = center-window/2
+                    end = center+window/2
+                    if tx in tx_dict:
+                        strand = tx_dict[tx][2]
+                    else:
+                        print tx+" not in GFF3 file"
+                        strand = '+'
+                        tx = chrom+':'+str(center)
+                    seq = seq_simple(chrom, start, end, strand, fa_dict)
+                    seq_list.append((tx,seq))
+
+                except ValueError:
+                    pass
+    genes_of_interest=gene_list.split("\n")
+
+    with open('{0}_peak_sequences.fa'.format(input_file.split('/')[-1].split('.')[0]),'w') as fout:
+        for tx, seq in seq_list:
+            if tx in genes_of_interest:
+                fout.write('>'+tx+'\n')
+                fout.write(seq+'\n')
+    return seq_list
+                     

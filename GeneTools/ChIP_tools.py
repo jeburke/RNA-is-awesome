@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 import subprocess
 import os
 import pysam
+import json
 
 def run(cmd, logfile):
     '''Function to open subprocess, wait until it finishes and write all output to the logfile'''
@@ -960,3 +961,5 @@ def get_peak_sequence2(csv, gene_list=None, fa_dict_loc='/home/jordan/GENOMES/H9
             for tx, seq in seq_list2:
                 fout.write('>'+tx+'\n')
                 fout.write(seq+'\n')
+
+
