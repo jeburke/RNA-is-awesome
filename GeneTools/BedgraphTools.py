@@ -209,7 +209,7 @@ def generate_scaled_bedgraphs2(directory, organism='crypto', start_only=False, s
     
     commands = {}
     for n, bam in enumerate(bam_list):
-        command = 'genomeCoverageBed -ibam {0} -g {1} -bg -scale {2} '.format(bam, genome, "%.2f" % totals[bam])
+        command = 'genomeCoverageBed -ibam {0} -g {1} -bga -scale {2} '.format(bam, genome, "%.2f" % totals[bam])
         commands[bam] = command
     
     if start_only is True:
@@ -274,7 +274,7 @@ def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, st
         out = bam_list[n].split('/')[-1].split('.')[0]
         if stranded is True:
             if start_only is False:
-                command1 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand + -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
+                command1 = 'genomeCoverageBed -ibam {0} -g {1} -bga -strand + -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
             elif start_only is True:
                 command1 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand + -5 -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
             print command1
@@ -282,7 +282,7 @@ def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, st
             with open('{0}_plus.bedgraph'.format(out),'w') as fout:
                 fout.write(bg1)
             if start_only is False:
-                command2 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand - -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
+                command2 = 'genomeCoverageBed -ibam {0} -g {1} -bga -strand - -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
             elif start_only is True:
                 command2 = 'genomeCoverageBed -ibam {0} -g {1} -bg -strand - -5 -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
             bg2 = check_output(command2.split(), shell=False)
@@ -290,7 +290,7 @@ def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, st
                 fout.write(bg2)
         else:
             if start_only is False:
-                command = 'genomeCoverageBed -ibam {0} -g {1} -bg -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
+                command = 'genomeCoverageBed -ibam {0} -g {1} -bga -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
             else:
                 command = 'genomeCoverageBed -ibam {0} -g {1} -bg -5 -scale {2}'.format(bam_list[n], genome, str(total_aligned[n]))
             print command
@@ -438,6 +438,34 @@ def read_sorted_bedgraph(bedgraph_dict_output, transcript_dict, organism=None):
                         bg_dict[tx] = entry
     return bg_dict
 
+def decollapse_bedgraph(bedgraph):
+    new_bedgraph = bedgraph.split('.bedgraph')[0]+'_full.bedgraph'
+    counter1 = 0
+    counter2 = 0
+    with open(bedgraph) as f:
+        with open(new_bedgraph,'w') as fout:
+            for line in f:
+                counter1 += 1
+                data = line.split('\t')
+                chrom = data[0]
+                start = int(data[1])
+                end = int(data[2])
+                value = data[3].strip()
+
+                if end-start != 1:
+                    n_lines = end-start
+                    for n in range(n_lines):
+                        counter2 += 1
+                        new_start = str(start+n)
+                        new_end = str(start+n+1)
+                        new_line = '\t'.join([chrom, new_start, new_end, value+'\n'])
+                        fout.write(new_line)
+                else:
+                    counter2 += 1
+                    fout.write(line)
+    #print counter1
+    #print counter2
+
 def bedgraph_reader(bedgraph, chromosomes=None):
     df = pd.read_csv(bedgraph, sep='\t', header=None, names=['chromosome','start','end','RPM'])
     
@@ -456,7 +484,7 @@ def normalize_bedgraph(tagged, untagged):
     total.loc[:,'norm RPM'] = total['RPM_x']/total['RPM_y']
     
     normalized = total[['chromosome_x','start_x','end_x','norm RPM']]
-    normalized = normalized.dropna(how='any')
+    normalized = normalized.replace([np.inf,np.inf*-1],np.NaN).dropna(how='any')
     
     normalized.to_csv(tagged.split('.bedgraph')[0]+'_norm.bedgraph', sep='\t', index=False, header=False)
     

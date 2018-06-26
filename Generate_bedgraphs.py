@@ -78,21 +78,41 @@ def main():
     if stranded is True:
         Combine_stranded_bedgraphs.main(directory=directory)
 
+    if smooth is True:
+        print "\nSmoothing with {0} bp window...".format(str(window))
+        bg_list = [directory+x for x in os.listdir(directory) if x.endswith('.bedgraph')]
+        bg_list2 = []
+        for bg in bg_list:
+            GT.decollapse_bedgraph(bg)
+            bg_list2.append(bg.split('.bedgraph')[0]+'_full.bedgraph')
+        
+        GT.smooth_bedgraphs(bg_list2, window)
+    
     if normalize is True:
         print "\nNormalizing to untagged..."
         if untagged.endswith('.bam'):
             untagged = untagged.split('.bam')[0]
-        bg_list = [directory+x for x in os.listdir(directory) if x.endswith('.bedgraph')]
+        if smooth is True:
+            bg_list = [directory+x for x in os.listdir(directory) if x.endswith('smooth.bedgraph')]
+        else:
+            bg_list = [directory+x for x in os.listdir(directory) if x.endswith('.bedgraph')]
+            bg_list2 = []
+            for bg in bg_list:
+                GT.decollapse_bedgraph(bg)
+                bg_list2.append(bg.split('.bedgraph')[0]+'_full.bedgraph')
+            bg_list = bg_list2
+        
+        #print bg_list
         untagged_bg = [x for x in bg_list if untagged in x][0]
+        #print untagged_bg
         bg_list.remove(untagged_bg)
 
         for bg in bg_list:
             GT.normalize_bedgraph(bg, untagged_bg)
 
-    if smooth is True:
-        print "\nSmoothing with {0} bp window...".format(str(window))
-        bg_list = [directory+x for x in os.listdir(directory) if x.endswith('.bedgraph')]
-        GT.smooth_bedgraphs(bg_list, window)
+    for full_bg in [x for x in os.listdir(directory) if x.endswith('full.bedgraph')]:
+        os.remove(directory+full_bg)
+    
         
 if __name__ == "__main__":
     main()
