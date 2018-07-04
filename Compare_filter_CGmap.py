@@ -38,12 +38,14 @@ def compare_CGmap(CG_file1, CG_file2, out_path):
     CG2[CG2.index.isin(two_not_one)].to_csv(new_CG2_name, header=False, index=False, sep='\t')
     
     bg1 = CG1[CG1.index.isin(one_not_two)][['chromosome','position','fraction methylated']]
+    bg1['position'] = bg1['position'].apply(int)
     bg1['position-1'] = bg1['position']-1
     bg1 = bg1[['chromosome','position-1','position','fraction methylated']]
     bg1_name = out_path+CG_file1.split('/')[-1].split('.CGmap')[0]+'_difference.bedgraph'
     bg1.to_csv(bg1_name, sep='\t', header=False, index=False)
     
     bg2 = CG2[CG2.index.isin(two_not_one)][['chromosome','position','fraction methylated']]
+    bg2['position'] = bg2['position'].apply(int)
     bg2['position-1'] = bg2['position']-1
     bg2 = bg2[['chromosome','position-1','position','fraction methylated']]
     bg2_name = out_path+CG_file2.split('/')[-1].split('.CGmap')[0]+'_difference.bedgraph'
