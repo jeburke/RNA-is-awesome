@@ -37,19 +37,19 @@ def compare_CGmap(CG_file1, CG_file2, out_path):
     new_CG2_name = out_path+CG_file2.split('/')[-1].split('.CGmap')[0]+'_difference.CGmap'
     CG2[CG2.index.isin(two_not_one)].to_csv(new_CG2_name, header=False, index=False, sep='\t')
     
-    bg1 = CG1[CG1.index.isin(one_not_two)][['chromosome','position','fraction methylated']]
-    bg1['position'] = bg1['position'].apply(int)
-    bg1['position-1'] = bg1['position']-1
-    bg1 = bg1[['chromosome','position-1','position','fraction methylated']]
-    bg1_name = out_path+CG_file1.split('/')[-1].split('.CGmap')[0]+'_difference.bedgraph'
-    bg1.to_csv(bg1_name, sep='\t', header=False, index=False)
+    #bg1 = CG1[CG1.index.isin(one_not_two)][['chromosome','position','fraction methylated']]
+    #bg1['position'] = bg1['position'].apply(int)
+    #bg1['position-1'] = bg1['position']-1
+    #bg1 = bg1[['chromosome','position-1','position','fraction methylated']]
+    #bg1_name = out_path+CG_file1.split('/')[-1].split('.CGmap')[0]+'_difference.bedgraph'
+    #bg1.to_csv(bg1_name, sep='\t', header=False, index=False)
     
-    bg2 = CG2[CG2.index.isin(two_not_one)][['chromosome','position','fraction methylated']]
-    bg2['position'] = bg2['position'].apply(int)
-    bg2['position-1'] = bg2['position']-1
-    bg2 = bg2[['chromosome','position-1','position','fraction methylated']]
-    bg2_name = out_path+CG_file2.split('/')[-1].split('.CGmap')[0]+'_difference.bedgraph'
-    bg2.to_csv(bg2_name, sep='\t', header=False, index=False)
+    #bg2 = CG2[CG2.index.isin(two_not_one)][['chromosome','position','fraction methylated']]
+    #bg2['position'] = bg2['position'].apply(int)
+    #bg2['position-1'] = bg2['position']-1
+    #bg2 = bg2[['chromosome','position-1','position','fraction methylated']]
+    #bg2_name = out_path+CG_file2.split('/')[-1].split('.CGmap')[0]+'_difference.bedgraph'
+    #bg2.to_csv(bg2_name, sep='\t', header=False, index=False)
     
     return both
 
@@ -165,7 +165,7 @@ def make_bedgraphs(df, CG_file1, CG_file2, output_file_path, out_path):
     bg2 = bg2[['chromosome','position-1','position','fraction methylated 2']]
     bg2_name = out_path+CG_file2.split('/')[-1].split('.CGmap')[0]+'_filt_difference.bedgraph'
     print bg2_name
-    bg2.to_csv(bg2_name, sep='\t', header=False, index=False)
+    #bg2.to_csv(bg2_name, sep='\t', header=False, index=False)
     
     # B - log ratio bedgraph with all non-NaN points
     bg3 = df[df['log2 ratio'].apply(str) != 'nan'][['chromosome','position','log2 ratio']]
@@ -175,11 +175,12 @@ def make_bedgraphs(df, CG_file1, CG_file2, output_file_path, out_path):
     bg3.to_csv(output_file_path.split('.CGmap')[0].split('.csv')[0]+'_all_log2ratio.bedgraph', sep='\t', header=False, index=False)
     
     # C - log ratio bedgraph with only passing in both data sets
-    bg4 = df[(df['log2 ratio'].apply(str) != 'nan') & (df['Filter 1'] == 'Pass') & (df['Filter 2'] == 'Pass')]
-    bg4.loc[:,'position'] = bg4['position'].apply(int)
-    bg4.loc[:,'position-1'] = bg4['position']-1
-    bg4 = bg4[['chromosome','position-1','position','log2 ratio']]
-    bg4.to_csv(output_file_path.split('.CGmap')[0].split('.csv')[0]+'_filt_log2ratio.bedgraph', sep='\t', header=False, index=False)
+    #bg4 = df[(df['log2 ratio'].apply(str) != 'nan') & (df['Filter 1'] == 'Pass') & (df['Filter 2'] == 'Pass')]
+    #bg4.loc[:,'position'] = bg4['position'].apply(int)
+    #bg4.loc[:,'position-1'] = bg4['position']-1
+    #bg4 = bg4[['chromosome','position-1','position','log2 ratio']]
+    #bg4.to_csv(output_file_path.split('.CGmap')[0].split('.csv')[0]+'_filt_log2ratio.bedgraph', sep='\t', header=False, index=False)
+
 
 def main():
     arguments=docopt(__doc__,version="Compare_filter_CGmap 0.1")
