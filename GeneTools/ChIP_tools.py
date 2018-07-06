@@ -13,6 +13,8 @@ import subprocess
 import os
 import pysam
 import json
+from collections import OrderedDict
+import seaborn as sns
 
 def run(cmd, logfile):
     '''Function to open subprocess, wait until it finishes and write all output to the logfile'''
@@ -961,3 +963,271 @@ def get_peak_sequence2(csv, gene_list=None, fa_dict_loc='/home/jordan/GENOMES/H9
             for tx, seq in seq_list2:
                 fout.write('>'+tx+'\n')
                 fout.write(seq+'\n')
+
+def read_feature_gff3(gff3):
+    feature_dict = {}
+    with open(gff3) as f:
+        for line in f:
+            data = line.split('\t')
+            try:
+                chrom = data[0]
+                start = int(data[3])
+                end = int(data[4])
+                name = data[8].split('ID=')[-1].strip()
+            except IndexError:
+                pass
+            
+            feature_dict[name] = [chrom, start, end]
+    
+    return feature_dict
+                
+def make_tile_df(directory, tile_size=5000, organism='crypto', gff3=None):
+    '''Creates a spreadsheet that contains RPKM values for tiles across the entire genome from bam files. Can also
+    classify each tile based on a gff3 file if desired (e.g. centromeres and telomeres).
+    
+    Parameters
+    ----------
+    directory : str
+            Directory containing bam files and index files
+    tile_size : int, default 5000
+            Size of tiles within each chromosome
+    organism : str, default 'crypto'
+            'crypto' or 'pombe' 
+    gff3 : str, default `None`
+            gff3 format file containing features. Tiles will be classified based on the boundaries described in this file
+            
+    Returns
+    ------
+    df : pandas.DataFrame
+            Dataframe containing the RPKM calculations for each tile from each bam file in the directory'''
+    
+    # Find all bam files in directory
+    bam_list = []
+    if not directory.endswith('/'): directory = directory+'/'
+    for file in os.listdir(directory):
+        if file.endswith(('_sorted.bam')):
+            bam_list.append(directory+file)
+    
+    # Load in tiles from dictionary
+    if 'crypto' in organism.lower():
+        with open('/home/jordan/GENOMES/H99_fa.json') as f: fa_dict = json.load(f)
+        length_dict = {}
+        for chrom, seq in fa_dict.iteritems():
+            length_dict[chrom] = len(seq)
+    elif 'pombe' in organism.lower():
+        with open('/home/jordan/GENOMES/POMBE/Sp_fasta_dict.json') as f: fa_dict = json.load(f)
+        length_dict = {}
+        for chrom, seq in fa_dict.iteritems():
+            length_dict[chrom] = len(seq)
+    else:
+        print "Organism not supported at this time"
+        return None
+    
+    frag_list = []
+    for chrom, length in length_dict.iteritems():
+        n=0
+        counter = 1
+        while n < length-tile_size:
+            frag_list.append([chrom+'-'+str(counter),n,n+tile_size-1,'+',chrom])
+            n += tile_size
+            counter += 1
+        frag_list.append([chrom+'-'+str(counter),n,length,'+',chrom])
+    
+    all_df = pd.DataFrame(index=[x[0] for x in frag_list])
+    all_df.loc[:,'chrom'] = [x[4] for x in frag_list]
+    all_df.loc[:,'start'] = [x[1] for x in frag_list]
+    all_df.loc[:,'end'] = [x[2] for x in frag_list]
+    
+    # Label categories
+    if gff3 is not None:
+        feature_dict = read_feature_gff3(gff3)
+        
+        features =[]
+        for ix, r in all_df.iterrows():
+            match = False
+            for feat, info in feature_dict.iteritems():
+                if r['chrom'] == info[0]:
+                    if r['start'] in range(info[1],info[2]) or r['end'] in range(info[1],info[2]):
+                        features.append(feat)
+                        match = True
+                        break
+            if match is False:
+                features.append('')
+        all_df.loc[:,'Feature'] = features
+    
+    
+    # Open bam files for counting
+    open_bams = {}
+    for bam in bam_list:
+        open_bams[bam] = pysam.Samfile(bam)
+
+    fix_strand = {'+':'-','-':'+'}
+
+    # Count reads in each tile
+    count_dict = {}
+    col_dict = {'name':[],'chrom':[],'start':[],'end':[]}
+    for bam in bam_list:
+        name = bam.split('/')[-1].split('_sorted')[0]
+        print name
+        count_dict[name] = []
+        for frag, start, end, strand, chrom in frag_list:
+            
+            # Count reads on both strands
+            count = GT.count_reads_in_window(open_bams[bam], chrom, start, end, strand)
+            count += GT.count_reads_in_window(open_bams[bam], chrom, start, end, fix_strand[strand])
+            
+            # Divide by tile size in kb
+            count = count/((end-start)/1000.)
+            count_dict[name].append(count)
+
+    # Populate dataframe
+            
+    for name, data in count_dict.iteritems():
+        all_df[name] = data
+        
+        # Calculate RPKM
+        bam_file = [x for x in bam_list if name in x]
+        if len(bam_file) > 1:
+            print "Redundant bam names, cannot calculate RPKM"
+        else:
+            bam_file = bam_file[0]
+        total_reads = GT.count_aligned_reads(bam_file)
+        all_df[name+' RPKM'] = [x/total_reads for x in data]
+
+    # Remove weird chromosome
+    #all_df = all_df[~all_df.index.str.contains('Caalf')]
+    
+
+
+    return all_df
+
+def normalize_tiles_to_WCE(df, WCE_sample_dict):
+    '''Adds normalized columns to the spreadsheet created by make_tile_df
+    
+    Parameters
+    ----------
+    df : pandas.DataFrame
+            Dataframe generated by make_tile_df function (modifies this dataframe in place
+    WCE_sample_dict : dict
+            format - {WCE1:[sample1a,sample1b],WCE2:[sample2a,sample2b]}'''
+    
+    # format for WCE_sample_dict is {WCE_name:[list of bam files], WCE_name:[list of bam files]}
+    
+    RPKM_cols = [x for x in df.columns if x.endswith('RPKM')]
+    
+    for WCE, samples in WCE_sample_dict.iteritems():
+        WCE_RPKM = [x for x in RPKM_cols if WCE in x][0]
+        
+        for sample in samples:
+            sample_RPKM = [x for x in RPKM_cols if sample in x][0]
+            df.loc[:,sample+' RPKM norm'] = df[sample_RPKM]/df[WCE_RPKM]
+            
+def tile_scatters(df, name1, name2, highlight=None, colors=['orangered','0.5']):
+    '''Creates scatter plots from dataframe generated by make_tile_df and normalize_tiles_to_WCE
+    
+    Parameters
+    ----------
+    df : pandas.DataFrame
+            Dataframe generated by make_tile_df function (modifies this dataframe in place
+    name1 : str
+            all or part of the name of the first sample 
+    name2 : str
+            all or part of the name of the second sample
+    highlight : str, default `None`
+            feature to highlight (e.g. 'Cen') - note string must be contained within the feature names provided in the gff3 file
+    colors : list, default ['orangered','0.5']
+            colors for scatter plot - first color is the highlight color
+            
+    Returns
+    ------
+    fig : matplotlib.figure
+            matplotlib figure object that can be exported with fig.savefig(filename, format='pdf')'''
+    
+    cols = [x for x in df.columns if x.endswith('RPKM norm')]
+    a = [x for x in cols if name1 in x][0]
+    b = [x for x in cols if name2 in x][0]
+    
+    
+    fig, ax = plt.subplots(figsize=(4,4))
+    ax.scatter(df[a].apply(np.log2), df[b].apply(np.log2), s=15, alpha=0.5, label='Genome', color=colors[1], zorder=1)
+    if highlight is not None:
+        c = df[df['Feature'].str.contains(highlight)][a].apply(np.log2)
+        d = df[df['Feature'].str.contains(highlight)][b].apply(np.log2)
+        print len(c)
+        ax.scatter(c, d, s=15, color=colors[0], label=highlight, zorder=2, alpha=0.5)
+
+    min_xy = min(ax.get_xlim()[0], ax.get_ylim()[0])
+    max_xy = max(ax.get_xlim()[1], ax.get_ylim()[1])
+
+    ax.set_xlim(min_xy,max_xy)
+    ax.set_ylim(min_xy,max_xy)
+
+    ax.set_xlabel(a.split('_S')[0]+' (log2)', fontsize=14)
+    ax.set_ylabel(b.split('_S')[0]+' (log2)', fontsize=14)
+    ax.legend(fontsize=14)
+
+    ax.plot((min_xy,max_xy),(min_xy,max_xy), '--', zorder=0, color='0.5')
+    
+    plt.show()
+    return fig
+
+def tile_boxplots(df, name1, name2, feature=None, color='0.5', yscale=None):
+    '''Creates boxplots from dataframe generated by make_tile_df and normalize_tiles_to_WCE
+    
+    Parameters
+    ----------
+    df : pandas.DataFrame
+            Dataframe generated by make_tile_df function (modifies this dataframe in place
+    name1 : str
+            all or part of the name of the first sample 
+    name2 : str
+            all or part of the name of the second sample
+    feature : str, default `None`
+            feature to highlight (e.g. 'Cen') - note string must be contained within the feature names provided in the gff3 file
+    color : str, default '0.5'
+            color of fill for boxplot
+    yscale : tuple, default `None`
+            Provide if autoscale is not sufficient on the y-axis (due to fliers). E.g. (0,5)
+            
+    Returns
+    ------
+    fig : matplotlib.figure
+            matplotlib figure object that can be exported with fig.savefig(filename, format='pdf')'''
+        
+    cols = [x for x in df.columns if x.endswith('RPKM norm')]
+    a = [x for x in cols if name1 in x][0]
+    b = [x for x in cols if name2 in x][0]
+    box_data = df[[a,b,'Feature']]
+
+    if feature is not None:
+        feat_box = box_data[box_data['Feature'].str.contains(feature)]
+        oth_box = box_data[~box_data['Feature'].str.contains(feature)]
+
+        fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(8,4), sharey=True)
+        sns.boxplot(data=feat_box, ax=ax1, color=color)
+        sns.boxplot(data=oth_box, ax=ax2, color='0.5')
+
+        ax1.set_ylabel('Enrichment over WCE (RPKM)', fontsize=14)
+        ax1.set_title(feature, fontsize=14)
+        ax2.set_title('Genome', fontsize=14)
+        
+        if yscale is not None:
+            ax1.set_ylim(yscale)
+            
+        print 'p-value for feature:'
+        print stats.mannwhitneyu(feat_box[a],feat_box[b])[1]
+        print 'p-value for remainder:'
+        print stats.mannwhitneyu(oth_box[a],oth_box[b])[1]
+
+    else:
+        fig, ax = plt.subplots(figsize=(4,4))
+        sns.boxplot(box_data, ax=ax, color=color)
+        
+        ax.set_ylabel('Enrichment over WCE (RPKM)', fontsize=14)
+        
+        if yscale is not None:
+            ax.set_ylim(yscale)
+    
+    fig.tight_layout()
+    plt.show()
+    return fig
