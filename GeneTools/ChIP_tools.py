@@ -800,11 +800,15 @@ def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_ba
     tile_df = count_reads_in_tiles(bam_list, WCE_bam_list[0], chromosome_sizes)
     
     for bam_name in bam_names:
+	peak_min=None
         if bam_name in xls_pair1[0] or bam_name in xls_pair1[1]:
             peak_min = np.percentile(data_df[data_df['In WT'] == True][bam_name], 0.5)
         elif bam_name in xls_pair2[0] or bam_name in xls_pair2[1]:
             peak_min = np.percentile(data_df[data_df['In Mut'] == True][bam_name], 0.5)
-        
+        if peak_min is None:
+	    print "BAM file name does not match xls file name!"
+	    print bam_name
+	    return None
         
         s = tile_df.sort_values(bam_name+' norm to WCE').reset_index()[bam_name+' norm to WCE']
         top = max(s[(s <= peak_min)].index)
