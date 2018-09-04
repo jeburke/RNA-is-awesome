@@ -165,7 +165,7 @@ def make_bedgraphs(df, CG_file1, CG_file2, output_file_path, out_path):
     bg2 = bg2[['chromosome','position-1','position','fraction methylated 2']]
     bg2_name = out_path+CG_file2.split('/')[-1].split('.CGmap')[0]+'_filt_difference.bedgraph'
     print bg2_name
-    #bg2.to_csv(bg2_name, sep='\t', header=False, index=False)
+    bg2.to_csv(bg2_name, sep='\t', header=False, index=False)
     
     # B - log ratio bedgraph with all non-NaN points
     bg3 = df[df['log2 ratio'].apply(str) != 'nan'][['chromosome','position','log2 ratio']]

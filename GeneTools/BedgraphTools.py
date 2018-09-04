@@ -186,7 +186,7 @@ def run_genomeCoverageBed(command):
     ret_code = process.wait()
     return ret_code
 
-def generate_scaled_bedgraphs2(directory, organism='crypto', start_only=False, stranded=False, threads=1):
+def generate_scaled_bedgraphs2(directory, untagged, organism='crypto', start_only=False, stranded=False, threads=1, file_provided=False):
     if 'crypto' in organism.lower():
         genome = '/home/jordan/GENOMES/crypto_for_bedgraph.genome'
     elif 'cerev' in organism.lower():
@@ -197,9 +197,16 @@ def generate_scaled_bedgraphs2(directory, organism='crypto', start_only=False, s
         genome = '/home/jordan/GENOMES/C_albicans_for_bg.genome'
     
     bam_list = []
-    for file in os.listdir(directory):
-        if file.lower().endswith("sorted.bam"):
-            bam_list.append(directory+file)
+    if not file_provided:
+        for file in os.listdir(directory):
+            if file.lower().endswith("sorted.bam"):
+                bam_list.append(directory+file)
+    else:
+        bam_list.append(directory)
+        base_dir = directory.split('/')[:-1]
+        base_dir = '/'.join(base_dir)+'/'
+        untagged = [base_dir+x for x in os.listdir(base_dir) if untagged in x and x.endswith('sorted.bam')][0]
+        bam_list.append(untagged)
     
     p = Pool(threads)
     totals = {}
@@ -259,6 +266,7 @@ def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, st
             
     total_aligned = []
     for bam in bam_list:
+        print bam
         command = 'samtools view -F 0x904 -c {0}'.format(bam)
         aligned_reads = check_output(command.split(), shell=False)
         total_aligned.append(aligned_reads)
@@ -526,6 +534,33 @@ def bedgraph_reader(bedgraph, chromosomes=None):
     df.index = df['chromosome'].str.cat(df['start'].apply(str),sep=':')
     
     return df
+
+def write_bedgraph(dataframe, name):
+    dataframe.to_csv(name+'combined.bedgraph', index=False, header=False, sep='\t')
+##  
+def combine_stranded_bedgraph(directory, file_provided=False):
+    bg_pairs = []
+    if not file_provided:
+        for file in os.listdir(directory):
+            if file.endswith('plus.bedgraph'):
+                bg_pairs.append((file,file.split('plus.bedgraph')[0]+'minus.bedgraph'))
+    else:
+        name1 = directory.split('.bam')[0]+'plus.bedgraph'
+        name2 = directory.split('.bam')[0]+'minus.bedgraph'
+        bg_pairs.append((name1, name2))
+
+    for pair in bg_pairs:
+        name = pair[0].split('.bedgraph')[0].split('plus')[0]
+        if not name.endswith('_'):
+            name = name+'_'
+        plus = bedgraph_reader(pair[0])
+        minus = bedgraph_reader(pair[1])
+        minus[3] = minus[3].multiply(-1)
+
+        new = plus.append(minus)
+        new = new.sort_values([0,1])
+        write_bedgraph(new, name)
+##
  
 def normalize_bedgraph(tagged, untagged, smooth=False):
     tagged_RPM = bedgraph_reader(tagged)
