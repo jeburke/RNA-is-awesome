@@ -87,7 +87,7 @@ def main():
         bg_list.remove(untagged_bg)
 
         for bg in bg_list:
-            GT.normalize_bedgraph(bg, untagged_bg)
+            GT.normalize_bedgraph(bg, untagged_bg, smooth=smooth)
 
     if smooth is True:
         print "\nSmoothing with {0} bp window...".format(str(window))

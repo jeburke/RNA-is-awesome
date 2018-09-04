@@ -15,6 +15,7 @@ import pysam
 import json
 from collections import OrderedDict
 import seaborn as sns
+from copy import deepcopy
 
 def run(cmd, logfile):
     '''Function to open subprocess, wait until it finishes and write all output to the logfile'''
@@ -23,28 +24,24 @@ def run(cmd, logfile):
     logfile.flush()
     return ret_code
 
-def align_fastq_chip(directory, threads=1, organism=None, adaptor='GATCGGAAGA', gff3=None, bowtie_ix=None):
+def align_fastq_chip(directory, threads=1, organism=None, adaptor='GATCGGAAGA', bowtie_ix=None):
     '''Automatically aligns all fastq.gz files in a drectory using Bowtie'''
     if directory[-1] != '/':
         directory = directory+'/'
         
     if organism is None:
-        gff3=gff3
+        
         bowtie_ix=bowtie_ix
     elif 'crypto' in organism.lower():
         bowtie_ix = '/home/jordan/GENOMES/Crypto_for_gobs'
-        gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
     elif 'cerev' in organism.lower():
         bowtie_ix = '/home/jordan/GENOMES/S288C/S288C'
-        gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
         if 'DBK' in organism:
             bowtie_ix = '/home/jordan/GENOMES/S288C/S288C_DBK'
     elif 'pombe' in organism.lower():
         bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe'
-        gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
     elif 'candida' in organism.lower() or 'albicans' in organism.lower():
         bowtie_ix = '/home/jordan/GENOMES/C_albicans'
-        gff3 = '/home/jordan/GENOMES/C_albicans_SC5314_version_A21-s02-m09-r10_features.gff'
     else:
         print "Organism not recognized"
         return None
@@ -168,12 +165,11 @@ def align_fastq_chip(directory, threads=1, organism=None, adaptor='GATCGGAAGA', 
 
 def main():
     alt_adaptor = None
-    gff3 = None
     index = None
     for n, arg in enumerate(sys.argv):
         if arg == '-h' or arg == '--help':
-            print "\nUsage:\npython ChIP_tools.py --directory fastq_directory --threads num_threads --organism crypto/pombe/cerevisiae/candida <--adaptor GATCGGAAGA> <--gff3 gff3_file> <--index bowtie_index_prefix>"
-            print "Note: --adaptor argument is optional and will default to the one shown above\n --gff3 and --index must both be provided if not using the default files for your organism."
+            print "\nUsage:\npython ChIP_tools.py --directory fastq_directory --threads num_threads --organism crypto/pombe/cerevisiae/candida <--adaptor GATCGGAAGA> <--index bowtie_index_prefix>"
+            print "Note: --adaptor argument is optional and will default to the one shown above\n --index must  be provided if not using the default files for your organism."
             return None
         
         elif arg == '--directory':
@@ -184,8 +180,6 @@ def main():
             organism = sys.argv[n+1]
         elif arg == '--adaptor':
             alt_adaptor = sys.argv[n+1]
-        elif arg == '--gff3':
-            gff3 = sys.argv[n+1]
         elif arg == '--index':
             index = sys.argv[n+1]
     
@@ -194,13 +188,16 @@ def main():
     else:
         adaptor = 'GATCGGAAGA'
         
-    if gff3 is not None and index is not None:
-        organism=None
-        
-    align_fastq_chip(directory, threads=threads, organism=organism, adaptor=adaptor, gff3=gff3, bowtie_ix=index)
+    align_fastq_chip(directory, threads=threads, organism=organism, adaptor=adaptor, bowtie_ix=index)
     
 if __name__ == "__main__":
     main()
+        
+
+#########################################################################
+## Functions for making scatter plots of the centermeres and telomeres ##
+## (Used in Sandra's paper)                                            ##
+#########################################################################
         
 def make_name(string):
     name = string.split('/')[-1].split('_sorted')[0]
@@ -390,6 +387,11 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
         plt.show()
         plt.clf()
         
+        
+##################################################
+## Functions for analyzing peaks called by MACS ##
+##################################################
+
 def add_transcript(df, gff3, organism=None):
     ''' Used by MACS_peak_RPKM_scatters'''
     tx_dict = GT.build_transcript_dict(gff3, organism=organism)
@@ -423,7 +425,7 @@ def add_transcript(df, gff3, organism=None):
     df.loc[:,'transcript'] = transcripts_for_df
     return df, transcripts
         
-def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism, return_df=False, min_overlap=0.5):
+def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism, return_df=False, min_overlap=0.5, cutoff=2):
     ''' Used by MACS_peak_RPKM_scatters'''
     
     if 'crypto' in organism.lower():
@@ -437,7 +439,9 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism, return_df=Fa
         organism = None
         
     df1 = pd.read_csv(rep1_xls, sep='\t', skiprows=28, header=0)
+    df1 = df1[df1['fold_enrichment'] >= cutoff]
     df2 = pd.read_csv(rep2_xls, sep='\t', skiprows=28, header=0)
+    df2 = df2[df2['fold_enrichment'] >= cutoff]
     df_un = pd.read_csv(untagged_xls, sep='\t', skiprows=28, header=0)
     
     # Determine if peak is in each replicate
@@ -522,7 +526,7 @@ def compare_MACS_output(rep1_xls, rep2_xls, untagged_xls, organism, return_df=Fa
     with open(rep1_xls.split('/')[-1].split('.xls')[0]+'_genes_with_peaks.txt', 'w') as fout:
         for transcript in transcripts:
             fout.write(transcript+'\n')
-    if return_df is True:
+    if return_df:
         return filtered
     else:
         return None
@@ -542,7 +546,7 @@ def wt_v_mut_MACS(df1, df2, min_overlap=0.5):
                 enrich_mut2.append(r2['fold_enrichment2'])
                 match = True
                 break
-        if match is False:
+        if not match:
             enrich_mut1.append(np.NaN)
             enrich_mut2.append(np.NaN)
     
@@ -560,7 +564,7 @@ def wt_v_mut_MACS(df1, df2, min_overlap=0.5):
             if len(range1.intersection(range2))/float(len(range1)) >= min_overlap:
                 match = True
                 break
-        if match is False:
+        if not match:
             new_row = df2.loc[ix,:]
             new_row = new_row.rename({'fold_enrichment': 'fold_enrichment mut1', 'fold_enrichment2': 'fold_enrichment mut2'})
             df1 = df1.append(new_row)
@@ -681,7 +685,7 @@ def count_reads_in_tiles(bam_list, WCE, chromosome_sizes, tile_size=1000):
     return df
 
 
-def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_bam_list, name, organism='crypto', min_overlap=0.5, exclude_chrom=None):
+def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_bam_list, name, organism='crypto', enrichment_cutoff=2, min_overlap=0.5, exclude_chrom=None, collapse_peaks=True, gene_list=None, adjust=True):
     
     '''This function does several things:
         1: It compares the MACS output from replicate ChIP-seq experiments and defines a minimal set of reproducible peaks.
@@ -716,6 +720,8 @@ def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_ba
             minimum overlap required for peaks to be considered reproducible (default is 50%)
     exclude_chrom : str or list, default `None`
             Chromosome(s) to exclude from analysis
+    collapse_peaks : bool, default `True`
+            Whether or not peaks are collapsed by transcript in the 'by_transcript.csv' output file
             
     Outputs
     ------
@@ -723,16 +729,28 @@ def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_ba
     Genes with peaks : files with a list of genes that had at least one reproducible peak
     Scatter spreadsheet : The data the corresponds to the scatter plots - RPKM of each peak normalized to whole cell extract
     Scatter plot : pdf file with scatter plot
+    By transcript spreadsheet : Summation of enrichment values by transcript (if collapse_peaks is True)
     '''
     
-    if len(bam_list) != len(WCE_bam_list):
-        if len(WCE_bam_list) != 1:
-            print "Must provide only 1 WCE bam file or a matched WCE bam file for each sample in the bam_list!"
-            return None
-    
+    if type(WCE_bam_list) == list:
+        single_WCE = False
+        if len(bam_list) != len(WCE_bam_list):
+            if len(WCE_bam_list) != 1:
+                print "Must provide only 1 WCE bam file or a matched WCE bam file for each sample in the bam_list!"
+                return None
+    elif type(WCE_bam_list) == str:
+        single_WCE = True
+        WCE = WCE_bam_list
+        WCE_bam_list = []
+        for bam in bam_list:
+            WCE_bam_list.append(WCE)
+    else:
+        print "Whole cell extract is neither a list or a string!"
+        return None
+            
     # First run the comparison script to get peaks that align between replicates and to contract peak regions
-    df_wt = compare_MACS_output(xls_pair1[0], xls_pair1[1], untagged_xls, organism, return_df=True)
-    df_mut = compare_MACS_output(xls_pair2[0], xls_pair2[1], untagged_xls, organism, return_df=True)
+    df_wt = compare_MACS_output(xls_pair1[0], xls_pair1[1], untagged_xls, organism, return_df=True, cutoff=enrichment_cutoff)
+    df_mut = compare_MACS_output(xls_pair2[0], xls_pair2[1], untagged_xls, organism, return_df=True, cutoff=enrichment_cutoff)
     
     # Now need to run through and compare peaks between genotypes - see code for MACS enrichment scatters
     compare_df_A = wt_v_mut_MACS(df_wt, df_mut, min_overlap=min_overlap)
@@ -784,41 +802,51 @@ def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_ba
             in_mut.append(True)
     data_df.loc[:,'In WT'] = in_wt
     data_df.loc[:,'In Mut'] = in_mut
-        
-    # Count whole cell extract and normalize
-    for n, bam_file in enumerate(WCE_bam_list):
-        WCE = Compare_RPKM.count_reads_in_ChIP(peak_dict, bam_file)
-        if len(WCE_bam_list) == 1:
-            for bam in bam_names:
-                data_df.loc[:,bam] = data_df[bam]/WCE
-        elif len(WCE_bam_list) == len(bam_list):
-            data_df.loc[:,bam_names[n]] = data_df[bam_names[n]]/WCE
 
     # Now get the background level and apply adjustment
-    print "\n Adjusting for biases..."
-    chromosome_sizes = '/home/jordan/GENOMES/crypto_for_bedgraph.genome'
-    tile_df = count_reads_in_tiles(bam_list, WCE_bam_list[0], chromosome_sizes)
-    
-    for bam_name in bam_names:
-	peak_min=None
-        if bam_name in xls_pair1[0] or bam_name in xls_pair1[1]:
-            peak_min = np.percentile(data_df[data_df['In WT'] == True][bam_name], 0.5)
-        elif bam_name in xls_pair2[0] or bam_name in xls_pair2[1]:
-            peak_min = np.percentile(data_df[data_df['In Mut'] == True][bam_name], 0.5)
-        if peak_min is None:
-	    print "BAM file name does not match xls file name!"
-	    print bam_name
-	    return None
+    if adjust:
+        print "\n Adjusting for biases..."
+        chromosome_sizes = '/home/jordan/GENOMES/crypto_for_bedgraph.genome'
+        tile_df = count_reads_in_tiles(bam_list, WCE_bam_list[0], chromosome_sizes)
         
-        s = tile_df.sort_values(bam_name+' norm to WCE').reset_index()[bam_name+' norm to WCE']
-        top = max(s[(s <= peak_min)].index)
-        slope = stats.linregress(tile_df.sort_values(bam_name).reset_index().iloc[1000:top].index,
-            tile_df.sort_values(bam_name).reset_index().iloc[1000:top][bam_name])[0]
-        print bam_name
-        print slope
-        
-        data_df.loc[:,bam_name] = data_df[bam_name].divide(slope*1000)
-    
+        slopes = []
+        for bam_name in bam_names:
+            peak_min=None
+            if bam_name in xls_pair1[0] or bam_name in xls_pair1[1]:
+                peak_min = np.percentile(data_df[data_df['In WT'] == True][bam_name], 0.5)
+            elif bam_name in xls_pair2[0] or bam_name in xls_pair2[1]:
+                peak_min = np.percentile(data_df[data_df['In Mut'] == True][bam_name], 0.5)
+            if peak_min is None:
+                print "BAM file name does not match xls file name!"
+                print bam_name
+                return None
+
+            s = tile_df.sort_values(bam_name+' norm to WCE').reset_index()[bam_name+' norm to WCE']
+            top = max(s[(s <= peak_min)].index)
+            slope = stats.linregress(tile_df.sort_values(bam_name).reset_index().iloc[1000:top].index,
+                tile_df.sort_values(bam_name).reset_index().iloc[1000:top][bam_name])[0]*1000
+            print bam_name
+            print slope
+            
+            slopes.append(slope)
+            #data_df.loc[:,bam_name] = data_df[bam_name].divide(slope)
+            
+        adj_slopes = [x/min(slopes) for x in slopes]
+        for n, bam_name in enumerate(bam_names):
+            data_df.loc[:,bam_name] = data_df[bam_name].divide(adj_slopes[n])
+
+    # Count whole cell extract and normalize
+    if not single_WCE:
+        for n, bam_file in enumerate(WCE_bam_list):
+            print bam_file
+            WCE = Compare_RPKM.count_reads_in_ChIP(peak_dict, bam_file)
+            data_df.loc[:,bam_names[n]] = data_df[bam_names[n]]/WCE
+    else:
+        print bam_file
+        WCE = Compare_RPKM.count_reads_in_ChIP(peak_dict, WCE_bam_list[0])
+        for bam in bam_names:
+            data_df.loc[:,bam] = data_df[bam]/WCE
+            
     # Add transcripts to spreadsheet
     tx_list = []
     for ix, r in data_df.iterrows():
@@ -826,6 +854,50 @@ def MACS_peak_RPKM_scatters(xls_pair1, xls_pair2, untagged_xls, bam_list, WCE_ba
         
     data_df.loc[:,'transcript'] = tx_list
     data_df.to_csv(name+'.csv')
+    
+    # Make additional spreadsheet organized by gene
+    data_df2 = deepcopy(data_df)
+    data_df2 = data_df2.reset_index()
+    data_df2 = data_df2.rename(columns={"index":"peak coord"})
+
+    tx_df = pd.DataFrame(columns=data_df2.columns)
+    for ix, r in data_df2.iterrows():
+        try:
+            if ',' in r['transcript']:
+                tx_list = r['transcript'].split(',')
+                for tx in tx_list:
+                    if len(tx) > 0:
+                        new_r = deepcopy(r)
+                        new_r['transcript'] = tx
+                        tx_df = tx_df.append(new_r)
+            else:
+                tx_df = tx_df.append(r)
+        except TypeError:
+            new_r = deepcopy(r)
+            new_r['transcript'] = "None"
+            tx_df = tx_df.append(new_r)
+
+    if not collapse_peaks:
+        tx_df = tx_df.reset_index(drop=True)
+        tx_df.to_csv(name+'_by_tx.csv')
+    else:
+        coll_tx_df = pd.DataFrame(columns=tx_df.columns)
+        groups = tx_df.columns.to_series().groupby(tx_df.dtypes).groups
+        data_cols = [v for k, v in groups.items() if k == 'float64']
+        for tx in set(tx_df['transcript']):
+            if tx != 'None':
+                mini_df = tx_df[tx_df['transcript'] == tx]
+                if len(mini_df) > 1:
+                    mini_df = mini_df.reset_index(drop=True)
+                    new_r = deepcopy(mini_df.iloc[0,:])
+                    for col in data_cols:
+                        new_r[col] = mini_df[col].apply(sum)
+                    coll_tx_df = coll_tx_df.append(new_r)
+                else:
+                    coll_tx_df = coll_tx_df.append(mini_df)
+        coll_tx_df.index = coll_tx_df['transcript']
+        coll_tx_df = coll_tx_df.drop(['peak coord','transcript','In WT','In Mut'], axis=1)
+        coll_tx_df.to_csv(name+'_by_tx.csv')
     
     # Make scatter plots - 0v1, 2v3, 0v2, 1v3
     fig = MACS_scatter_plots(data_df, xls_pair1, xls_pair2)
@@ -968,6 +1040,10 @@ def get_peak_sequence2(csv, gene_list=None, fa_dict_loc='/home/jordan/GENOMES/H9
                 fout.write('>'+tx+'\n')
                 fout.write(seq+'\n')
 
+###################################################################
+## Tile functions for analyzing ChIP-seq data across chromosomes ##
+###################################################################
+                
 def read_feature_gff3(gff3):
     feature_dict = {}
     with open(gff3) as f:
@@ -984,6 +1060,7 @@ def read_feature_gff3(gff3):
             feature_dict[name] = [chrom, start, end]
     
     return feature_dict
+
                 
 def make_tile_df(directory, tile_size=5000, organism='crypto', gff3=None):
     '''Creates a spreadsheet that contains RPKM values for tiles across the entire genome from bam files. Can also
@@ -1055,7 +1132,7 @@ def make_tile_df(directory, tile_size=5000, organism='crypto', gff3=None):
                         features.append(feat)
                         match = True
                         break
-            if match is False:
+            if not match:
                 features.append('')
         all_df.loc[:,'Feature'] = features
     

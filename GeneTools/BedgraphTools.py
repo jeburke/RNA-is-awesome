@@ -465,6 +465,54 @@ def decollapse_bedgraph(bedgraph):
                     fout.write(line)
     #print counter1
     #print counter2
+    
+def collapse_bedgraph(bedgraph):
+    new_bedgraph = bedgraph+'.tmp'
+    counter1 = 0
+    counter2 = 0
+    with open(bedgraph) as f:
+        with open(new_bedgraph, 'w') as fout:
+            for line in f:
+                data = line.split('\t')
+                chrom = data[0]
+                start = data[1]
+                end = data[2]
+                value = data[3].strip()
+                if counter1 == 0:
+                    prev_chrom = chrom
+                    prev_value = value
+                    block_start = start
+                    prev_end = end
+                else:
+                    if prev_chrom != chrom:
+                        new_line = [prev_chrom, block_start, prev_end, prev_value+'\n']
+                        new_line = '\t'.join(new_line)
+                        fout.write(new_line)
+                        counter2 += 1
+                        
+                        prev_chrom = chrom
+                        prev_value = value
+                        prev_end = end
+                        block_start = start
+                    elif prev_chrom == chrom and prev_value == value:
+                        pass
+                    elif prev_chrom == chrom and prev_value != value:
+                        new_line = [chrom, block_start, end, prev_value+'\n']
+                        new_line = '\t'.join(new_line)
+                        fout.write(new_line)
+                        counter2 += 1
+                        
+                        prev_value = value
+                        block_start = start
+                        prev_end = end
+
+                counter1 += 1
+    print counter1
+    print counter2
+    
+    os.remove(bedgraph)
+    os.rename(bedgraph+'.tmp', bedgraph)
+    os.remove(bedgraph+'.tmp')
 
 def bedgraph_reader(bedgraph, chromosomes=None):
     df = pd.read_csv(bedgraph, sep='\t', header=None, names=['chromosome','start','end','RPM'])
@@ -476,7 +524,7 @@ def bedgraph_reader(bedgraph, chromosomes=None):
     
     return df
  
-def normalize_bedgraph(tagged, untagged):
+def normalize_bedgraph(tagged, untagged, smooth=False):
     tagged_RPM = bedgraph_reader(tagged)
     untagged_RPM = bedgraph_reader(untagged)
     
@@ -487,6 +535,9 @@ def normalize_bedgraph(tagged, untagged):
     normalized = normalized.replace([np.inf,np.inf*-1],np.NaN).dropna(how='any')
     
     normalized.to_csv(tagged.split('.bedgraph')[0]+'_norm.bedgraph', sep='\t', index=False, header=False)
+    
+    if smooth is False:
+        collapse_bedgraph(tagged.split('.bedgraph')[0]+'_norm.bedgraph')
     
 def smooth_bedgraphs(bedgraph_list, window):
     for bedgraph in bedgraph_list:
@@ -503,3 +554,5 @@ def smooth_bedgraphs(bedgraph_list, window):
         new_bg.loc[:,'start'] = new_bg['start'].apply(int)
         new_bg.loc[:,'end'] = new_bg['end'].apply(int)
         new_bg.to_csv(bedgraph.split('.bedgraph')[0]+'_{0}bp_smooth.bedgraph'.format(str(window)), sep='\t', index=False, header=False)
+        
+        collapse_bedgraph(bedgraph.split('.bedgraph')[0]+'_{0}bp_smooth.bedgraph'.format(str(window)))
