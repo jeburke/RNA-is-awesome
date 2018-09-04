@@ -239,7 +239,7 @@ def generate_scaled_bedgraphs2(directory, organism='crypto', start_only=False, s
     return codes
         
 
-def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, stranded=False):
+def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, stranded=False, file_provided=False):
     if 'crypto' in organism.lower():
         genome = '/home/jordan/GENOMES/crypto_for_bedgraph.genome'
     elif 'cerev' in organism.lower():
@@ -250,9 +250,12 @@ def generate_scaled_bedgraphs(directory, organism='crypto', start_only=False, st
         genome = '/home/jordan/GENOMES/C_albicans_for_bg.genome'
     
     bam_list = []
-    for file in os.listdir(directory):
-        if file.lower().endswith("sorted.bam"):
-            bam_list.append(directory+file)
+    if not file_provided:
+        for file in os.listdir(directory):
+            if file.lower().endswith("sorted.bam"):
+                bam_list.append(directory+file)
+    else:
+        bam_list.append(directory)
             
     total_aligned = []
     for bam in bam_list:

@@ -22,8 +22,12 @@ def main():
         return None
     
     directory = sys.argv[1]
-    if not directory.endswith('/'):
+    file_provided = False
+    if directory.endswith('sorted.bam'):
+        file_provided = True
+    elif not directory.endswith('/'):
         directory = directory+'/'
+    
     organism = sys.argv[2]
     if 'crypto' not in organism.lower() and 'pombe' not in organism.lower() and 'candida' not in organism.lower() and 'cerev' not in organism.lower():
         print "Unrecognized organism"
@@ -73,16 +77,21 @@ def main():
                 return None
 
     print "Generating scaled bedgraphs..."
-    GT.generate_scaled_bedgraphs2(directory, organism=organism, start_only=start_only, stranded=stranded, threads=threads)
+    GT.generate_scaled_bedgraphs2(directory, organism=organism, start_only=start_only, stranded=stranded, threads=threads, file_provided=file_provided)
+    
+    base_dir = directory.split('/')[:-1]
+    base_dir = '/'.join(base_dir)+'/'
     
     if stranded is True:
-        Combine_stranded_bedgraphs.main(directory=directory)
+        Combine_stranded_bedgraphs.main(directory=base_dir, file_provided=file_provided)
 
+
+    
     if normalize is True:
         print "\nNormalizing to untagged..."
         if untagged.endswith('.bam'):
             untagged = untagged.split('.bam')[0]
-        bg_list = [directory+x for x in os.listdir(directory) if x.endswith('.bedgraph')]
+        bg_list = [base_dir+x for x in os.listdir(base_dir) if x.endswith('.bedgraph')]
         untagged_bg = [x for x in bg_list if untagged in x][0]
         bg_list.remove(untagged_bg)
 
@@ -91,7 +100,7 @@ def main():
 
     if smooth is True:
         print "\nSmoothing with {0} bp window...".format(str(window))
-        bg_list = [directory+x for x in os.listdir(directory) if x.endswith('.bedgraph')]
+        bg_list = [base_dir+x for x in os.listdir(base_dir) if x.endswith('.bedgraph')]
         GT.smooth_bedgraphs(bg_list, window)
         
 if __name__ == "__main__":
