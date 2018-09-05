@@ -30,7 +30,6 @@ def align_fastq_chip(directory, threads=1, organism=None, adaptor='GATCGGAAGA', 
         directory = directory+'/'
         
     if organism is None:
-        
         bowtie_ix=bowtie_ix
     elif 'crypto' in organism.lower():
         bowtie_ix = '/home/jordan/GENOMES/Crypto_for_gobs'
@@ -111,14 +110,14 @@ def align_fastq_chip(directory, threads=1, organism=None, adaptor='GATCGGAAGA', 
                     logfile.write('\n**********Bowtie multi alignment output**********\n')
                     print "Aligning allowing multiple alignments (random assignment)..."
                     
-                    multi_args = "bowtie -p{0} -v2 -M1 --best --un {1}_multi_un.fastq --max {1}_multi.fastq {2} -q {3} --sam {1}_multi.sam".format(str(threads), directory+'MULTI/'+prefix, bowtie_ix, trim_name)
+                    multi_args = "bowtie -p{0} -v2 -M1 --best --chunkmbs 1024 --un {1}_multi_un.fastq --max {1}_multi.fastq {2} -q {3} --sam {1}_multi.sam".format(str(threads), directory+'MULTI/'+prefix, bowtie_ix, trim_name)
                     ret_code = run(multi_args, logfile)
                 
                 if len([x for x in os.listdir(directory+'UNIQUE/') if prefix in x]) == 0:
                     logfile.write('\n**********Bowtie unique alignment output**********\n')
                     print "Aligning allowing only unique alignments...\n"
                     
-                    unique_args = "bowtie -p{0} -v2 -m1 --un {1}_unique_un.fastq  {2} -q {3} --sam {1}_unique.sam".format(str(threads), directory+'UNIQUE/'+prefix, bowtie_ix, trim_name)
+                    unique_args = "bowtie -p{0} -v2 -m1 --chunkmbs 1024 --un {1}_unique_un.fastq {2} -q {3} --sam {1}_unique.sam".format(str(threads), directory+'UNIQUE/'+prefix, bowtie_ix, trim_name)
                     ret_code = run(unique_args, logfile)
     
     for subdir in ('MULTI/','UNIQUE/'):
@@ -166,6 +165,7 @@ def align_fastq_chip(directory, threads=1, organism=None, adaptor='GATCGGAAGA', 
 def main():
     alt_adaptor = None
     index = None
+    organism = None
     for n, arg in enumerate(sys.argv):
         if arg == '-h' or arg == '--help':
             print "\nUsage:\npython ChIP_tools.py --directory fastq_directory --threads num_threads --organism crypto/pombe/cerevisiae/candida <--adaptor GATCGGAAGA> <--index bowtie_index_prefix>"
