@@ -89,7 +89,7 @@ def align_fastq_chip(directory, threads=1, organism=None, adaptor='GATCGGAAGA', 
             prefix = fastq.split('/')[-1].split('.fastq')[0]
             print prefix
             with open(prefix+'.log', 'w') as logfile:
-                trim_name = fastq.split('/')[-1].split('.fastq')[0]+'_trim.fastq'
+                trim_name = prefix+'_trim.fastq'
                 if trim_name not in os.listdir(directory):
                     print "Trimming reads..."
                     cutadapt_args = "cutadapt -a {0} -m 20 -o {1}_trim.fastq {2}".format(adaptor, prefix, fastq)
@@ -153,8 +153,8 @@ def align_fastq_chip(directory, threads=1, organism=None, adaptor='GATCGGAAGA', 
                     p.wait()
 
         # Remove processing intermediates
-        for sam in [x for x in os.listdir(directory+subdir) if x.endswith('.sam')]:
-            os.remove(directory+subdir+sam)
+        #for sam in [x for x in os.listdir(directory+subdir) if x.endswith('.sam')]:
+        #    os.remove(directory+subdir+sam)
         for bam in [x for x in os.listdir(directory+subdir) if x.endswith('.bam')]:
             if not bam.endswith('_sorted.bam'):
                 os.remove(directory+subdir+bam)

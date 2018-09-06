@@ -35,7 +35,6 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
         directory = directory+'/'
         
     if 'crypto' in organism.lower():
-#        bowtie_ix = '/home/jordan/GENOMES/Crypto_for_gobs'
         bowtie_ix = '/home/jordan/GENOMES/H99_bt2'
         gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
     elif 'cerev' in organism.lower():
@@ -44,9 +43,11 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
         if 'DBK' in organism:
             bowtie_ix = '/home/jordan/GENOMES/S288C/S288C_DBK'
     elif 'pombe' in organism.lower():
-#        bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe'
         bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe-2'
         gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
+    elif organism == 'candida':
+        bowtie_ix = '/home/jordan/GENOMES/C_albicans2'
+        gff3 = '/home/jordan/GENOMES/C_albicans_SC5314_version_A21-s02-m09-r10_features.gff'
         
     fastq_list = []
     for file in os.listdir(directory):
@@ -81,8 +82,80 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
     if len(fastq_list) > 0:
         for n, fastq in enumerate(fastq_list):
             prefix = fastq.split('.fastq')[0]
-#            args = 'tophat2 --read-mismatches 2 --read-gap-length 2 --read-edit-dist 2 --min-anchor-length 8 --splice-mismatches 0 --min-intron-length 20 --max-intron-length 2000 --max-insertion-length 3 --max-deletion-length 3 --num-threads {0} --max-multihits 2 --library-type fr-firststrand --segment-mismatches 3 --no-coverage-search --segment-length 20 --min-coverage-intron 10 --max-coverage-intron 100000 --min-segment-intron 50 --max-segment-intron 500000 --bowtie1 -G {1} -o {2} {3} {4}'.format(str(threads), gff3, prefix, bowtie_ix, fastq)
             args = 'tophat2 --read-mismatches 2 --read-gap-length 2 --read-edit-dist 2 --min-anchor-length 8 --splice-mismatches 0 --min-intron-length 20 --max-intron-length 2000 --max-insertion-length 3 --max-deletion-length 3 --num-threads {0} --max-multihits 2 --library-type fr-firststrand --segment-mismatches 3 --no-coverage-search --segment-length 20 --min-coverage-intron 10 --max-coverage-intron 100000 --min-segment-intron 50 --max-segment-intron 500000 -G {1} -o {2} {3} {4}'.format(str(threads), gff3, prefix, bowtie_ix, fastq)
+            
+            if PE is True:
+                args = args+' '+fastq_list2[n]
+            
+            print args
+            p = subprocess.Popen(args.split(' '), stdout=subprocess.PIPE)
+            p.wait()
+        
+            print '\n'
+            print prefix
+
+            if 'align_summary.txt' in os.listdir(prefix):
+                with open(prefix+'/align_summary.txt','r') as f:
+                    for line in f:
+                        print line
+                        print '\n'
+            
+    print 'Finished'
+    
+def align_fastq_STAR(directory, threads=1, organism='crypto', PE=False):
+    '''Automatically aligns all fastq.gz files in a drectory using STAR'''
+    if directory[-1] != '/':
+        directory = directory+'/'
+        
+    if 'crypto' in organism.lower():
+        #bowtie_ix = '/home/jordan/GENOMES/H99_bt2'
+        gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
+    elif 'cerev' in organism.lower():
+        #bowtie_ix = '/home/jordan/GENOMES/S288C/S288C_2'
+        gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
+        if 'DBK' in organism:
+            bowtie_ix = '/home/jordan/GENOMES/S288C/S288C_DBK'
+    elif 'pombe' in organism.lower():
+        #bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe-2'
+        gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
+    elif organism == 'candida':
+        #bowtie_ix = '/home/jordan/GENOMES/C_albicans2'
+        gff3 = '/home/jordan/GENOMES/C_albicans_SC5314_version_A21-s02-m09-r10_features.gff'
+        
+    fastq_list = []
+    for file in os.listdir(directory):
+        if file.lower().endswith("fastq.gz") or file.lower().endswith("fastq"):
+            fastq_list.append(directory+file)
+            
+    if PE is True:
+        fastq_list = sorted(fastq_list)
+        fastq_list2 = []
+        for fastq in fastq_list:
+            if '_R1_' in fastq:
+                R2_name = fastq.split('_R1_')[0]+'_R2_'+fastq.split('_R1_')[1]
+                if R2_name.split('/')[-1] not in os.listdir(directory):
+                    print "No paired fastq file for "+fastq
+                    print "Aborting!"
+                    return None
+                else:
+                    fastq_list2.append(R2_name)
+                    fastq_list.remove(R2_name)
+        print len(fastq_list)
+        print len(fastq_list2)
+    
+    ##Check to make sure tophat hasn't already completed on these files.
+    for name in os.listdir(directory):
+        if os.path.isdir(directory+name):
+            for fastq in fastq_list:
+                if directory+name == fastq.split('.fastq')[0]:
+                    if 'accepted_hits.bam' in os.listdir(directory+name):
+                        fastq_list.remove(fastq)
+                        print "STAR already completed on "+fastq
+    
+    if len(fastq_list) > 0:
+        for n, fastq in enumerate(fastq_list):
+            prefix = fastq.split('.fastq')[0]
+            args = 'STAR'
             
             if PE is True:
                 args = args+' '+fastq_list2[n]
@@ -181,21 +254,41 @@ def count_with_HTseq(base_dir, organism='crypto'):
 def main():
     '''Runs the first part of this module to align, sort, index and count reads'''
     # Input will be RNAseq_tools.py directory number_of_threads_tophat [organism] [SE/PE]
-    # Current organism options: 'crypto', 'pombe', 'cerevisiae'
+    # Current organism options: 'crypto', 'pombe', 'cerevisiae', 'candida'
     PE = False
-    if len(sys.argv) == 3:
-        organism = 'crypto'
-    else:
-        organism = sys.argv[3]
-        if sys.argv[-1].strip() == 'PE':
-            PE = True
-            print "Data are paired end"
-        
-    directory = sys.argv[1]
-    threads = sys.argv[2]
+    organism = None
+    directory = './'
+    threads = 1
+    STAR = False
+    for n, arg in enumerate(sys.argv):
+        if arg == '--organism':
+            if 'crypto' in arg[n+1]:
+                organism = 'crypto'
+            elif 'pombe' in arg[n+1]:
+                organism = 'pombe'
+            elif 'cerev' in arg[n+1]:
+                organism = 'cerevisiae'
+            elif 'candida' in arg[n+1]:
+                organism = 'candida'
+        elif arg == '--directory':
+            directory = arg[n+1]
+        elif arg == 'threads':
+            threads = arg[n+1]
     
-    print "********Aligning reads with Tophat********\n"
-    align_fastq(directory, threads=threads, organism=organism, PE=PE)
+    if '--PE' in sys.argv:
+        PE = True
+        print "Data are paired end"
+    
+    if '--STAR' in sys.argv:
+        STAR = True
+    
+    if not STAR:
+        print "********Aligning reads with Tophat********\n"
+        align_fastq(directory, threads=threads, organism=organism, PE=PE)
+    else:
+        print "********Aligning reads with STAR********\n"
+        align_fastq_STAR(directory, threads=threads, organism=organism, PE=PE)
+        
     print "********Sorting and indexing BAM files********\n"
     sort_index_bam_files(directory)
     print "********Counting reads in transcripts with HTseq********\n"

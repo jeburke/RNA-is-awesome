@@ -523,7 +523,6 @@ def collapse_bedgraph(bedgraph):
     
     os.remove(bedgraph)
     os.rename(bedgraph+'.tmp', bedgraph)
-    os.remove(bedgraph+'.tmp')
 
 def bedgraph_reader(bedgraph, chromosomes=None):
     df = pd.read_csv(bedgraph, sep='\t', header=None, names=['chromosome','start','end','RPM'])
