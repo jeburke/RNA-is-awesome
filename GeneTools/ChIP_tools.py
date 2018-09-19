@@ -1183,8 +1183,18 @@ def read_feature_gff3(gff3):
     
     return feature_dict
 
+def read_fa(fa):
+    fa_dict = {}
+    with open(fa) as f:
+        for line in f:
+            if line.startswith('>'):
+                contig = line.lstrip('>').strip()
+                fa_dict[contig] = ''
+            else:
+                fa_dict[contig] = fa_dict[contig]+line.strip()
+    return fa_dict
                 
-def make_tile_df(directory, tile_size=5000, organism='crypto', gff3=None):
+def make_tile_df(directory, tile_size=5000, organism='crypto', gff3=None, fa=None):
     '''Creates a spreadsheet that contains RPKM values for tiles across the entire genome from bam files. Can also
     classify each tile based on a gff3 file if desired (e.g. centromeres and telomeres).
     
@@ -1213,12 +1223,18 @@ def make_tile_df(directory, tile_size=5000, organism='crypto', gff3=None):
     
     # Load in tiles from dictionary
     if 'crypto' in organism.lower():
-        with open('/home/jordan/GENOMES/H99_fa.json') as f: fa_dict = json.load(f)
+        if fa is None:
+            with open('/home/jordan/GENOMES/H99_fa.json') as f: fa_dict = json.load(f)
+        else:
+            fa_dict = read_fa(fa)
         length_dict = {}
         for chrom, seq in fa_dict.iteritems():
             length_dict[chrom] = len(seq)
     elif 'pombe' in organism.lower():
-        with open('/home/jordan/GENOMES/POMBE/Sp_fasta_dict.json') as f: fa_dict = json.load(f)
+        if fa is None:
+            with open('/home/jordan/GENOMES/POMBE/Sp_fasta_dict.json') as f: fa_dict = json.load(f)
+        else:
+            fa_dict = read_fa(fa)
         length_dict = {}
         for chrom, seq in fa_dict.iteritems():
             length_dict[chrom] = len(seq)
