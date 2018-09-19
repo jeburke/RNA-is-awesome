@@ -30,8 +30,13 @@ def main():
     
     organism = sys.argv[2]
     if 'crypto' not in organism.lower() and 'pombe' not in organism.lower() and 'candida' not in organism.lower() and 'cerev' not in organism.lower():
-        print "Unrecognized organism"
-        return None 
+        try:
+            with open(organism) as f:
+                for line in f:
+                    print line
+        except IOError:
+            print "Unrecognized organism"
+            return None 
 
     threads=1
     start_only = False

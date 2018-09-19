@@ -195,6 +195,8 @@ def generate_scaled_bedgraphs2(directory, untagged, organism='crypto', start_onl
         genome = '/home/jordan/GENOMES/POMBE/Sp_for_bg.genome'
     elif 'albicans' in organism.lower() or 'candida' in organism.lower():
         genome = '/home/jordan/GENOMES/C_albicans_for_bg.genome'
+    else:
+        genome = organism
     
     bam_list = []
     if not file_provided:
