@@ -942,8 +942,28 @@ def MACS_Z_score(csv, wt, mut):
 
     up_df = data_df[data_df.index.isin(up)]
     up_df.to_csv(csv.split('.csv')[0]+'_up_in_mut.csv')
+    with open(csv.split('.csv')[0]+'_up.txt', 'w') as fout:
+        for ix, r in up_df.iterrows():
+            try:
+                for tx in r['transcript'].rstrip(',').split(','):
+                    fout.write(tx+'\n')
+            except AttributeError:
+                pass
+    GT.crypto_annotate(csv.split('.csv')[0]+'_up.txt')
+    os.remove(csv.split('.csv')[0]+'_up.txt')
+    
     down_df = data_df[data_df.index.isin(down)]
     down_df.to_csv(csv.split('.csv')[0]+'_down_in_mut.csv')
+    with open(csv.split('.csv')[0]+'_down.txt', 'w') as fout:
+        for ix, r in down_df.iterrows():
+            try:
+                for tx in r['transcript'].rstrip(',').split(','):
+                    fout.write(tx+'\n')
+            except AttributeError:
+                pass
+    GT.crypto_annotate(csv.split('.csv')[0]+'_down.txt')
+    os.remove(csv.split('.csv')[0]+'_down.txt')
+    
     other_df = data_df[(~data_df.index.isin(up)) & (~data_df.index.isin(down))]
 
     ax[1][0].scatter(other_df[wt_names[0]].apply(np.log2), other_df[mut_names[0]].apply(np.log2), s=15, color='0.7', alpha=0.5)
@@ -1039,6 +1059,108 @@ def get_peak_sequence2(csv, gene_list=None, fa_dict_loc='/home/jordan/GENOMES/H9
             for tx, seq in seq_list2:
                 fout.write('>'+tx+'\n')
                 fout.write(seq+'\n')
+                
+def plot_peaks(bam_list, peak_csv, organism='crypto', colors=None, save_dir=None, log_scale=False, same_yaxis=True, rpm=True):
+    organism, gff3, fa_dict, bowtie_index = GT.find_organism_files(organism)
+    tx_dict = GT.build_transcript_dict(gff3, organism=organism)
+    fix_info = {'I':'chr1','II':'chr2','III':'chr3','chr1':'I','chr2':'II','chr4':'IV','chr5':'V','chr6':'VI',
+                'chr7':'VII','chr8':'VIII','chr9':'IX','chr10':'X','chr11':'XI','chr12':'XII','chr13':'XIII',
+                'chr14':'XIV','chr15':'XV','chr16':'XVI','-':'+','+':'-','chr1':'I','chr2':'II','chr3':'III'}
+    if organism == 'pombe':
+        tx_suffix = '.1'
+    else:
+        tx_suffix = 'T0'
+    
+    if colors is None:
+        colors = []
+        for n in range(len(bam_list)): colors.append('k')
+    
+    open_bams = {}
+    totals = {}
+    for bam in bam_list:
+        open_bams[bam] = pysam.Samfile(bam)
+        if rpm:
+            totals[bam] = GT.count_aligned_reads(bam)
+        else:
+            totals[bam] = 1
+    
+    peak_df = pd.read_csv(peak_csv, index_col=0)
+    num_ax = len(bam_list)+1
+    
+    for ix, r in peak_df.iterrows():
+        fig, ax = plt.subplots(num_ax, figsize=(10,num_ax), sharex=True)
+        fig.subplots_adjust(hspace=0)
+        
+        chrom = ix.split(':')[0]
+        start = int(ix.split(':')[1].split('-')[0])-1000
+        end = int(ix.split(':')[1].split('-')[1])+1000
+        
+        max_y = 0
+        junc_ymax = 0
+        for n, bam in enumerate(bam_list):
+            try:
+                bam_iter = open_bams[bam].fetch(chrom, start, end)
+            except ValueError:
+                chrom = fix_info[chrom]
+                bam_iter = open_bams[bam].fetch(chrom, start, end)
+            s = GT.generate_read_series(bam_iter, chrom, start, end, '+')
+            s.add(GT.generate_read_series(bam_iter, chrom, start, end, '-'))
+            s = s.replace([np.NaN],0)
+            s = s.rolling(100, center=True).mean()
+            s = s.dropna()
+            
+            # Normalize to rpm
+            s = s.divide(totals[bam])
+            if log_scale:
+                s = s.apply(np.log2)
+  
+            # Plot!
+            ax[n].bar(s.index, s, linewidth=1, color=colors[n], edgecolor=colors[n], zorder=2)
+            ax[n].tick_params(axis='both', which='major', labelsize=14)
+            
+            max_y = max([max_y,max(s)])
+        
+        # Make transcript boxes
+        try:
+            for tx in r['transcript'].split(','):
+                title = r['transcript'].rstrip(',')
+                if len(tx) > 0:
+                    if tx+tx_suffix in tx_dict:
+                        strand = GT.gene_patches(tx, tx_dict, ax[-1])
+                        ax[-1].set_xlim(start, end)
+                    else:
+                        try:
+                            new_tx = tx.split(' ')[0]
+                            if new_tx[-2] == 'T' or new_tx[-2] == '.':
+                                new_tx = new_tx[:-2]
+                            strand = GT.gene_patches(new_tx, tx_dict, ax[-1])
+                            ax[-1].set_xlim(start, end)
+                        except KeyError:
+                            print "Transcript unknown"
+        except AttributeError:
+            title = ix
+                
+        # Set x limits
+        for n in range(len(bam_list)):
+            ax[n].set_xlim(start, end)
+            if same_yaxis:
+                ax[n].set_ylim(0,max_y+0.1*max_y)
+
+        # Label axes
+        ax[0].set_ylabel('RPM', fontsize=16)
+        ax[0].set_title(title, fontsize=16)
+        plt.show()
+        
+        # Save if indicated
+        if save_dir is not None:
+            if not save_dir.endswith('/'): save_dir = save_dir+'/'
+                
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+                
+            fig.savefig(save_dir+'_'.join(title.split(','))+'.eps', format='eps')
+            
+        plt.clf()
 
 ###################################################################
 ## Tile functions for analyzing ChIP-seq data across chromosomes ##

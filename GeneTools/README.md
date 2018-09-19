@@ -2,15 +2,16 @@
 ## RNAseq_tools.py
 Starting with fastq.gz files, aligns to genome with Tophat (using Bowtie 1), generates sorted, indexed bam files and counts reads in annotated transcripts using htseq-count. Generates all files necessary to proceed with DESeq2 analysis.
 ### Usage:  
-```python RNAseq_tools.py directory number_of_threads <organism> <SE/PE>```
+```Usage: python RNAseq_tools.py --directory directory --threads num_tophat_threads --organism organism_name <--PE> <--STAR>```
   
 Required arguments:  
->directory : directory containing fastq.gz files (e.g. ./ or /data/jordan/JEB001/)  
->number_of_threads : processors to be used when running Tophat  
+>--directory : directory containing fastq.gz files (e.g. ./ or /data/jordan/JEB001/)  
+>--threads : processors to be used when running Tophat  
+>--organism : yeast genus or species - currently working for crypto/pombe/cerevisiae for TopHat and crypto/pombe for STAR
   
-Optional arguments:  
->organism : default 'crypto' (C. neoformans H99), other options - 'pombe' (S. pombe) and 'cerevisiae' (S. cerevisiae S288C)  
->SE/PE : single end or paired end data, default - single end (SE)  
+Optional arguments:   
+>--PE : Include if paired-end data
+>--STAR : Align with STAR instead of Tophat/Bowtie2
   
 ## ChIP_tools.py
 Starting with fastq.gz files, trims adaptor with Cutadapt, aligns to genome with Bowtie 1 and generates sorted, indexed bam files. See log files for Cutadapt and Bowtie summaries.

@@ -102,30 +102,43 @@ def align_fastq(directory, threads=1, organism='crypto', PE=False):
             
     print 'Finished'
     
-def align_fastq_STAR(directory, threads=1, organism='crypto', PE=False):
+def align_fastq_STAR(directory, threads=1, organism='crypto', PE=False, no_introns=False):
     '''Automatically aligns all fastq.gz files in a drectory using STAR'''
     if directory[-1] != '/':
         directory = directory+'/'
         
     if 'crypto' in organism.lower():
-        #bowtie_ix = '/home/jordan/GENOMES/H99_bt2'
-        gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
+        star_ix = '/home/jordan/GENOMES/STAR/CNA3/'
+        gff3 = '/data/jade/H99/150901_Chr.GTF'
     elif 'cerev' in organism.lower():
-        #bowtie_ix = '/home/jordan/GENOMES/S288C/S288C_2'
-        gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
-        if 'DBK' in organism:
-            bowtie_ix = '/home/jordan/GENOMES/S288C/S288C_DBK'
+        #gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
+        print "STAR not supported yet for S. cerevisiae"
+        return None
     elif 'pombe' in organism.lower():
         #bowtie_ix = '/home/jordan/GENOMES/POMBE/Spombe-2'
+        star_ix = '/home/jordan/GENOMES/STAR/POMBE'
         gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
     elif organism == 'candida':
-        #bowtie_ix = '/home/jordan/GENOMES/C_albicans2'
         gff3 = '/home/jordan/GENOMES/C_albicans_SC5314_version_A21-s02-m09-r10_features.gff'
+        print "STAR not supported yet for C. albicans"
+        return None
         
     fastq_list = []
     for file in os.listdir(directory):
         if file.lower().endswith("fastq.gz") or file.lower().endswith("fastq"):
-            fastq_list.append(directory+file)
+            bam1 = file.split('.fastq')[0]+'_Aligned.sortedByCoord.out.bam'
+            bam2 = file.split('.fastq')[0]+'_sorted.bam'
+            if bam1 not in os.listdir(directory) and bam2 not in os.listdir(directory):
+                if PE and '_R2_' in file:
+                    R1 = file.split('_R2_')[0]+'_R1_'+file.split('_R2_')[1]
+                    bam1 = R1.split('.fastq')[0]+'_Aligned.sortedByCoord.out.bam'
+                    bam2 = R1.split('.fastq')[0]+'_sorted.bam'
+                    if bam1 not in os.listdir(directory) and bam2 not in os.listdir(directory):
+                        fastq_list.append(directory+file)
+                else:
+                    fastq_list.append(directory+file)
+            else:
+                print "STAR already completed on "+file
             
     if PE is True:
         fastq_list = sorted(fastq_list)
@@ -140,26 +153,34 @@ def align_fastq_STAR(directory, threads=1, organism='crypto', PE=False):
                 else:
                     fastq_list2.append(R2_name)
                     fastq_list.remove(R2_name)
-        print len(fastq_list)
-        print len(fastq_list2)
     
-    ##Check to make sure tophat hasn't already completed on these files.
-    for name in os.listdir(directory):
-        if os.path.isdir(directory+name):
-            for fastq in fastq_list:
-                if directory+name == fastq.split('.fastq')[0]:
-                    if 'accepted_hits.bam' in os.listdir(directory+name):
-                        fastq_list.remove(fastq)
-                        print "STAR already completed on "+fastq
-    
-    if len(fastq_list) > 0:
+    if len(fastq_list) > 0 and fastq_list[0].endswith('gz'):
+        processes = []
         for n, fastq in enumerate(fastq_list):
-            prefix = fastq.split('.fastq')[0]
-            args = 'STAR'
+            gzip_args = 'gunzip -k {0}'.format(fastq)
+            print gzip_args
+            processes.append(subprocess.Popen(gzip_args, shell=True, universal_newlines=True))
+                
+            if PE:
+                fastq2 = fastq_list2[n]
+                gzip_args = 'gunzip -k {0}'.format(fastq2)
+                print gzip_args
+                processes.append(subprocess.Popen(gzip_args, shell=True, universal_newlines=True))
             
-            if PE is True:
-                args = args+' '+fastq_list2[n]
+            for p in processes:
+                p.wait()
+        
+
+            prefix = fastq.split('.fastq')[0]+'_'
+
+            if no_introns:
+                args = 'STAR --alignIntronMax 1 --outFilterScoreMinOverLread 0 --outFilterMatchNminOverLread 0 --outFilterMatchNmin 0 --runThreadN {0} --genomeDir {1} --outSAMtype BAM SortedByCoordinate --outFileNamePrefix {2} --sjdbGTFfile {3} --readFilesIn {4}'.format(str(threads), star_ix, prefix, gff3, fastq.split('.gz')[0])
+            else:
+                args = 'STAR --outFilterScoreMinOverLread 0 --outFilterMatchNminOverLread 0 --outFilterMatchNmin 0 --runThreadN {0} --genomeDir {1} --outSAMtype BAM SortedByCoordinate --outFileNamePrefix {2} --sjdbGTFfile {3} --readFilesIn {4}'.format(str(threads), star_ix, prefix, gff3, fastq.split('.gz')[0])
             
+            if PE:
+                args = args+' '+fastq_list2[n].split('.gz')[0]
+                
             print args
             p = subprocess.Popen(args.split(' '), stdout=subprocess.PIPE)
             p.wait()
@@ -167,14 +188,31 @@ def align_fastq_STAR(directory, threads=1, organism='crypto', PE=False):
             print '\n'
             print prefix
 
-            if 'align_summary.txt' in os.listdir(prefix):
-                with open(prefix+'/align_summary.txt','r') as f:
+            prefix2 = prefix.split('/')[-1]
+            if prefix2+'Log.final.out' in os.listdir(directory):
+                with open(prefix+'Log.final.out','r') as f:
                     for line in f:
                         print line
-                        print '\n'
+            os.remove(fastq.split('.gz')[0])
+            if PE:
+                os.remove(fastq_list2[n].split('.gz')[0])
             
     print 'Finished'
-
+    
+def index_STAR_bam(directory):
+    sorted_bams = []
+    for name in os.listdir(directory):
+        if name.endswith('Aligned.sortedByCoord.out.bam'):
+            new_name = name.split('Aligned.sortedByCoord.out.bam')[0]+'sorted.bam'
+            os.rename(directory+name, directory+new_name)
+            sorted_bams.append(new_name)
+    
+    for bam in sorted_bams:
+        args = 'samtools index {0}'.format(bam)
+        print args
+        p = subprocess.Popen(args.split(' '), stdout=subprocess.PIPE)
+        p.wait()
+        
 def sort_index_bam_files(base_dir):
     '''Finds all TopHat output files and sorts and indexes BAM files'''
     try:
@@ -196,10 +234,10 @@ def sort_index_bam_files(base_dir):
                 if name.split('/')[-1]+'_sorted.bam' not in os.listdir(base_dir):
                     tophat_out.append(base_dir+name+'/accepted_hits.bam')
                     names.append(base_dir+name)
-	elif name.endswith('.bam') and 'sorted' not in name:
-	    if name.split('/')[-1].split('.bam')[0]+'_sorted.bam' not in os.listdir(base_dir):
-    		tophat_out.append(base_dir+name)
-		names.append(base_dir+name)
+        elif name.endswith('.bam') and 'sorted' not in name:
+            if name.split('/')[-1].split('.bam')[0]+'_sorted.bam' not in os.listdir(base_dir):
+                tophat_out.append(base_dir+name)
+                names.append(base_dir+name)
     n=0
     for n in range(len(tophat_out)):
         name = names[n]
@@ -253,27 +291,32 @@ def count_with_HTseq(base_dir, organism='crypto'):
         
 def main():
     '''Runs the first part of this module to align, sort, index and count reads'''
-    # Input will be RNAseq_tools.py directory number_of_threads_tophat [organism] [SE/PE]
+    # Input will be RNAseq_tools.py directory number_of_threads_tophat --organism organism_name <--PE>
     # Current organism options: 'crypto', 'pombe', 'cerevisiae', 'candida'
     PE = False
     organism = None
     directory = './'
     threads = 1
     STAR = False
+    no_introns = False
+    if '--help' in sys.argv or '-h' in sys.argv:
+        print "Usage: python RNAseq_tools.py --directory directory --threads num_tophat_threads --organism organism_name <--PE> <--STAR> <--no_introns>"
+        return None
+    
     for n, arg in enumerate(sys.argv):
         if arg == '--organism':
-            if 'crypto' in arg[n+1]:
+            if 'crypto' in sys.argv[n+1]:
                 organism = 'crypto'
-            elif 'pombe' in arg[n+1]:
+            elif 'pombe' in sys.argv[n+1]:
                 organism = 'pombe'
-            elif 'cerev' in arg[n+1]:
+            elif 'cerev' in sys.argv[n+1]:
                 organism = 'cerevisiae'
-            elif 'candida' in arg[n+1]:
+            elif 'candida' in sys.argv[n+1]:
                 organism = 'candida'
         elif arg == '--directory':
-            directory = arg[n+1]
-        elif arg == 'threads':
-            threads = arg[n+1]
+            directory = sys.argv[n+1]
+        elif arg == '--threads':
+            threads = int(sys.argv[n+1])
     
     if '--PE' in sys.argv:
         PE = True
@@ -281,16 +324,24 @@ def main():
     
     if '--STAR' in sys.argv:
         STAR = True
+        
+    if '--no_introns' in sys.argv:
+        no_introns = True
     
+    if organism is None:
+        organism = 'crypto'
+        
     if not STAR:
         print "********Aligning reads with Tophat********\n"
         align_fastq(directory, threads=threads, organism=organism, PE=PE)
+        print "********Sorting and indexing BAM files********\n"
+        sort_index_bam_files(directory)
     else:
         print "********Aligning reads with STAR********\n"
-        align_fastq_STAR(directory, threads=threads, organism=organism, PE=PE)
+        align_fastq_STAR(directory, threads=threads, organism=organism, PE=PE, no_introns=no_introns)
+        index_STAR_bam(directory)
         
-    print "********Sorting and indexing BAM files********\n"
-    sort_index_bam_files(directory)
+    
     print "********Counting reads in transcripts with HTseq********\n"
     count_with_HTseq(directory, organism=organism)
     

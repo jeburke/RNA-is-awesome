@@ -13,6 +13,29 @@ from collections import OrderedDict
 import csv
 import json
 
+def find_organism_files(organism):
+    ''' usage: organism, gff3, fa_dict, bowtie_index = find_organism_files(organism)'''
+    if 'crypto' in organism:
+        gff3 = '/home/jordan/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3'
+        fa = '/home/jordan/GENOMES/H99_fa.json'
+        bowtie_index = '/home/jordan/GENOMES/Crypto_for_gobs'
+        organism = None
+    elif 'pombe' in organism:
+        gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
+        fa = '/home/jordan/GENOMES/POMBE/Sp_fasta_dict.json'
+        bowtie_index = '/home/jordan/GENOMES/POMBE/Spombe'
+        organism = 'pombe'
+    elif 'cerev' in organism:
+        gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
+        fa = '/home/jordan/GENOMES/S288C/S288C_fasta_dict.json'
+        bowtie_index = '/home/jordan/GENOMES/S288C/S288C'
+        organism = None
+        
+    with open(fa) as f:
+        fa_dict = json.load(f)
+        
+    return organism, gff3, fa_dict, bowtie_index
+
 def build_transcript_dict(gff3_file, organism=None):
     '''Creates a dictionary from gff3 file where keys are transcript names and values are [start, end, strand, chromosome, CDS_starts(list), CDS_ends(list]
     Note: change organism to 'pombe' if using pombe. Otherwise no need to indicate

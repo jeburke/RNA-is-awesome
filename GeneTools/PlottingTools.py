@@ -5,6 +5,7 @@ import SPTools as SP
 import pysam
 from subprocess import check_output
 from matplotlib import pyplot as plt
+import matplotlib.patches as patches
 import pandas as pd
 import pysam
 from subprocess import check_output
@@ -68,6 +69,37 @@ def get_junctions(open_bam, chrom, start, end, strand, baseline=0):
     
     return intron_dict
 
+    
+def gene_patches(tx, tx_dict, ax, arrow=False):
+    iso_list = [x for x in tx_dict if tx in x]
+    if len(iso_list) == 0:
+        return None
+    
+    for n, iso in enumerate(iso_list):
+        start, end, strand, CDS_start, CDS_end, exons, chrom = SP.tx_info(iso, tx_dict)
+        if arrow is False:
+            tx_patch = patches.Rectangle((start,0.8-n*0.15),end-start,0.04,edgecolor='0.1',facecolor='0.1')
+            ax.add_patch(tx_patch)
+        else:
+            if strand == '+':
+                ax.arrow(start, 0.9, end-start-0.02*(end-start), 0, linewidth=2, head_width=0.1, 
+                         head_length=0.02*(end-start), fc='k', ec='k')
+            elif strand == '-':
+                ax.arrow(end, 0.9, start-end-0.02*(start-end), 0, linewidth=2, head_width=0.1, 
+                         head_length=0.02*(end-start), fc='k', ec='k')
+
+        if exons is not None:
+            exon_patches = []
+            for exon_start, exon_stop in exons:
+                exon_patches.append(patches.Rectangle((exon_start, 0.775-n*0.15), exon_stop-exon_start, 0.10,
+                                                      edgecolor='0.1',facecolor='0.1'))
+            for patch in exon_patches:
+                ax.add_patch(patch)
+        else:
+            CDS_patch = patches.Rectangle((CDS_start, 0.75-n*0.15),CDS_end-CDS_start, 0.10, edgecolor='0.1', facecolor='0.1')
+            ax.add_patch(CDS_patch)
+        ax.get_yaxis().set_ticks([])
+    return strand  
     
 def igv_plots_general(bam_list, gene_list, organism, colors=None, names=None, save_dir=None, 
                       unstranded=False, end_only=False, same_yaxis=False, specific_range=None, transcript_direction=True,
@@ -259,14 +291,14 @@ def igv_plots_general(bam_list, gene_list, organism, colors=None, names=None, sa
             
         # Add diagram of gene below traces
         if tx in tx_dict:
-            strand = SP.gene_patches3(tx, tx_dict, ax[-1])
+            strand = gene_patches(tx, tx_dict, ax[-1])
             ax[-1].set_xlim(start, end)
         else:
             try:
                 new_tx = tx.split(' ')[0]
                 if new_tx[-2] == 'T' or new_tx[-2] == '.':
                     new_tx = new_tx[:-2]
-                strand = SP.gene_patches3(new_tx, tx_dict, ax[-1])
+                strand = gene_patches(new_tx, tx_dict, ax[-1])
                 ax[-1].set_xlim(start, end)
             except KeyError:
                 print "Transcript unknown"

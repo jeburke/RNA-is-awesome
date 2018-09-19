@@ -305,7 +305,7 @@ def generate_read_series(bam_iterator, chrom, start, end, strand, baseline=0):
                 s[pos] = 0
             s[pos] = s[pos]+1
     s = s.dropna()
-    s = s[s > 0]
+    #s = s[s > 0]
     s = s.sort_index()
     return s
 
