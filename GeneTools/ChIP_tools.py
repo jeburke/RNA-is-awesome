@@ -925,16 +925,32 @@ def MACS_Z_score(csv, wt, mut):
     wt_names = [x for x in data_df.columns if wt in x]
     mut_names = [x for x in data_df.columns if mut in x]
 
-    s1 = (data_df[mut_names[0]]/data_df[wt_names[0]]).apply(np.log2)
-    s1_Z = pd.Series(stats.mstats.zscore(s1), index=data_df.index)
+    s1a = (data_df[mut_names[0]]/data_df[wt_names[0]]).apply(np.log2)
+    s1a_Z = pd.Series(stats.mstats.zscore(s1a), index=data_df.index)
+    
+    s1b = (data_df[mut_names[0]]/data_df[wt_names[1]]).apply(np.log2)
+    s1b_Z = pd.Series(stats.mstats.zscore(s1b), index=data_df.index)
 
-    s2 = (data_df[mut_names[1]]/data_df[wt_names[1]]).apply(np.log2)
-    s2_Z = pd.Series(stats.mstats.zscore(s2), index=data_df.index)
+    s2a = (data_df[mut_names[1]]/data_df[wt_names[1]]).apply(np.log2)
+    s2a_Z = pd.Series(stats.mstats.zscore(s2a), index=data_df.index)
+    
+    s2b = (data_df[mut_names[1]]/data_df[wt_names[0]]).apply(np.log2)
+    s2b_Z = pd.Series(stats.mstats.zscore(s2b), index=data_df.index)
+    
+    up = set(s1a_Z[s1a_Z >= 2].index)
+    for Z in [s1b_Z,s2a_Z,s2b_Z]:
+        new_up_ix = set(Z[Z >= 2].index)
+        up = up.intersection(new_up_ix)
+        
+    down = set(s1a_Z[s1a_Z <= -2].index)
+    for Z in [s1b_Z,s2a_Z,s2b_Z]:
+        new_down_ix = set(Z[Z <= -2].index)
+        down = down.intersection(new_down_ix)
 
-    up = set(s1_Z[s1_Z >= 1.8].index).intersection(s2_Z[s2_Z >= 1.8].index)
-    print "Genes up in mutant: "+str(len(up))
-    down = set(s1_Z[s1_Z <= -1.8].index).intersection(s2_Z[s2_Z <= -1.8].index)
-    print "Genes down in mutant: "+str(len(down))
+    #up = set(s1_Z[s1_Z >= 1.8].index).intersection(s2_Z[s2_Z >= 1.8].index)
+    #print "Genes up in mutant: "+str(len(up))
+    #down = set(s1_Z[s1_Z <= -1.8].index).intersection(s2_Z[s2_Z <= -1.8].index)
+    #print "Genes down in mutant: "+str(len(down))
     
     fig, ax = plt.subplots(ncols=2, nrows=2, figsize=(10,10))
     ax[0][0].scatter(data_df[wt_names[0]].apply(np.log2), data_df[wt_names[1]].apply(np.log2), s=15, color='0.3', alpha=0.5)

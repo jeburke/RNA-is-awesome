@@ -25,6 +25,7 @@ def main():
     file_provided = False
     if directory.endswith('.bam'):
         file_provided = True
+        print "File provided"
     elif not directory.endswith('/'):
         directory = directory+'/'
     
@@ -33,7 +34,7 @@ def main():
         try:
             with open(organism) as f:
                 for line in f:
-                    print line
+                    continue
         except IOError:
             print "Unrecognized organism"
             return None 
@@ -62,7 +63,7 @@ def main():
         elif arg == "--normalize":
             normalize = True
             try:
-                untagged = sys.argv[n+1].split('/')[-1]
+                untagged = sys.argv[n+1]
             except IndexError:
                 print "Must provide untagged sample name"
                 return None
@@ -98,10 +99,6 @@ def main():
         bg_list = [base_dir+x for x in os.listdir(base_dir) if x.endswith('.bedgraph')]
         untagged_bg = [x for x in bg_list if untagged in x][0]
         bg_list.remove(untagged_bg)
-        if file_provided:
-            name = directory.split('/')[-1].split('.bam')[0]
-            bg_list = [x for x in bg_list if name in bg_list]
-            print bg_list
             
         for bg in bg_list:
             GT.normalize_bedgraph(bg, untagged_bg, smooth=smooth)

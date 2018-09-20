@@ -42,6 +42,7 @@ def generate_scaled_bedgraphs2(directory, untagged, organism='crypto', start_onl
         genome = organism
     
     bam_list = []
+    untagged_other_dir = False
     if not file_provided:
         for file in os.listdir(directory):
             if file.lower().endswith("sorted.bam"):
@@ -50,10 +51,14 @@ def generate_scaled_bedgraphs2(directory, untagged, organism='crypto', start_onl
         bam_list.append(directory)
         base_dir = directory.split('/')[:-1]
         base_dir = '/'.join(base_dir)+'/'
-        try:
-            untagged = [base_dir+x for x in os.listdir(base_dir) if untagged in x and x.endswith('sorted.bam')][0]
-            untagged_other_dir = False
-        except IndexError:
+        untagged_bams = [base_dir+x for x in os.listdir(base_dir) if untagged in x and x.endswith('.bam')]
+        if len(untagged_bams) == 1:
+            untagged = untagged_bams[0]
+        elif len(untagged_bams) > 1:
+            print "Too many matches for untagged"
+            return None
+        else:
+            untagged = untagged
             untagged_other_dir = True
         bam_list.append(untagged)
     
