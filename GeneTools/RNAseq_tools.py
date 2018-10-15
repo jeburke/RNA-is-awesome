@@ -22,6 +22,7 @@ import matplotlib.patches as patches
 from collections import OrderedDict
 import seaborn as sns
 from scipy import stats
+import hdbscan
 
 font = {'family': 'sans-serif',
         'color':  'black',
@@ -174,9 +175,9 @@ def align_fastq_STAR(directory, threads=1, organism='crypto', PE=False, no_intro
             prefix = fastq.split('.fastq')[0]+'_'
 
             if no_introns:
-                args = 'STAR --alignIntronMax 1 --outFilterScoreMinOverLread 0 --outFilterMatchNminOverLread 0 --outFilterMatchNmin 0 --runThreadN {0} --genomeDir {1} --outSAMtype BAM SortedByCoordinate --outFileNamePrefix {2} --sjdbGTFfile {3} --readFilesIn {4}'.format(str(threads), star_ix, prefix, gff3, fastq.split('.gz')[0])
+                args = 'STAR --alignIntronMax 1 --runThreadN {0} --genomeDir {1} --outSAMtype BAM SortedByCoordinate --outFileNamePrefix {2} --sjdbGTFfile {3} --readFilesIn {4}'.format(str(threads), star_ix, prefix, gff3, fastq.split('.gz')[0])
             else:
-                args = 'STAR --outFilterScoreMinOverLread 0 --outFilterMatchNminOverLread 0 --outFilterMatchNmin 0 --runThreadN {0} --genomeDir {1} --outSAMtype BAM SortedByCoordinate --outFileNamePrefix {2} --sjdbGTFfile {3} --readFilesIn {4}'.format(str(threads), star_ix, prefix, gff3, fastq.split('.gz')[0])
+                args = 'STAR --runThreadN {0} --genomeDir {1} --outSAMtype BAM SortedByCoordinate --outFileNamePrefix {2} --sjdbGTFfile {3} --readFilesIn {4}'.format(str(threads), star_ix, prefix, gff3, fastq.split('.gz')[0])
             
             if PE:
                 args = args+' '+fastq_list2[n].split('.gz')[0]
@@ -429,7 +430,7 @@ def load_HTSeq_results(csv_list):
     
     return df
 
-def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
+def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10, hdbscan=False, min_cluster_size=15):
     '''Generates a clustered heatmap using kmeans clustering and returns a dataframe with cluster indeces.
     
     Parameters
@@ -441,6 +442,10 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
               If no sample names are provided, clusters across all samples in the dataframe.
     n_clusters : int, default 10 
               Number of clusters to create
+    hdbscan : bool, default ``False``
+              If True, will use the hdbscan clustering algorithm instead of K-means. This algorithm is actually much nicer because it does not require you to provide the number of clusters and it does not assume that the clusters are globular. It also does not necessarily place all data points into clusters. However, you do need to provide min_cluster_size, which is the minimum number of points for a group to be considered a cluster.
+    min_cluster_size : int, default 15
+              See hdbscan variable above for explanation.
     
     Returns
     -------
@@ -465,12 +470,15 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10):
     # Convert DataFrame to matrix
     mat = data.as_matrix()
 
-    # Using sklearn, cluster data
-    km = cluster.KMeans(n_clusters=n_clusters)
-    km.fit(mat)
-
-    # Get cluster assignment labels
-    labels = km.labels_
+    # Cluster data
+    if not hdbscan:
+        km = cluster.KMeans(n_clusters=n_clusters)
+        km.fit(mat)
+        labels = km.labels_
+    else:
+        hdb = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size)
+        hdb.fit(mat)
+        labels = [x+1 for x in hdb.labels_]
 
     # Format results as a DataFrame
     data[('cluster','cluster')] = labels
