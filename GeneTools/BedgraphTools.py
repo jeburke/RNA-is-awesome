@@ -15,7 +15,7 @@ import SPTools as SP
 from collections import OrderedDict
 import csv
 
-def count_aligned_reads(bam):
+def count_aligned_reads_bedgraph(bam):
     command = 'samtools view -F 0x904 -c {0}'.format(bam)
     aligned_reads = check_output(command.split(), shell=False)
     aligned_reads = float(aligned_reads)/1000000
@@ -64,7 +64,7 @@ def generate_scaled_bedgraphs2(directory, untagged, organism='crypto', start_onl
     
     p = Pool(threads)
     totals = {}
-    entries = p.map(count_aligned_reads, bam_list)
+    entries = p.map(count_aligned_reads_bedgraph, bam_list)
     for x in entries:
         totals.update(x)
     

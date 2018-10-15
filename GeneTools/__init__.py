@@ -7,3 +7,4 @@ from RNAseq_tools import *
 from ChIP_tools import *
 from PlottingTools import *
 from RNAiTools import *
+from IntronTools import *

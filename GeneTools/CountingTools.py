@@ -4,9 +4,11 @@ from subprocess import check_output
 import math
 import numpy as np
 import pandas as pd
-sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/')
-sys.path.insert(0, '/home/jordan/RNA-is-awesome/')
-sys.path.insert(0, '/Users/jordanburke/CodeBase/RNA-is-awesome/')
+#sys.path.insert(0, '/home/jordan/CodeBase/RNA-is-awesome/')
+#sys.path.insert(0, '/home/jordan/RNA-is-awesome/')
+#sys.path.insert(0, '/Users/jordanburke/CodeBase/RNA-is-awesome/')
+script_path = os.path.dirname(os.path.realpath(__file__)).split('GeneTools')[0]
+sys.path.append(script_path)
 import GeneTools as GT
 from collections import OrderedDict
 import csv
@@ -480,4 +482,54 @@ def PE_fragment_size(bam_file):
                 pass
     print "Average fragment size: "+str(np.mean(sizes))
     print "Standard deviation: "+str(np.std(sizes))
+
+def convert_gff3_to_bed(bed):
+    df = pd.read_csv(bed, sep='\t')
+    for ix, r in df.iterrows():
+        line = ['chromosome','source','type','start','end','x','strand','y','ID']
     
+def count_reads_from_gff3(bam_list, gff3, stranded='no', feature_type='gene', rpkm=True, csv=None, bed=False):
+    total_reads = {}
+    for bam in bam_list:
+        total_reads[bam] = GT.count_aligned_reads(bam)
+        print '\n'+bam
+        print total_reads[bam]
+        args = 'htseq-count -q -f bam -s {0} -t {1} -i ID {2} {3}'.format(stranded, feature_type, bam, gff3)
+        print args
+        
+        out = check_output(args.split(' '))
+        with open(bam.split('_sorted')[0]+'.htseq','w') as fout:
+            fout.write(out)
+    
+    htseq_df = None
+    if rpkm:
+        transcripts = GT.populate_transcripts(gff3, gff3_class=feature_type)
+    for bam in bam_list:
+        htseq = bam.split('_sorted')[0]+'.htseq'
+        name = htseq.split('.htseq')[0]
+        
+        if htseq_df is None:
+            htseq_df = pd.read_csv(htseq, sep='\t', index_col=0, names=[name])
+            print htseq_df[htseq_df.index.str.contains('TCN')]
+            if rpkm:
+                tx_lengths = []
+                for ix, r in htseq_df.iterrows():
+                    tx_lengths.append(transcripts[ix].length/1000.)
+                htseq_df.loc[:,'Transcript length (kb)'] = tx_lengths
+        else:
+            new_htseq_df = pd.read_csv(htseq, sep='\t', index_col=0, names=[name])
+            htseq_df = htseq_df.merge(new_htseq_df, how='outer', right_index=True, left_index=True)
+        
+        htseq_df.loc[:,name] = htseq_df[name].divide(total_reads[bam])
+        if rpkm:
+            htseq_df.loc[:,name] = htseq_df[name]/htseq_df['Transcript length (kb)']
+    
+    if csv is not None:
+        htseq_df.to_csv(csv)
+        return None
+    else:
+        return htseq_df
+            
+            
+            
+        
