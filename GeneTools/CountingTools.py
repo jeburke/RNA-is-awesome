@@ -483,13 +483,40 @@ def PE_fragment_size(bam_file):
     print "Average fragment size: "+str(np.mean(sizes))
     print "Standard deviation: "+str(np.std(sizes))
 
-def convert_gff3_to_bed(bed):
-    df = pd.read_csv(bed, sep='\t')
-    for ix, r in df.iterrows():
-        line = ['chromosome','source','type','start','end','x','strand','y','ID']
+def convert_bed_to_gff3(bed, save=True):
+    names = ['chromosome','start','end','name','bitscore','strand','w_start','w_end','rgb']
+    df = pd.read_csv(bed, sep='\t',names=names)
+    
+    gff3_df = df[['chromosome','start','end','strand','name']]
+    
+    if str(gff3_df.loc[0,'start']) == 'nan':
+        gff3_df = gff3_df.loc[1:,:]
+    
+    gff3_df.loc[:,'source'] = bed
+    gff3_df.loc[:,'type'] = 'gene'
+    gff3_df.loc[:,'x'] = '.'
+    gff3_df.loc[:,'y'] = '.'
+    gff3_df.loc[:,'name'] = gff3_df['name'].apply(str)
+    gff3_df.loc[:,'ID'] = ['ID='+x+';' for x in gff3_df['name']]
+    gff3_df.loc[:,'start'] = gff3_df['start'].apply(int)
+    gff3_df.loc[:,'end'] = gff3_df['end'].apply(int)
+    
+    gff3_df = gff3_df[['chromosome','source','type','start','end','x','strand','y','ID']]
+    
+    if save:
+        gff3_name = bed.split('.bed')[0]+'.gff3'
+        gff3_df.to_csv(bed.split('.bed')[0]+'.gff3', sep='\t', header=False, index=False)
+        return gff3_name
+    else:
+        return gff3_df
+    
     
 def count_reads_from_gff3(bam_list, gff3, stranded='no', feature_type='gene', rpkm=True, csv=None, bed=False):
     total_reads = {}
+    
+    if bed:
+        gff3 = convert_bed_to_gff3(gff3)
+    
     for bam in bam_list:
         total_reads[bam] = GT.count_aligned_reads(bam)
         print '\n'+bam
@@ -510,7 +537,6 @@ def count_reads_from_gff3(bam_list, gff3, stranded='no', feature_type='gene', rp
         
         if htseq_df is None:
             htseq_df = pd.read_csv(htseq, sep='\t', index_col=0, names=[name])
-            print htseq_df[htseq_df.index.str.contains('TCN')]
             if rpkm:
                 tx_lengths = []
                 for ix, r in htseq_df.iterrows():

@@ -19,7 +19,16 @@ def complement(seq):
 def reverse_complement(s):
         return complement(s[::-1])
     
-def make_fasta_json(fa, write=False):
+def make_fasta_json(fa, write=True):
+    '''Convert fasta file to a dictionary stored in json format
+    
+    Parameters
+    ----------
+    fa : fasta file (e.g. genome fasta downloaded from fungidb)
+    write : bool, default `True`
+        write the json file - if False will just return the dictionary
+    '''
+    
     fa_dict = {}
     with open(fasta_file) as f:
         for line in f:
@@ -29,8 +38,9 @@ def make_fasta_json(fa, write=False):
             else:
                 fa_dict[contig] = fa_dict[contig] + line.strip()
     if write:
-        with open(fa.split('.fa')[0]+'_fa.json', 'w') as fout: json.dump(fa_dict, fout)
-        return None
+        fa_name = fa.split('.fa')[0]+'_fa.json'
+        with open(fa_name, 'w') as fout: json.dump(fa_dict, fout)
+        return fa_name
     else:
         return fa_dict
 
@@ -106,7 +116,6 @@ def span_read_counter(bams, chromosome, coordinate, strand, rpm, library_directi
                             read_count += 1
         counts[bam] = read_count
         
-    print counts
     if rpm:
         for bam in counts.keys():
             scale = GT.count_aligned_reads(bam)
@@ -213,15 +222,75 @@ def populate_transcripts(gff3, gff3_class='mRNA'):
     
     return tx_dict
       
+def intron_from_string(intron_str, str_format="JUM"):
+    if str_format == "JUM":
+        chromosome = intron_str.split('_')[0]
+        strand = intron_str.split('_')[1]
+        start = int(intron_str.split('_')[2])
+        end = int(intron_str.split('_')[3].strip())
+    elif str_format == "Jordan":
+        chromosome = intron_str.split(':')[0]
+        strand = intron_str.split(',')[-1].strip()
+        start = int(intron_str.split(':')[-1].split(',')[0].split('-')[0])
+        end = int(intron_str.split(':')[-1].split(',')[0].split('-')[1])
+    return chromosome, start, end, strand
+    
 class Intron:
-    def __init__(intron, chromosome, start, end, strand):
+    '''Intron object containing information about the intron location and size
+    
+    Parameters
+    ----------
+    info : list or str
+        If using a list, info must be [chromosome, start, end, strand]
+        If using a string, it must be a known string format containing the same information (see below)
+    str_format : str, default "JUM"
+        Format of the string that contains the intron information
+        "JUM" format is chrom_strand_start_end
+        "Jordan" format is chrom:start-end,strand
+        No others are currently supported
+        
+    Examples
+    -------
+    Constructing an intron from a list
+    >>> intron = Intron(["chr1",611500,611563,"+"])
+    >>> intron.length
+        63
+    
+    Constructing an intron from a string
+    >>> intron = Intron("chr1_+_611500_611563", str_format="JUM")
+    >>> intron.length
+        63
+    
+    '''
+    def __init__(intron, info, str_format='JUM'):
+        if type(info) == list:
+            chromosome, start, end, strand = info   
+        elif type(info) == str:
+            chromosome, start, end, strand = intron_from_string(info, str_format=str_format)
+            
         intron.chromosome = chromosome
-        intron.start = start
-        intron.end = end
+        intron.start = int(start)
+        intron.end = int(end)
         intron.strand = strand
         intron.length = abs(end-start)
             
     def transcripts(intron, gff3, as_string=False):
+        ''' Find transcripts that may contain this intron (same strand and location)
+        
+        Parameters
+        ----------
+        gff3 : str
+            gff3 formatted annotation file
+        as_string : bool, default `False`
+            If True, returns lists of transcripts as comma separated strings
+        
+        Returns
+        -------
+        tx_list : list or str
+            list of transcripts if as_string is False
+            comma separated string of transcripts if as_string is True
+        '''
+        
         pombe = False
         if 'pombe' in gff3: pombe = True
             
@@ -248,6 +317,19 @@ class Intron:
             return tx_list
 
     def annotated(intron, gff3):
+        ''' Determines whether the intron is in the current annotation
+        
+        Parameters
+        ----------
+        gff3 : str
+            gff3 formatted annotation file
+        
+        Returns
+        -------
+        ann : bool
+            If True, intron is annotated
+            If False, intron is not annotated
+        '''
         intron_df = build_intron_df(gff3, transcript_list=intron.transcripts(gff3))
         if intron.start in list(intron_df['start']) and intron.end in list(intron_df['end']):
             ann = True
@@ -256,6 +338,20 @@ class Intron:
         return ann
     
     def position(intron, gff3):
+        ''' Finds the position of the intron in the transcript
+        
+        Parameters
+        ----------
+        gff3 : str
+            gff3 formatted annotation file
+        
+        Returns
+        -------
+        position : int
+            Zero indexed position of the intron within the transcript
+            I.e. the first intron will be 0 etc.
+        '''
+        
         intron_df = build_intron_df(gff3, transcript_list=intron.transcripts(gff3))
         
         starts = list(intron_df['start']).append(intron.start)
@@ -265,6 +361,19 @@ class Intron:
         return position
     
     def is_first(intron, gff3):
+        ''' Determines whether the intron is the first intron in the transcript
+        
+        Parameters
+        ----------
+        gff3 : str
+            gff3 formatted annotation file
+        
+        Returns
+        -------
+        ann : bool
+            If True, intron is the first intron
+        '''
+        
         intron_df = build_intron_df(gff3, transcript_list=intron.transcripts(gff3))
         
         starts = list(intron_df['start'])
@@ -277,6 +386,18 @@ class Intron:
         return first
     
     def is_last(intron, gff3):
+        ''' Determines whether the intron is the last intron in the transcript
+        
+        Parameters
+        ----------
+        gff3 : str
+            gff3 formatted annotation file
+        
+        Returns
+        -------
+        ann : bool
+            If True, intron is the last intron
+        '''
         intron_df = build_intron_df(gff3, transcript_list=intron.transcripts(gff3))
         
         starts = list(intron_df['start'])
@@ -289,6 +410,18 @@ class Intron:
         return last
     
     def is_only(intron, gff3):
+        ''' Determines whether the intron is the only intron in the transcript
+        
+        Parameters
+        ----------
+        gff3 : str
+            gff3 formatted annotation file
+        
+        Returns
+        -------
+        ann : bool
+            If True, intron is the only intron
+        '''
         intron_df = build_intron_df(gff3, transcript_list=intron.transcripts(gff3))
         
         starts = list(intron_df['start'])
@@ -299,6 +432,18 @@ class Intron:
         return only
     
     def UTR_5prime(intron, gff3):
+        ''' Determines whether the intron is in the 5 prime UTR
+        
+        Parameters
+        ----------
+        gff3 : str
+            gff3 formatted annotation file
+        
+        Returns
+        -------
+        ann : bool
+            If True, intron is in the 5 prime UTR
+        '''
         transcript_dict = populate_transcripts(gff3)
         UTR = False
         for iso in intron.transcripts(gff3):
@@ -309,6 +454,18 @@ class Intron:
         return UTR
     
     def UTR_3prime(intron, gff3):
+        ''' Determines whether the intron is in the 3 prime UTR
+        
+        Parameters
+        ----------
+        gff3 : str
+            gff3 formatted annotation file
+        
+        Returns
+        -------
+        ann : bool
+            If True, intron is in the 3 prime UTR
+        '''
         transcript_dict = populate_transcripts(gff3)
         UTR = False
         for iso in intron.transcripts(gff3):
@@ -323,7 +480,26 @@ class Intron:
     ## Methods for obtaining sequence and scoring ##
     ################################################
     
-    def sequence(intron, fasta_file, seq_range=(-3,2)):
+    def sequence(intron, fasta_file, seq_range=(-2,2)):
+        ''' Retrieve the intron sequence
+        
+        Parameters
+        ----------
+        fasta_file : str
+            Genome fasta file - must match annotation
+            Note: A json file containing a dictionary with the contigs as keys and the sequences as values
+                  may also be provided here and will significantly increase performance 
+                  (file extension must be .json)
+        seq_range : tuple, default (-2,2)
+            Range of sequence to retrieve relative to start and end of intron. 
+            Default retrieves 2 nt upstream and 2 nt downstream.
+        
+        Returns
+        -------
+        seq : str
+            The sequence of the intron in the specified range
+        '''
+        
         if type(fasta_file) == str:
             if fasta_file.endswith('.json'):
                 with open(fasta_file) as f: fa_dict = json.load(f)
@@ -331,15 +507,41 @@ class Intron:
                 fa_dict = make_fasta_json(fasta_file)
         else: fa_dict = fasta_file
         
-        seq = fa_dict[intron.chromosome][intron.start+seq_range[0]:intron.end+seq_range[1]]
+        seq = fa_dict[intron.chromosome][intron.start+seq_range[0]-1:intron.end+seq_range[1]]
         if intron.strand == '-':
             seq = reverse_complement(seq)
         return seq
     
-    def score5p(intron, fa, PSSM_txt_file, position=(-2,6), quiet=True):
+    def score5p(intron, fasta_file, PSSM_txt_file, position=(-2,6), quiet=True):
+        ''' Score the 5 prime end of the intron
+        
+        Parameters
+        ----------
+        fasta_file : str
+            Genome fasta file - must match annotation
+            Note: A json file containing a dictionary with the contigs as keys and the sequences as values
+                  may also be provided here and will significantly increase performance 
+                  (file extension must be .json)
+        PSSM_txt_file : str
+            Text file created from a numpy array containing the PSSM scores from annotated introns.
+            This file can be created using the build_consensus_matrix function in this module.
+        position : tuple, default (-2,6)
+            Range of sequence to retrieve relative to start of intron
+            Default retrieves 2 nt upstream and 6 nt downstream (e.g. TGGTAAGT)
+        quiet : bool, default `True`
+            Do not print the 5 prime splice site sequence if True 
+            (use quiet when iterating through large numbers of introns)
+        
+        Returns
+        -------
+        score_5prime : float
+            The score of the 5 prime splice site
+            Higher scores are closer to consensus. A score of 0 is random.
+        '''
+        
         PSSM = np.loadtxt(PSSM_txt_file)
         base_dict = {"A":0, "C":1, "T":2, "G":3}
-        seq = intron.sequence(fa, seq_range=(position[0]-1, position[0]*-1))
+        seq = intron.sequence(fasta_file, seq_range=(position[0]-1, position[0]*-1))
         seq5 = seq[:position[1]-position[0]]
         if not quiet:
             print 'Sequence: '+seq5
@@ -348,11 +550,36 @@ class Intron:
             score_5prime += PSSM[base_dict[base],a]
         return score_5prime
     
-    def score3p(intron, fa, PSSM_txt_file, position=(-6,2), quiet=True):
+    def score3p(intron, fasta_file, PSSM_txt_file, position=(-6,2), quiet=True):
+        ''' Score the 3 prime end of the intron
+        
+        Parameters
+        ----------
+        fasta_file : str
+            Genome fasta file - must match annotation
+            Note: A json file containing a dictionary with the contigs as keys and the sequences as values
+                  may also be provided here and will significantly increase performance 
+                  (file extension must be .json)
+        PSSM_txt_file : str
+            Text file created from a numpy array containing the PSSM scores from annotated introns.
+            This file can be created using the build_consensus_matrix function in this module.
+        position : tuple, default (-6,2)
+            Range of sequence to retrieve relative to start of intron
+            Default retrieves 2 nt upstream and 6 nt downstream (e.g. TATTAGAC)
+        quiet : bool, default `True`
+            Do not print the 3 prime splice site sequence if True 
+            (use quiet when iterating through large numbers of introns)
+        
+        Returns
+        -------
+        score_3prime : float
+            The score of the 3 prime splice site
+            Higher scores are closer to consensus. A score of 0 is random.
+        '''
         PSSM = np.loadtxt(PSSM_txt_file)
         base_dict = {"A":0, "C":1, "T":2, "G":3}
         
-        seq = intron.sequence(fa, seq_range=(position[1]*-1-1, position[1]))
+        seq = intron.sequence(fasta_file, seq_range=(position[1]*-1-1, position[1]))
         seq3 = seq[position[0]-position[1]:]
         if not quiet:
             print 'Sequence: '+seq3
@@ -361,14 +588,31 @@ class Intron:
             score_3prime += PSSM[base_dict[base],b]
         return score_3prime
             
-    def percent_py(intron, fa, fraction=0.3):
-        seq = intron.sequence(fa)
+    def percent_py(intron, fasta_file, fraction=0.3):
+        ''' Calculate the percent pyrimidine in the last 30% of the intron
+        
+        Parameters
+        ----------
+        fasta_file : str
+            Genome fasta file - must match annotation
+            Note: A json file containing a dictionary with the contigs as keys and the sequences as values
+                  may also be provided here and will significantly increase performance 
+                  (file extension must be .json)
+        fraction : float, default 0.3
+            Fraction of the intron over which to calculate percent Py. Uses the last 30% by default.
+        
+        Returns
+        -------
+        perc_py : float
+            Percent pyrimidine content in the specified fraction of the intron 
+        '''
+        seq = intron.sequence(fasta_file)
         start_ix = len(seq)-int(len(seq)*fraction)
         py_count = 0
         for n, base in enumerate(seq[start_ix:]):
             if base == 'T' or base == 'C':
                 py_count += 1
-        perc_py = py_count/float(n+1)
+        perc_py = py_count/float(n+1)*100
         return perc_py
         
         
@@ -376,8 +620,44 @@ class Intron:
     ## Methods for finding branch information ##
     ############################################
     
-    def branch(intron, fa, branch_db):
-        branch_db = pd.read_pickle(branch_db)
+    def branch(intron, fasta_file, branch_db, guess=True):
+        ''' Retrieve branch information if available
+        
+        Parameters
+        ----------
+        fasta_file : str
+            Genome fasta file - must match annotation
+            Note: A json file containing a dictionary with the contigs as keys and the sequences as values
+                  may also be provided here and will significantly increase performance 
+                  (file extension must be .json).
+        branch_db : str
+            Pickle or csv file containing available branch information for introns in the organism.
+            Must contain the following columns: [chromosome, start, end, strand, branch, sequence].
+            Chromosome, start, end and strand refer to the intron.
+            Branch is the position of the branch in the chromosome.
+            Sequence is the 5 nt surrounding the branch where the branch A is position 4 (e.g. CTAAC)
+        guess : bool, default `True`
+            If no branch was experimentally detected for the intron, guess based on the most 
+            common branch sequences in the database.
+            
+        Returns
+        -------
+        branch : int
+            position of the branch in the chromosome
+        br_seq : str
+            sequence of the branch (e.g. CTAAC)
+        br_dist : int
+            distance from the branch to the 3 prime splice site
+        py_content : float
+            fraction pyrimidine between the branch and the 3 prime splice site
+        '''
+        if branch_db.endswith('pickle') or branch_db.endswith('.db'):
+            branch_db = pd.read_pickle(branch_db)
+        elif branch_db.endswith('csv'):
+            branch_db = pd.read_csv(branch_db, index_col=0)
+        else:
+            print "Unrecognized branch database file type"
+            return None
 
         seq_freq = []
         for seq in set(branch_db['sequence']):
@@ -387,7 +667,7 @@ class Intron:
         seq_freq.reverse()
         branches = [x[0] for x in seq_freq if x[1] > 5]
         
-        intron_seq = intron.sequence(fa)
+        intron_seq = intron.sequence(fasta_file)
         intron_br = branch_db[(branch_db['start'] == intron.start) & 
                               (branch_db['chromosome'] == intron.chromosome) &
                               (branch_db['end'] == intron.end) &
@@ -432,18 +712,89 @@ class Intron:
     ################################
     
     def count_5pss_reads(intron, bams, rpm=False, library_direction='reverse'):
+        ''' Count the reads (or calculate RPM) spanning the 5 prime splice site
+        
+        Parameters
+        ----------
+        bams : str or list
+            Single or list of sorted, indexed bam files for analysis
+        rpm : bool, default `False`
+            Normalize to total aligned reads (for comparing between samples)
+        library_direction : str, default reverse
+            Direction of first read relative to genome (usually reverse for RNA-seq)
+        
+        Returns
+        -------
+        counts : pandas.core.series.Series
+            Pandas series where the index is the name of the bam files and the value is the read count or RPM
+            Can be treated like a dictionary, but easier to perform math or populate a DataFrame
+        '''
         counts = span_read_counter(bams, intron.chromosome, intron.start, intron.strand, rpm, library_direction)
         return counts
 
     def count_3pss_reads(intron, bams, rpm=False, library_direction='reverse'):
+        ''' Count the reads (or calculate RPM) spanning the 3 prime splice site
+        
+        Parameters
+        ----------
+        bams : str or list
+            Single or list of sorted, indexed bam files for analysis
+        rpm : bool, default `False`
+            Normalize to total aligned reads (for comparing between samples)
+        library_direction : str, default reverse
+            Direction of first read relative to genome (usually reverse for RNA-seq)
+        
+        Returns
+        -------
+        counts : pandas.core.series.Series
+            Pandas series where the index is the name of the bam files and the value is the read count or RPM
+            Can be treated like a dictionary, but easier to perform math or populate a DataFrame
+        '''
         counts = span_read_counter(bams, intron.chromosome, intron.end, intron.strand, rpm, library_direction)
         return counts
     
     def count_intronic_reads(intron, bams, rpkm=False, library_direction='reverse'):
+        ''' Count the reads (or calculate RPKM) within the intron.
+            Will exclude reads with junctions that match the intron, but will 
+            count reads that have other junctions (i.e. nested splicing events).
+        
+        Parameters
+        ----------
+        bams : str or list
+            Single or list of sorted, indexed bam files for analysis
+        rpkm : bool, default `False`
+            Normalize to total aligned reads (for comparing between samples) and intron size
+        library_direction : str, default reverse
+            Direction of first read relative to genome (usually reverse for RNA-seq)
+        
+        Returns
+        -------
+        counts : pandas.core.series.Series
+            Pandas series where the index is the name of the bam files and the value is the read count or RPM
+            Can be treated like a dictionary, but easier to perform math or populate a DataFrame
+        '''
         counts = simple_read_counter(bams, intron.chromosome, intron.start, intron.end, intron.strand, rpkm, library_direction)
         return counts
     
     def count_transcript_reads(intron, gff3, bams, rpkm=False, library_direction='reverse'):
+        ''' Count the reads (or calculate RPKM) within the transcript that contains the intron.
+        
+        Parameters
+        ----------
+        bams : str or list
+            Single or list of sorted, indexed bam files for analysis
+        rpkm : bool, default `False`
+            Normalize to total aligned reads (for comparing between samples) and transcript size
+        library_direction : str, default reverse
+            Direction of first read relative to genome (usually reverse for RNA-seq)
+        
+        Returns
+        -------
+        counts : dict of pandas.core.series.Series
+            Dictionary of pandas series where the key is the transcript name.
+            Values are andas series where the index is the name of the bam files and the value is the read count or RPM.
+            Can be treated like a dictionary, but easier to perform math or populate a DataFrame.
+        '''
         transcript_dict = populate_transcripts(gff3)
         tx_counts = {}
         for iso in intron.transcripts(gff3):
@@ -452,6 +803,23 @@ class Intron:
         return tx_counts
     
     def count_junction_reads(intron, bams, rpm=False, library_direction='reverse'):
+        ''' Count the reads with junctions that match the intron.
+        
+        Parameters
+        ----------
+        bams : str or list
+            Single or list of sorted, indexed bam files for analysis
+        rpm : bool, default `False`
+            Normalize to total aligned reads (for comparing between samples)
+        library_direction : str, default reverse
+            Direction of first read relative to genome (usually reverse for RNA-seq)
+        
+        Returns
+        -------
+        counts : pandas.core.series.Series
+            Pandas series where the index is the name of the bam files and the value is the read count or RPM
+            Can be treated like a dictionary, but easier to perform math or populate a DataFrame
+        '''
         counts = pd.Series(index=bams)
         for bam in bams:
             read_count = 0
@@ -493,16 +861,20 @@ class Intron:
             counts[bam] = read_count
         return counts              
             
-def introns_from_gff3(gff3, transcript_list=None, by_transcript=False):
+def introns_from_gff3(gff3, transcript_list=None, by_transcript=False, sort=True):
     '''Function to build a list of intron objects in the genome
+    
     Parameters
     ----------
     gff3_file : str
-                location and name of gff3 file
-    transcript_list : list, default ``None``
-               List of genes to limit the dictionary. Useful for optimizing performance of downstream functions.
-    by_transcript : bool, default ``False``
-               If you want a dictionary of introns in each transcript, change to True
+        location and name of gff3 file
+    transcript_list : list, default `None`
+        List of genes to limit the dictionary. Useful for optimizing performance of downstream functions.
+    by_transcript : bool, default `False`
+        Return a dictionary of introns in each transcript, rather than a simple list
+    sort : bool, default `True`
+        Sort introns first by chromosome then by start position. 
+        If False will be in order of occurence in gff3
                 
     Returns
     --------
@@ -520,29 +892,19 @@ def introns_from_gff3(gff3, transcript_list=None, by_transcript=False):
     if not by_transcript:
         introns = []
         for ix, r in intron_df.iterrows():
-            introns.append(Intron(r['chromosome'],r['start'],r['end'],r['strand']))
+            introns.append(Intron([r['chromosome'],r['start'],r['end'],r['strand']]))
+        if sort:
+            introns.sort(key=lambda intron: (intron.chromosome, intron.start))
     else:
         introns = {}
         for tx in set(intron_df['transcript']):
             tx_df = intron_df[intron_df['transcript'] == tx]
             introns[tx] = []
             for ix, r in tx_df.iterrows():
-                introns[tx].append(Intron(r['chromosome'],r['start'],r['end'],r['strand']))
-                
+                introns[tx].append(Intron([r['chromosome'],r['start'],r['end'],r['strand']]))
+            if sort:
+                introns[tx].sort(key=lambda intron: intron.start)
     return introns
-            
-def intron_from_string(intron_str, out_format="JUM"):
-    if out_format == "JUM":
-        chromosome = intron_str.split('_')[0]
-        strand = intron_str.split('_')[1]
-        start = int(intron_str.split('_')[2])
-        end = int(intron_str.split('_')[3].strip())
-    elif "Jordan":
-        chromosome = intron_str.split(':')[0]
-        strand = intron_str.split(',')[-1].strip()
-        start = int(intron_str.split(':')[-1].split(',')[0].split('-')[0])
-        end = int(intron_str.split(':')[-1].split(',')[0].split('-')[1])
-    return Intron(chromosome, start, end, strand)
 
 def gc_content(fa_dict):
     base_dict = {0:"A", 1:"C", 2:"T", 3:"G"}
