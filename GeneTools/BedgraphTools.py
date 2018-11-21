@@ -45,7 +45,8 @@ def generate_scaled_bedgraphs2(directory, untagged, organism='crypto', start_onl
     untagged_other_dir = False
     if not file_provided:
         for file in os.listdir(directory):
-            if file.lower().endswith("sorted.bam"):
+            if file.lower().endswith("sorted.bam") or file.endswith('sortedByCoord.out.bam'):
+                print file
                 bam_list.append(directory+file)
     else:
         bam_list.append(directory)

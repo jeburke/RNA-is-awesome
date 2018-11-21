@@ -5,254 +5,40 @@ import pandas as pd
 import numpy as np
 from scipy import stats
 import json
+import pickle
 
 script_path = os.path.dirname(os.path.realpath(__file__)).split('GeneTools')[0]
 sys.path.append(script_path)
 import GeneTools as GT
-
-def complement(seq):
-    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A','N':'N', 'Y':'R', 'R':'Y'} 
-    bases = list(seq) 
-    bases = [complement[base] for base in bases] 
-    return ''.join(bases)
-
-def reverse_complement(s):
-        return complement(s[::-1])
-    
-def make_fasta_json(fa, write=True):
-    '''Convert fasta file to a dictionary stored in json format
-    
-    Parameters
-    ----------
-    fa : fasta file (e.g. genome fasta downloaded from fungidb)
-    write : bool, default `True`
-        write the json file - if False will just return the dictionary
-    '''
-    
-    fa_dict = {}
-    with open(fasta_file) as f:
-        for line in f:
-            if line.startswith('>'):
-                contig = line.lstrip('>').strip()
-                fa_dict[contig] = ''
-            else:
-                fa_dict[contig] = fa_dict[contig] + line.strip()
-    if write:
-        fa_name = fa.split('.fa')[0]+'_fa.json'
-        with open(fa_name, 'w') as fout: json.dump(fa_dict, fout)
-        return fa_name
-    else:
-        return fa_dict
-
-def read_gff3(gff3):
-    names = ['chromosome','source','type','start','end','x','strand','y','ID']
-    ann_df = pd.read_csv(gff3, sep='\t', names=names)
-    return ann_df
-    
-def build_intron_df(gff3, transcript_list=None):
-    if 'pombe' in gff3: pombe = True
-    else: pombe = False   
-    
-    ann_df = read_gff3(gff3)
-    if 'intron' in list(ann_df['type']):
-        print "Introns in gff3"
-        intron_df = ann_df[ann_df['type'] == 'intron']
-        intron_df = intron_df[['chromosome','start','end','strand','ID']]
-        intron_df.loc[:,'transcript'] = intron_df['ID'].str.split('Parent=').str[1].str.split(';').str[0]
-        if 'cerev' in gff3:
-            intron_df.loc[:,'transcript'] = intron_df.loc['transcript'].str.split('_mRNA').str[0]
-        if transcript_list is not None:
-            intron_df = intron_df['transcript'].isin(transcript_list)
-    
-    elif 'exon' in list(ann_df['type']):
-        exon_df = ann_df[['chromosome','start','type','end','strand','ID']]
-        exon_df = exon_df[exon_df['type'] == 'exon']
-        exon_df.loc[:,'transcript'] = exon_df['ID'].str.split('Parent=').str[1].str.split(';').str[0]
-        if pombe:
-            exon_df.loc[:,'transcript'] = exon_df['transcript'].str.split('transcript:').str[1]
-        if transcript_list is not None:
-            exon_df = exon_df[exon_df['transcript'].isin(transcript_list)]
-        intron_df = pd.DataFrame(columns = exon_df.columns)
-        df_dict = {'chromosome':[],'transcript':[],'start':[],'end':[],'strand':[]}
-        for tx in set(exon_df['transcript']):
-            tx_df = exon_df[exon_df['transcript'] == tx]
-            tx_df = tx_df.sort_values('start').reset_index(drop=True)
-            for n in tx_df.index[:-1]:
-                try:
-                    df_dict['transcript'].append(tx)
-                    df_dict['chromosome'].append(tx_df.loc[n,'chromosome'])
-                    df_dict['strand'].append(tx_df.loc[n,'strand'])
-                    df_dict['start'].append(tx_df.loc[n,'end']+1)
-                    df_dict['end'].append(tx_df.loc[n+1,'start']-1)
-                except KeyError:
-                    pass
-        for col, data in df_dict.iteritems():
-            intron_df.loc[:,col] = data
-    
-    intron_df['start'] = intron_df['start'].apply(int)
-    intron_df['end'] = intron_df['end'].apply(int)
-    return intron_df
-            
-def span_read_counter(bams, chromosome, coordinate, strand, rpm, library_direction):
-    if type(bams) == str:
-        bams = [bams]
-    counts = pd.Series(index=bams)
-    for bam in bams:
-        ob = pysam.Samfile(bam)
-        read_iter = ob.fetch(chromosome, coordinate-200, coordinate+200)
-        read_count = 0
-        for read in read_iter:
-            if len(read.cigartuples) < 3:
-                if read.reference_start < coordinate and read.reference_end > coordinate:
-                    if library_direction == 'reverse':
-                        if strand == '+' and read.is_reverse:
-                            read_count += 1
-                        elif strand == '-' and not read.is_reverse:
-                            read_count += 1
-                    else:
-                        if strand == '+' and not read.is_reverse:
-                            read_count += 1
-                        elif strand == '-' and read.is_reverse:
-                            read_count += 1
-        counts[bam] = read_count
-        
-    if rpm:
-        for bam in counts.keys():
-            scale = GT.count_aligned_reads(bam)
-            counts[bam] = counts[bam]*scale
-    return counts
-
-def simple_read_counter(bams, chromosome, start, end, strand, rpkm, library_direction):
-    if type(bams) == str:
-        bams = [bams]
-    counts = pd.Series(index=bams)
-    for bam in bams:
-        ob = pysam.Samfile(bam)
-        read_iter = ob.fetch(chromosome, start-200, end+200)
-        read_count = 0
-        for read in read_iter:
-            if read.reference_end >= start and read.reference_start <= end:
-                if library_direction == 'reverse':
-                    if strand == '+' and read.is_reverse:
-                        read_count += 1
-                    elif strand == '-' and not read.is_reverse:
-                        read_count += 1
-                else:
-                    if strand == '+' and not read.is_reverse:
-                        read_count += 1
-                    elif strand == '-' and read.is_reverse:
-                        read_count += 1
-        counts[bam] = read_count
-    if rpkm:
-        for bam in counts.keys():
-            total = GT.count_aligned_reads(bam)
-            counts[bam] = (counts[bam]/total)/((end-start)/1000)
-    return counts
-
-class Transcript:
-    def __init__(transcript, name, chromosome, start, end, strand):
-        transcript.name = name
-        transcript.chromosome = chromosome
-        transcript.start = start
-        transcript.end = end
-        transcript.strand = strand
-        transcript.length = end-start
-        
-    def CDS(transcript, gff3):
-        df = read_gff3(gff3)
-        CDS_df = df[df['type'] == 'CDS']
-        CDS_df.loc[:,'transcript'] = CDS_df['ID'].str.split('Parent=').str[1].str.split(';').str[0]
-        if 'pombe' in gff3:
-            CDS_df.loc[:,'transcript'] = CDS_df['transcript'].str.split('transcript:').str[-1]
-        elif 'cerev' in gff3:
-            CDS_df.loc[:,'transcript'] = CDS_df['transcript'].str.split('_mRNA').str[0]
-       
-        tx_CDS = CDS_df[CDS_df['transcript'] == transcript.name]
-        CDS_start = min(tx_CDS['start'])
-        CDS_end = max(tx_CDS['end'])
-        
-        return CDS_start, CDS_end
-    
-    def UTR_5prime(transcript, gff3):
-        CDS_start, CDS_end = transcript.CDS(gff3)
-        if transcript.strand == '+':
-            return transcript.start, CDS_start
-        elif transcript.strand == '-':
-            return CDS_end, transcript.end
-    
-    def UTR_3prime(transcript, gff3):
-        CDS_start, CDS_end = transcript.CDS(gff3)
-        if transcript.strand == '+':
-            return CDS_end, transcript.end
-        elif transcript.strand == '-':
-            return transcript.start, CDS_start
-        
-    def sequence(transcript, fasta_file, seq_range=(0,0)):
-        if fasta_file.endswith('.json'):
-            with open(fasta_file) as f: fa_dict = json.load(f)
-        else:
-            fa_dict = make_fasta_json(fasta_file)
-            
-        seq = fa_dict[transcript.chromosome][transcript.start+seq_range[0]:transcript.end+seq_range[1]]
-        if transcript.strand == '-':
-            seq = reverse_complement(seq)
-        return seq
-        
-    def transcript_count_reads(transcript, bams, library_direction='reverse'):
-        counts = simple_read_counter(bams, chromosome, transcript.start, transcript.end, transcript.strand, library_direction)
-        return counts       
-
-def populate_transcripts(gff3, gff3_class='mRNA'):
-    ann_df = read_gff3(gff3)
-    transcripts = ann_df[ann_df['type'] == gff3_class]
-    if len(transcripts) == 0:
-        print "gff3_class not found in gff3 file!"
-        return None
-            
-    transcripts.loc[:,'transcript'] =transcripts['ID'].str.split('ID=').str[1].str.split(';').str[0]
-    transcripts = transcripts.reset_index(drop=True)
-    if '_mRNA' in transcripts.loc[0,'transcript']:
-        transcripts.loc[:,'transcript'] =transcripts.loc['transcript'].str.split('_mRNA').str[0]
-    if 'transcript:' in transcripts.loc[0,'transcript']:
-        transcripts.loc[:,'transcript'] =transcripts['transcript'].str.split('transcript:').str[1]
-    
-    tx_dict = {}
-    for ix, r in transcripts.iterrows():
-        tx_dict[r['transcript']] = Transcript(r['transcript'], r['chromosome'], r['start'], r['end'], r['strand'])
-    
-    return tx_dict
-      
-def intron_from_string(intron_str, str_format="JUM"):
-    if str_format == "JUM":
-        chromosome = intron_str.split('_')[0]
-        strand = intron_str.split('_')[1]
-        start = int(intron_str.split('_')[2])
-        end = int(intron_str.split('_')[3].strip())
-    elif str_format == "Jordan":
-        chromosome = intron_str.split(':')[0]
-        strand = intron_str.split(',')[-1].strip()
-        start = int(intron_str.split(':')[-1].split(',')[0].split('-')[0])
-        end = int(intron_str.split(':')[-1].split(',')[0].split('-')[1])
-    return chromosome, start, end, strand
     
 class Intron:
     '''Intron object containing information about the intron location and size
     
     Parameters
     ----------
-    info : list or str
-        If using a list, info must be [chromosome, start, end, strand]
+    chromosome_or_str : str
+        If using the chromosome, must also provide start, end and strand
         If using a string, it must be a known string format containing the same information (see below)
+    start : int, default `None`
+        Beginning of intron on the chromosome (5 prime splice site on + strand, 3 prime splice site on - strand)
+    end : int, default `None`
+        End of intron on the chromosome
+    strand : str, default `None`
+        Strand of transcript containing intron
     str_format : str, default "JUM"
         Format of the string that contains the intron information
         "JUM" format is chrom_strand_start_end
         "Jordan" format is chrom:start-end,strand
         No others are currently supported
+    organism : str or GT.Organism object, default crypto
+        If using str - options are crypto, pombe, candida and cerevisiae
+        - will create object from default files every time an Intron instance is initialized
+        For better perforance - first initialize GT.organism and pass in the object
         
     Examples
     -------
-    Constructing an intron from a list
-    >>> intron = Intron(["chr1",611500,611563,"+"])
+    Constructing an intron from separate items
+    >>> intron = Intron("chr1",611500,611563,"+")
     >>> intron.length
         63
     
@@ -260,27 +46,39 @@ class Intron:
     >>> intron = Intron("chr1_+_611500_611563", str_format="JUM")
     >>> intron.length
         63
+        
+    Providing an organism object
+    >>> crypto = GT.Organism('Cryptococcus neoformans H99', 
+                           '/home/jordan/GENOMES/H99_fa.json', 
+                           '/home/jordan/GENOMES/CNA3_FINAL_CALLGENES_1_gobs.gff3')
+    >>> intron = Intron("chr1",611500,611563,"+", organism=crypto)
+    >>> intron.organism.name
+        Cryptococcus neoformans H99
     
     '''
-    def __init__(intron, info, str_format='JUM'):
-        if type(info) == list:
-            chromosome, start, end, strand = info   
-        elif type(info) == str:
-            chromosome, start, end, strand = intron_from_string(info, str_format=str_format)
+    def __init__(intron, chromosome_or_str, start=None, end=None, strand=None, str_format=None, organism='crypto'):
+        if str_format is None:
+            chromosome = chromosome_or_str
+            if start is None or end is None or strand is None:
+                raise ValueError('Must provide start, end and strand or indicate str_format')
+        else:
+            chromosome, start, end, strand = intron_from_string(chromosome_or_str, str_format=str_format)
             
         intron.chromosome = chromosome
         intron.start = int(start)
         intron.end = int(end)
         intron.strand = strand
         intron.length = abs(end-start)
+        
+        if type(organism) == str:
+            organism = GT.autoload_organism(organism)
+        intron.organism = organism
             
-    def transcripts(intron, gff3, as_string=False):
+    def transcripts(intron, as_string=False):
         ''' Find transcripts that may contain this intron (same strand and location)
         
         Parameters
         ----------
-        gff3 : str
-            gff3 formatted annotation file
         as_string : bool, default `False`
             If True, returns lists of transcripts as comma separated strings
         
@@ -290,20 +88,16 @@ class Intron:
             list of transcripts if as_string is False
             comma separated string of transcripts if as_string is True
         '''
+        ann_df = intron.organism.annotation
         
-        pombe = False
-        if 'pombe' in gff3: pombe = True
-            
-        ann_df = read_gff3(gff3)
-        
-        if pombe:
+        if intron.organism.name == 'Schizosaccharomyces pombe':
             transcripts = ann_df[ann_df['type'] == 'transcript']
         else:
             transcripts = ann_df[ann_df['type'] == 'mRNA']
         matches = transcripts[(transcripts['chromosome'] == intron.chromosome) & (transcripts['strand'] == intron.strand)]
         matches = matches[(matches['start'] < intron.start) & (matches['end'] > intron.end)]
         if len(matches) > 0:
-            if pombe:
+            if intron.organism.name == 'Schizosaccharomyces pombe':
                 tx_list = [x.lstrip('ID=transcript:').split(';')[0] for x in matches['ID']] 
             else:
                 tx_list = [x.lstrip('ID=').split(';')[0] for x in matches['ID']]
@@ -312,17 +106,15 @@ class Intron:
         else:
             tx_list = None
         if as_string:
-            return ','.join(tx_list)
+            if tx_list is not None:
+                return ','.join(tx_list)
+            else:
+                return ''
         else:
             return tx_list
 
-    def annotated(intron, gff3):
+    def annotated(intron):
         ''' Determines whether the intron is in the current annotation
-        
-        Parameters
-        ----------
-        gff3 : str
-            gff3 formatted annotation file
         
         Returns
         -------
@@ -330,21 +122,16 @@ class Intron:
             If True, intron is annotated
             If False, intron is not annotated
         '''
-        intron_df = build_intron_df(gff3, transcript_list=intron.transcripts(gff3))
+        intron_df = build_intron_df(intron.organism.gff3, transcript_list=intron.transcripts())
         if intron.start in list(intron_df['start']) and intron.end in list(intron_df['end']):
             ann = True
         else:
             ann = False
         return ann
     
-    def position(intron, gff3):
+    def position(intron):
         ''' Finds the position of the intron in the transcript
-        
-        Parameters
-        ----------
-        gff3 : str
-            gff3 formatted annotation file
-        
+
         Returns
         -------
         position : int
@@ -352,7 +139,7 @@ class Intron:
             I.e. the first intron will be 0 etc.
         '''
         
-        intron_df = build_intron_df(gff3, transcript_list=intron.transcripts(gff3))
+        intron_df = build_intron_df(intron.organism.gff3, transcript_list=intron.transcripts())
         
         starts = list(intron_df['start']).append(intron.start)
         starts = sorted(list(set(starts)))
@@ -360,13 +147,8 @@ class Intron:
         position = starts.index(intron.start)
         return position
     
-    def is_first(intron, gff3):
+    def is_first(intron):
         ''' Determines whether the intron is the first intron in the transcript
-        
-        Parameters
-        ----------
-        gff3 : str
-            gff3 formatted annotation file
         
         Returns
         -------
@@ -374,7 +156,7 @@ class Intron:
             If True, intron is the first intron
         '''
         
-        intron_df = build_intron_df(gff3, transcript_list=intron.transcripts(gff3))
+        intron_df = build_intron_df(intron.organism.gff3, transcript_list=intron.transcripts())
         
         starts = list(intron_df['start'])
         starts.append(intron.start)
@@ -385,20 +167,15 @@ class Intron:
             first = True
         return first
     
-    def is_last(intron, gff3):
+    def is_last(intron):
         ''' Determines whether the intron is the last intron in the transcript
-        
-        Parameters
-        ----------
-        gff3 : str
-            gff3 formatted annotation file
         
         Returns
         -------
         ann : bool
             If True, intron is the last intron
         '''
-        intron_df = build_intron_df(gff3, transcript_list=intron.transcripts(gff3))
+        intron_df = build_intron_df(intron.organism.gff3, transcript_list=intron.transcripts())
         
         starts = list(intron_df['start'])
         starts.append(intron.start)
@@ -409,20 +186,15 @@ class Intron:
             last = True
         return last
     
-    def is_only(intron, gff3):
+    def is_only(intron):
         ''' Determines whether the intron is the only intron in the transcript
-        
-        Parameters
-        ----------
-        gff3 : str
-            gff3 formatted annotation file
         
         Returns
         -------
         ann : bool
             If True, intron is the only intron
         '''
-        intron_df = build_intron_df(gff3, transcript_list=intron.transcripts(gff3))
+        intron_df = build_intron_df(intron.organism.gff3, transcript_list=intron.transcripts())
         
         starts = list(intron_df['start'])
         starts.append(intron.start)
@@ -431,46 +203,36 @@ class Intron:
             only = True
         return only
     
-    def UTR_5prime(intron, gff3):
+    def UTR_5prime(intron):
         ''' Determines whether the intron is in the 5 prime UTR
-        
-        Parameters
-        ----------
-        gff3 : str
-            gff3 formatted annotation file
         
         Returns
         -------
         ann : bool
             If True, intron is in the 5 prime UTR
         '''
-        transcript_dict = populate_transcripts(gff3)
+        transcript_dict = GT.populate_transcripts(intron.organism.gff3, organism=intron.organism)
         UTR = False
-        for iso in intron.transcripts(gff3):
+        for iso in intron.transcripts():
             tx = transcript_dict[iso]
-            UTR_start, UTR_end = tx.UTR_5prime(gff3)
+            UTR_start, UTR_end = tx.UTR_5prime()
             if intron.start in range(UTR_start, UTR_end):
                 UTR = True
         return UTR
     
-    def UTR_3prime(intron, gff3):
+    def UTR_3prime(intron):
         ''' Determines whether the intron is in the 3 prime UTR
-        
-        Parameters
-        ----------
-        gff3 : str
-            gff3 formatted annotation file
         
         Returns
         -------
         ann : bool
             If True, intron is in the 3 prime UTR
         '''
-        transcript_dict = populate_transcripts(gff3)
+        transcript_dict = GT.populate_transcripts(intron.organism.gff3, organism=intron.organism)
         UTR = False
-        for iso in intron.transcripts(gff3):
+        for iso in intron.transcripts():
             tx = transcript_dict[iso]
-            UTR_start, UTR_end = tx.UTR_3prime(gff3)
+            UTR_start, UTR_end = tx.UTR_3prime()
             if intron.start in range(UTR_start, UTR_end):
                 UTR = True
         return UTR
@@ -480,16 +242,11 @@ class Intron:
     ## Methods for obtaining sequence and scoring ##
     ################################################
     
-    def sequence(intron, fasta_file, seq_range=(-2,2)):
+    def sequence(intron, seq_range=(-2,2)):
         ''' Retrieve the intron sequence
         
         Parameters
         ----------
-        fasta_file : str
-            Genome fasta file - must match annotation
-            Note: A json file containing a dictionary with the contigs as keys and the sequences as values
-                  may also be provided here and will significantly increase performance 
-                  (file extension must be .json)
         seq_range : tuple, default (-2,2)
             Range of sequence to retrieve relative to start and end of intron. 
             Default retrieves 2 nt upstream and 2 nt downstream.
@@ -500,28 +257,18 @@ class Intron:
             The sequence of the intron in the specified range
         '''
         
-        if type(fasta_file) == str:
-            if fasta_file.endswith('.json'):
-                with open(fasta_file) as f: fa_dict = json.load(f)
-            else:
-                fa_dict = make_fasta_json(fasta_file)
-        else: fa_dict = fasta_file
+        fa_dict = intron.organism.sequence
         
         seq = fa_dict[intron.chromosome][intron.start+seq_range[0]-1:intron.end+seq_range[1]]
         if intron.strand == '-':
             seq = reverse_complement(seq)
         return seq
     
-    def score5p(intron, fasta_file, PSSM_txt_file, position=(-2,6), quiet=True):
+    def score5p(intron, PSSM_txt_file, position=(-2,6), quiet=True):
         ''' Score the 5 prime end of the intron
         
         Parameters
         ----------
-        fasta_file : str
-            Genome fasta file - must match annotation
-            Note: A json file containing a dictionary with the contigs as keys and the sequences as values
-                  may also be provided here and will significantly increase performance 
-                  (file extension must be .json)
         PSSM_txt_file : str
             Text file created from a numpy array containing the PSSM scores from annotated introns.
             This file can be created using the build_consensus_matrix function in this module.
@@ -541,7 +288,7 @@ class Intron:
         
         PSSM = np.loadtxt(PSSM_txt_file)
         base_dict = {"A":0, "C":1, "T":2, "G":3}
-        seq = intron.sequence(fasta_file, seq_range=(position[0]-1, position[0]*-1))
+        seq = intron.sequence(seq_range=(position[0], position[0]*-1))
         seq5 = seq[:position[1]-position[0]]
         if not quiet:
             print 'Sequence: '+seq5
@@ -550,16 +297,11 @@ class Intron:
             score_5prime += PSSM[base_dict[base],a]
         return score_5prime
     
-    def score3p(intron, fasta_file, PSSM_txt_file, position=(-6,2), quiet=True):
+    def score3p(intron, PSSM_txt_file, position=(-6,2), quiet=True):
         ''' Score the 3 prime end of the intron
         
         Parameters
         ----------
-        fasta_file : str
-            Genome fasta file - must match annotation
-            Note: A json file containing a dictionary with the contigs as keys and the sequences as values
-                  may also be provided here and will significantly increase performance 
-                  (file extension must be .json)
         PSSM_txt_file : str
             Text file created from a numpy array containing the PSSM scores from annotated introns.
             This file can be created using the build_consensus_matrix function in this module.
@@ -579,7 +321,7 @@ class Intron:
         PSSM = np.loadtxt(PSSM_txt_file)
         base_dict = {"A":0, "C":1, "T":2, "G":3}
         
-        seq = intron.sequence(fasta_file, seq_range=(position[1]*-1-1, position[1]))
+        seq = intron.sequence(seq_range=(position[1]*-1, position[1]))
         seq3 = seq[position[0]-position[1]:]
         if not quiet:
             print 'Sequence: '+seq3
@@ -588,16 +330,11 @@ class Intron:
             score_3prime += PSSM[base_dict[base],b]
         return score_3prime
             
-    def percent_py(intron, fasta_file, fraction=0.3):
+    def percent_py(intron, fraction=0.3):
         ''' Calculate the percent pyrimidine in the last 30% of the intron
         
         Parameters
         ----------
-        fasta_file : str
-            Genome fasta file - must match annotation
-            Note: A json file containing a dictionary with the contigs as keys and the sequences as values
-                  may also be provided here and will significantly increase performance 
-                  (file extension must be .json)
         fraction : float, default 0.3
             Fraction of the intron over which to calculate percent Py. Uses the last 30% by default.
         
@@ -606,7 +343,7 @@ class Intron:
         perc_py : float
             Percent pyrimidine content in the specified fraction of the intron 
         '''
-        seq = intron.sequence(fasta_file)
+        seq = intron.sequence()
         start_ix = len(seq)-int(len(seq)*fraction)
         py_count = 0
         for n, base in enumerate(seq[start_ix:]):
@@ -620,16 +357,11 @@ class Intron:
     ## Methods for finding branch information ##
     ############################################
     
-    def branch(intron, fasta_file, branch_db, guess=True):
+    def branch(intron, branch_db, guess=True):
         ''' Retrieve branch information if available
         
         Parameters
         ----------
-        fasta_file : str
-            Genome fasta file - must match annotation
-            Note: A json file containing a dictionary with the contigs as keys and the sequences as values
-                  may also be provided here and will significantly increase performance 
-                  (file extension must be .json).
         branch_db : str
             Pickle or csv file containing available branch information for introns in the organism.
             Must contain the following columns: [chromosome, start, end, strand, branch, sequence].
@@ -667,7 +399,7 @@ class Intron:
         seq_freq.reverse()
         branches = [x[0] for x in seq_freq if x[1] > 5]
         
-        intron_seq = intron.sequence(fasta_file)
+        intron_seq = intron.sequence()
         intron_br = branch_db[(branch_db['start'] == intron.start) & 
                               (branch_db['chromosome'] == intron.chromosome) &
                               (branch_db['end'] == intron.end) &
@@ -776,7 +508,7 @@ class Intron:
         counts = simple_read_counter(bams, intron.chromosome, intron.start, intron.end, intron.strand, rpkm, library_direction)
         return counts
     
-    def count_transcript_reads(intron, gff3, bams, rpkm=False, library_direction='reverse'):
+    def count_transcript_reads(intron, bams, rpkm=False, library_direction='reverse'):
         ''' Count the reads (or calculate RPKM) within the transcript that contains the intron.
         
         Parameters
@@ -795,9 +527,9 @@ class Intron:
             Values are andas series where the index is the name of the bam files and the value is the read count or RPM.
             Can be treated like a dictionary, but easier to perform math or populate a DataFrame.
         '''
-        transcript_dict = populate_transcripts(gff3)
+        transcript_dict = GT.populate_transcripts(intron.organism.gff3, organism=intron.organism)
         tx_counts = {}
-        for iso in intron.transcripts(gff3):
+        for iso in intron.transcripts():
             tx = transcript_dict[iso]
             tx_counts[iso] = simple_read_counter(bams, tx.chromosome, tx.start, tx.end, tx.strand, rpkm, library_direction)
         return tx_counts
@@ -861,7 +593,68 @@ class Intron:
             counts[bam] = read_count
         return counts              
             
-def introns_from_gff3(gff3, transcript_list=None, by_transcript=False, sort=True):
+###############################################
+## Functions for populating intron instances ##
+###############################################
+
+def build_intron_df(gff3, transcript_list=None):
+    if 'pombe' in gff3: pombe = True
+    else: pombe = False   
+    
+    ann_df = GT.read_gff3(gff3)
+    if 'intron' in list(ann_df['type']):
+        print "Introns in gff3"
+        intron_df = ann_df[ann_df['type'] == 'intron']
+        intron_df = intron_df[['chromosome','start','end','strand','ID']]
+        intron_df.loc[:,'transcript'] = intron_df['ID'].str.split('Parent=').str[1].str.split(';').str[0]
+        if 'cerev' in gff3:
+            intron_df.loc[:,'transcript'] = intron_df.loc['transcript'].str.split('_mRNA').str[0]
+        if transcript_list is not None:
+            intron_df = intron_df['transcript'].isin(transcript_list)
+    
+    elif 'exon' in list(ann_df['type']):
+        exon_df = ann_df[['chromosome','start','type','end','strand','ID']]
+        exon_df = exon_df[exon_df['type'] == 'exon']
+        exon_df.loc[:,'transcript'] = exon_df['ID'].str.split('Parent=').str[1].str.split(';').str[0]
+        if pombe:
+            exon_df.loc[:,'transcript'] = exon_df['transcript'].str.split('transcript:').str[1]
+        if transcript_list is not None:
+            exon_df = exon_df[exon_df['transcript'].isin(transcript_list)]
+        intron_df = pd.DataFrame(columns = exon_df.columns)
+        df_dict = {'chromosome':[],'transcript':[],'start':[],'end':[],'strand':[]}
+        for tx in set(exon_df['transcript']):
+            tx_df = exon_df[exon_df['transcript'] == tx]
+            tx_df = tx_df.sort_values('start').reset_index(drop=True)
+            for n in tx_df.index[:-1]:
+                try:
+                    df_dict['transcript'].append(tx)
+                    df_dict['chromosome'].append(tx_df.loc[n,'chromosome'])
+                    df_dict['strand'].append(tx_df.loc[n,'strand'])
+                    df_dict['start'].append(tx_df.loc[n,'end']+1)
+                    df_dict['end'].append(tx_df.loc[n+1,'start']-1)
+                except KeyError:
+                    pass
+        for col, data in df_dict.iteritems():
+            intron_df.loc[:,col] = data
+    
+    intron_df['start'] = intron_df['start'].apply(int)
+    intron_df['end'] = intron_df['end'].apply(int)
+    return intron_df
+    
+def intron_from_string(intron_str, str_format="JUM"):
+    if str_format == "JUM":
+        chromosome = intron_str.split('_')[0]
+        strand = intron_str.split('_')[1]
+        start = int(intron_str.split('_')[2])
+        end = int(intron_str.split('_')[3].strip())
+    elif str_format == "Jordan":
+        chromosome = intron_str.split(':')[0]
+        strand = intron_str.split(',')[-1].strip()
+        start = int(intron_str.split(':')[-1].split(',')[0].split('-')[0])
+        end = int(intron_str.split(':')[-1].split(',')[0].split('-')[1])
+    return chromosome, start, end, strand
+
+def introns_from_gff3(organism, transcript_list=None, by_transcript=False, sort=True, pickle_name=None):
     '''Function to build a list of intron objects in the genome
     
     Parameters
@@ -881,8 +674,10 @@ def introns_from_gff3(gff3, transcript_list=None, by_transcript=False, sort=True
     introns : list of intron objects if by_transcript is False
               dict of intron objects with transcripts as keys if by_transcript is True
                     '''
-    
-    intron_df = build_intron_df(gff3, transcript_list=transcript_list)
+    if type(organism) == str:
+        organism = GT.autoload_organism(organism)
+ 
+    intron_df = build_intron_df(organism.gff3, transcript_list=transcript_list)
     
     #first group introns to remove redundancy
     intron_df = intron_df.sort_values('transcript')
@@ -892,7 +687,7 @@ def introns_from_gff3(gff3, transcript_list=None, by_transcript=False, sort=True
     if not by_transcript:
         introns = []
         for ix, r in intron_df.iterrows():
-            introns.append(Intron([r['chromosome'],r['start'],r['end'],r['strand']]))
+            introns.append(Intron(r['chromosome'],r['start'],r['end'],r['strand'], organism=organism))
         if sort:
             introns.sort(key=lambda intron: (intron.chromosome, intron.start))
     else:
@@ -901,10 +696,26 @@ def introns_from_gff3(gff3, transcript_list=None, by_transcript=False, sort=True
             tx_df = intron_df[intron_df['transcript'] == tx]
             introns[tx] = []
             for ix, r in tx_df.iterrows():
-                introns[tx].append(Intron([r['chromosome'],r['start'],r['end'],r['strand']]))
+                introns[tx].append(Intron(r['chromosome'],r['start'],r['end'],r['strand'],organism=organism))
             if sort:
                 introns[tx].sort(key=lambda intron: intron.start)
+    if pickle_name is not None:
+        with open(pickle_name, 'w') as fout:
+            pickle.dump(introns, fout)
     return introns
+
+##########################################
+## Functions for working with sequences ##
+##########################################
+    
+def complement(seq):
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A','N':'N', 'Y':'R', 'R':'Y'} 
+    bases = list(seq) 
+    bases = [complement[base] for base in bases] 
+    return ''.join(bases)
+
+def reverse_complement(s):
+        return complement(s[::-1])
 
 def gc_content(fa_dict):
     base_dict = {0:"A", 1:"C", 2:"T", 3:"G"}
@@ -922,7 +733,7 @@ def build_consensus_matrix(gff3, fa, out_name, seq_type='intron', position=('5pr
     else:
         fa_dict = make_fasta_json(fasta_file)
     
-    all_transcripts = populate_transcripts(gff3)
+    all_transcripts = GT.populate_transcripts(gff3)
     
     nuc_prob = gc_content(fa_dict)
     base_dict = {"A":0, "C":1, "T":2, "G":3}
@@ -970,7 +781,69 @@ def build_consensus_matrix(gff3, fa, out_name, seq_type='intron', position=('5pr
     print PSSM
     
     np.savetxt(out_name, PSSM)
-    #return PSSM
+    
+    
+##################################
+## Functions for counting reads ##
+##################################
+            
+def span_read_counter(bams, chromosome, coordinate, strand, rpm, library_direction):
+    if type(bams) == str:
+        bams = [bams]
+    counts = pd.Series(index=bams)
+    for bam in bams:
+        ob = pysam.Samfile(bam)
+        read_iter = ob.fetch(chromosome, coordinate-200, coordinate+200)
+        read_count = 0
+        for read in read_iter:
+            if len(read.cigartuples) < 3:
+                if read.reference_start < coordinate and read.reference_end > coordinate:
+                    if library_direction == 'reverse':
+                        if strand == '+' and read.is_reverse:
+                            read_count += 1
+                        elif strand == '-' and not read.is_reverse:
+                            read_count += 1
+                    else:
+                        if strand == '+' and not read.is_reverse:
+                            read_count += 1
+                        elif strand == '-' and read.is_reverse:
+                            read_count += 1
+        counts[bam] = read_count
+        
+    if rpm:
+        for bam in counts.keys():
+            scale = GT.count_aligned_reads(bam)
+            counts[bam] = counts[bam]*scale
+    return counts
 
-#def generate_branch_db():
+def simple_read_counter(bams, chromosome, start, end, strand, rpkm, library_direction):
+    if type(bams) == str:
+        bams = [bams]
+    counts = pd.Series(index=bams)
+    for bam in bams:
+        ob = pysam.Samfile(bam)
+        read_iter = ob.fetch(chromosome, start-200, end+200)
+        read_count = 0
+        for read in read_iter:
+            if read.reference_end >= start and read.reference_start <= end:
+                if library_direction == 'reverse':
+                    if strand == '+' and read.is_reverse:
+                        read_count += 1
+                    elif strand == '-' and not read.is_reverse:
+                        read_count += 1
+                else:
+                    if strand == '+' and not read.is_reverse:
+                        read_count += 1
+                    elif strand == '-' and read.is_reverse:
+                        read_count += 1
+        counts[bam] = read_count
+    if rpkm:
+        for bam in counts.keys():
+            total = GT.count_aligned_reads(bam)
+            counts[bam] = (counts[bam]/total)/((end-start)/1000)
+    return counts        
+        
+
+
+
     

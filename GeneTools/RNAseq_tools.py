@@ -278,8 +278,8 @@ def count_with_HTseq(base_dir, organism='crypto'):
     
     bam_files = []
     for file in os.listdir(base_dir):
-        if file.endswith('_sorted.bam'):
-            if file.split('_sorted.bam')[0]+'.htseq' not in os.listdir(base_dir):
+        if file.endswith('_sorted.bam') or file.endswith('sortedByCoord.out.bam'):
+            if file.split('sorted')[0].rstrip('_')+'.htseq' not in os.listdir(base_dir):
                 bam_files.append(file)
     
     for bam in bam_files:
@@ -287,7 +287,7 @@ def count_with_HTseq(base_dir, organism='crypto'):
         print args
         
         out = subprocess.check_output(args.split(' '))
-        with open(base_dir+bam.split('_sorted')[0]+'.htseq','w') as fout:
+        with open(base_dir+bam.split('sorted')[0].rstrip('_')+'.htseq','w') as fout:
             fout.write(out)
         
 def main():
@@ -430,7 +430,7 @@ def load_HTSeq_results(csv_list):
     
     return df
 
-def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10, hdbscan=False, min_cluster_size=15):
+def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10, use_hdbscan=False, min_cluster_size=15):
     '''Generates a clustered heatmap using kmeans clustering and returns a dataframe with cluster indeces.
     
     Parameters
@@ -442,7 +442,7 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10, hdbsca
               If no sample names are provided, clusters across all samples in the dataframe.
     n_clusters : int, default 10 
               Number of clusters to create
-    hdbscan : bool, default ``False``
+    use_hdbscan : bool, default ``False``
               If True, will use the hdbscan clustering algorithm instead of K-means. This algorithm is actually much nicer because it does not require you to provide the number of clusters and it does not assume that the clusters are globular. It also does not necessarily place all data points into clusters. However, you do need to provide min_cluster_size, which is the minimum number of points for a group to be considered a cluster.
     min_cluster_size : int, default 15
               See hdbscan variable above for explanation.
@@ -471,7 +471,7 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10, hdbsca
     mat = data.as_matrix()
 
     # Cluster data
-    if not hdbscan:
+    if not use_hdbscan:
         km = cluster.KMeans(n_clusters=n_clusters)
         km.fit(mat)
         labels = km.labels_

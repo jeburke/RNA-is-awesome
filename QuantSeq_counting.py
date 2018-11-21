@@ -67,9 +67,9 @@ def count_reads(bam_file, gff3_file, extend=0, report_unique=False, detect_polA=
                     continue
                     
             if read.reference_start in range(gene['start'],gene['end']+1) and read.reference_end in range(gene['start'],gene['end']+1):
-                if read.is_reverse and gene['strand'] == '+':
+                if not read.is_reverse and gene['strand'] == '+':
                     counted_reads[gene['name']].add(read)
-                if not read.is_reverse and gene['strand'] == '-':
+                if read.is_reverse and gene['strand'] == '-':
                     counted_reads[gene['name']].add(read)
             else:
                 if gene['strand'] == '+' and read.reference_start - extend <= gene['end'] and not read.is_reverse:
@@ -173,18 +173,21 @@ def main():
     final_df = None
     for bam_file in bam_files:
         df = count_reads(bam_file, gff3_file, extend=extend, report_unique=report_unique, detect_polA=detect_polA, fa=fasta, frag_size=frag_size)
-        bam_name = bam_file.split('/')[-1].split('.bam')[0]
-        df.columns = pd.MultiIndex.from_product([[bam_name], df.columns])
-        if final_df is None:
-            final_df = df
+        if len(bam_files) > 1:
+            bam_name = bam_file.split('/')[-1].split('.bam')[0]
+            df.columns = pd.MultiIndex.from_product([[bam_name], df.columns])
+            if final_df is None:
+                final_df = df
+            else:
+                final_df = final_df.merge(df, right_index=True, left_index=True, how='outer')
         else:
-            final_df = final_df.merge(df, right_index=True, left_index=True, how='outer')
+            final_df = df
     
-    name = 'QuantSeq_counts.csv'
+    name = 'QuantSeq_counts.quant'
     if '--name' in sys.argv:
         name = sys.argv[sys.argv.index('--name')+1]+'.csv'
     
-    final_df.to_csv(name)
+    final_df.to_csv(name+'.quant', header=False, sep='\t')
         
 if __name__ == "__main__":
     main()
