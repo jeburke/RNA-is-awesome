@@ -29,7 +29,7 @@ def run_genomeCoverageBed(command):
     ret_code = process.wait()
     return ret_code
 
-def generate_scaled_bedgraphs2(directory, untagged, organism='crypto', start_only=False, stranded=False, threads=1, file_provided=False):
+def generate_scaled_bedgraphs2(directory, untagged, organism='crypto', start_only=False, stranded=False, threads=1, file_provided=False, expand=False):
     if 'crypto' in organism.lower():
         genome = '/home/jordan/GENOMES/crypto_for_bedgraph.genome'
     elif 'cerev' in organism.lower():
@@ -70,8 +70,12 @@ def generate_scaled_bedgraphs2(directory, untagged, organism='crypto', start_onl
         totals.update(x)
     
     commands = {}
+    if expand:
+        flag = '-d'
+    else:
+        flag = '-bga'
     for n, bam in enumerate(bam_list):
-        command = 'genomeCoverageBed -ibam {0} -g {1} -bga -scale {2} '.format(bam, genome, "%.2f" % totals[bam])
+        command = 'genomeCoverageBed -ibam {0} -g {1} {2} -scale {3} '.format(bam, genome, flag, "%.2f" % totals[bam])
         commands[bam] = command
 
     if start_only is True:
@@ -389,9 +393,26 @@ def bedgraph_reader(bedgraph, chromosomes=None):
     
     return df
 
+
+
 def write_bedgraph(dataframe, name):
-    dataframe.to_csv(name+'combined.bedgraph', index=False, header=False, sep='\t')
-##  
+    dataframe.to_csv(name, index=False, header=False, sep='\t')
+
+def bedgraph_reader2(bedgraph, chromosomes=None, write=False):
+    ''' For expanded begraphs (made with -a flag)'''
+    df = pd.read_csv(bedgraph, sep='\t', header=None, names=['chromosome','start','RPM'])
+    df.loc[:,'end'] = df['start']+1
+    df = df[['chromosome','start','end','RPM']]
+    
+    if chromosomes is not None:
+        df = df[df['chromosome'].isin(chromosomes)]
+        
+    df.index = df['chromosome'].str.cat(df['start'].apply(str),sep=':')
+    if write:
+        write_bedgraph(df, bedgraph)
+    
+    return df
+    
 def combine_stranded_bedgraph(directory, file_provided=False):
     bg_pairs = []
     if not file_provided:
@@ -416,10 +437,10 @@ def combine_stranded_bedgraph(directory, file_provided=False):
         write_bedgraph(new, name)
 ##
  
-def normalize_bedgraph(tagged, untagged, smooth=False):
-    tagged_RPM = bedgraph_reader(tagged)
-    untagged_RPM = bedgraph_reader(untagged)
-    
+def normalize_bedgraph(tagged, untagged, smooth=False, last=False):
+    tagged_RPM = bedgraph_reader2(tagged, write=True)
+    untagged_RPM = bedgraph_reader2(untagged, write=last)
+
     total = tagged_RPM.merge(untagged_RPM, right_index=True, left_index=True, how='left')
     total.loc[:,'norm RPM'] = total['RPM_x']/total['RPM_y']
     
@@ -448,3 +469,31 @@ def smooth_bedgraphs(bedgraph_list, window):
         new_bg.to_csv(bedgraph.split('.bedgraph')[0]+'_{0}bp_smooth.bedgraph'.format(str(window)), sep='\t', index=False, header=False)
         
         collapse_bedgraph(bedgraph.split('.bedgraph')[0]+'_{0}bp_smooth.bedgraph'.format(str(window)))
+        
+def background_subtraction(bedgraph):
+    bg_df = bedgraph_reader2(bedgraph)
+    new_bg = pd.DataFrame(columns=bg_df.columns)
+    
+    print "Calculating background..."
+    for chrom in set(bg_df['chromosome']):
+        chrom_df = bg_df[bg_df['chromosome'] == chrom]
+        chrom_df = chrom_df.sort_values(['start'])
+        
+        new_intensities = chrom_df['RPM'].rolling(window=5000, center=True).mean()
+        chrom_df.loc[:,'RPM'] = new_intensities
+        chrom_df.iloc[:2500,2] = chrom_df.iloc[2500,2]
+        chrom_df.iloc[-2499:,2] = chrom_df.iloc[-2500,2]
+        new_bg = new_bg.append(chrom_df.dropna(how='any'))
+    
+    print "Adjusting values..."
+    bg_df.loc[:,'RPM'] = bg_df['RPM'] - new_bg['RPM']
+    bg_df.loc[:,'end'] = bg_df['start'] + 1
+    
+    final_bg = bg_df[['chromosome','start','end','RPM']]
+    neg_index = final_bg[final_bg['RPM'] < 0].index
+    final_bg.loc[neg_index,['RPM']] = 0
+    
+    final_bg.to_csv(bedgraph.split('.bedgraph')[0]+'_sub.bedgraph', sep='\t', header=False, index=False)
+    
+    print "Collapsing bedgraph..."
+    collapse_bedgraph(bedgraph.split('.bedgraph')[0]+'_sub.bedgraph')

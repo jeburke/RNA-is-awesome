@@ -7,6 +7,7 @@ import sys
 sys.path.append('/home/jordan/CodeBase/RNA-is-awesome/')
 import GeneTools as GT
 import os
+from multiprocessing import Pool
 
 def main():
     if sys.argv[1] == '-h' or sys.argv[1] == '--help':
@@ -46,6 +47,7 @@ def main():
     smooth = False
     untagged = None
     window = None
+    sub = False
     for n, arg in enumerate(sys.argv):
         if arg == "--threads":
             try:
@@ -81,15 +83,18 @@ def main():
             except ValueError:
                 print "Must provide window size"
                 return None
+        elif arg == "--subtract_background":
+            sub = True
 
+    expand=False
+    if normalize is True or smooth is True or sub is True:
+        expand = True
+    
     print "Generating scaled bedgraphs..."
-    GT.generate_scaled_bedgraphs2(directory, untagged, organism=organism, start_only=start_only, stranded=stranded, threads=threads, file_provided=file_provided)
+    GT.generate_scaled_bedgraphs2(directory, untagged, organism=organism, start_only=start_only, stranded=stranded, threads=threads, file_provided=file_provided, expand=expand)
     
     base_dir = directory.split('/')[:-1]
     base_dir = '/'.join(base_dir)+'/'
-    
-    if stranded is True:
-        GT.combine_stranded_bedgraphs(directory=directory, file_provided=file_provided)
 
     if normalize is True:
         print "\nNormalizing to untagged..."
@@ -99,9 +104,12 @@ def main():
         bg_list = [base_dir+x for x in os.listdir(base_dir) if x.endswith('.bedgraph')]
         untagged_bg = [x for x in bg_list if untagged in x][0]
         bg_list.remove(untagged_bg)
-            
-        for bg in bg_list:
-            GT.normalize_bedgraph(bg, untagged_bg, smooth=smooth)
+        
+        last = False
+        for n, bg in enumerate(bg_list):
+            if n == len(bg_list)-1:
+                last = True
+            GT.normalize_bedgraph(bg, untagged_bg, smooth=smooth, last=last)
 
     if smooth is True:
         print "\nSmoothing with {0} bp window...".format(str(window))
@@ -110,6 +118,12 @@ def main():
             name = directory.split('/')[-1].split('.bam')[0]
             bg_list = [x for x in bg_list if name in bg_list]
         GT.smooth_bedgraphs(bg_list, window)
+        
+    if sub is True:
+        print "\nSubtracting background..."
+        bg_list = [base_dir+x for x in os.listdir(base_dir) if x.endswith('.bedgraph')]
+        p = Pool(threads/2)
+        p.map(GT.background_subtraction, bg_list)
         
 if __name__ == "__main__":
     main()

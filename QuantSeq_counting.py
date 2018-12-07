@@ -36,12 +36,17 @@ def open_fa(fa):
                     fa_dict[contig] = fa_dict[contig]+line.strip()
     return fa_dict
 
-def count_reads(bam_file, gff3_file, extend=0, report_unique=False, detect_polA=False, fa=None, frag_size=100):
+def count_reads(bam_file, gff3_file, extend=0, report_unique=False, detect_polA=False, fa=None, frag_size=100, strand='forward'):
     gff3 = open_gff3(gff3_file)    
     bam = pysam.Samfile(bam_file)
     if detect_polA:
         fa = open_fa(fa)
 
+    if strand == 'forward':
+        strand_dict = {'+':'+', '-':'-'}
+    elif strand == 'reverse':
+        strand_dict = {'+':'-', '-':'+'}
+        
     counts = pd.DataFrame(index=gff3[gff3['type'] == 'gene']['name'], columns = ['All'])
     counted_reads = {}
     polA_counter = 0
@@ -67,15 +72,15 @@ def count_reads(bam_file, gff3_file, extend=0, report_unique=False, detect_polA=
                     continue
                     
             if read.reference_start in range(gene['start'],gene['end']+1) and read.reference_end in range(gene['start'],gene['end']+1):
-                if not read.is_reverse and gene['strand'] == '+':
+                if not read.is_reverse and strand_dict[gene['strand']] == '+':
                     counted_reads[gene['name']].add(read)
-                if read.is_reverse and gene['strand'] == '-':
+                if read.is_reverse and strand_dict[gene['strand']] == '-':
                     counted_reads[gene['name']].add(read)
             else:
-                if gene['strand'] == '+' and read.reference_start - extend <= gene['end'] and not read.is_reverse:
+                if strand_dict[gene['strand']] == '+' and read.reference_start - extend <= gene['end'] and not read.is_reverse:
                     counted_reads[gene['name']].add(read)
                     ext_counter += 1
-                elif gene['strand'] == '-' and read.reference_end + extend >= gene['start'] and read.is_reverse:
+                elif strand_dict[gene['strand']] == '-' and read.reference_end + extend >= gene['start'] and read.is_reverse:
                     counted_reads[gene['name']].add(read)
                     ext_counter += 1
         counts.loc[gene['name'],'All'] = len(counted_reads[gene['name']])
@@ -126,6 +131,8 @@ def main():
                    Fasta file for genome, provide if remove_pA_adj_reads is True
        --insert_size : int, default 100
                    Approximate size of library inserts - used to determine how far away to look for polA tracts
+       --strand : str, defuault 'forward'
+                   Strandedness of library - QuantSeq is forward but may need to change to reverse for other kits
                         
     '''
         return None
@@ -155,7 +162,7 @@ def main():
         extend = int(sys.argv[sys.argv.index('--extend-reads')+1])
         
     detect_polA = False
-    fa = None
+    fasta = None
     frag_size = 100
     if '--remove_pA_adj_reads' in sys.argv:
         detect_polA = True
@@ -170,9 +177,16 @@ def main():
         except ValueError:
             frag_size = 100
     
+    strand = 'forward'
+    if '--strand' in sys.argv:
+        strand = sys.argv[sys.argv.index('--strand')+1]
+        if strand != 'forward' and strand != 'reverse':
+            print "Strand must be forward or reverse."
+            return None
+    
     final_df = None
     for bam_file in bam_files:
-        df = count_reads(bam_file, gff3_file, extend=extend, report_unique=report_unique, detect_polA=detect_polA, fa=fasta, frag_size=frag_size)
+        df = count_reads(bam_file, gff3_file, extend=extend, report_unique=report_unique, detect_polA=detect_polA, fa=fasta, frag_size=frag_size, strand=strand)
         if len(bam_files) > 1:
             bam_name = bam_file.split('/')[-1].split('.bam')[0]
             df.columns = pd.MultiIndex.from_product([[bam_name], df.columns])
