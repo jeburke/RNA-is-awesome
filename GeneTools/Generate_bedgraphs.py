@@ -114,9 +114,9 @@ def main():
     if smooth is True:
         print "\nSmoothing with {0} bp window...".format(str(window))
         bg_list = [base_dir+x for x in os.listdir(base_dir) if x.endswith('.bedgraph')]
-        if file_provided:
-            name = directory.split('/')[-1].split('.bam')[0]
-            bg_list = [x for x in bg_list if name in bg_list]
+        #if file_provided:
+        #    name = directory.split('/')[-1].split('.bam')[0]
+        #    bg_list = [x for x in bg_list if name in bg_list]
         GT.smooth_bedgraphs(bg_list, window)
         
     if sub is True:
