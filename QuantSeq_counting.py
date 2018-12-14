@@ -5,6 +5,8 @@ import numpy as np
 import sys
 import os
 
+
+
 def open_gff3(gff3_file):
     gff3 = pd.read_csv(gff3_file, sep='\t', comment='#', 
             names=['chromosome','source','type','start','end','x','strand','y','ID'])
@@ -199,7 +201,7 @@ def main():
     
     name = 'QuantSeq_counts.quant'
     if '--name' in sys.argv:
-        name = sys.argv[sys.argv.index('--name')+1]+'.csv'
+        name = sys.argv[sys.argv.index('--name')+1]
     
     final_df.to_csv(name+'.quant', header=False, sep='\t')
         

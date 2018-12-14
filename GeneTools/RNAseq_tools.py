@@ -289,7 +289,38 @@ def count_with_HTseq(base_dir, organism='crypto'):
         out = subprocess.check_output(args.split(' '))
         with open(base_dir+bam.split('sorted')[0].rstrip('_')+'.htseq','w') as fout:
             fout.write(out)
+
+def count_for_QuantSeq(directory, organism=None, gff3=None, fa=None, threads=1, extend=200, insert_size=200, script_location='/home/jordan/CodeBase/RNA-is-awesome/QuantSeq_counting.py'):
+    if organism is not None:
+        if 'crypto' in organism.lower():
+            gff3 = '/home/jordan/GENOMES/CNA3_all_transcripts.gff3'
+            fa = '/home/jordan/GENOMES/CNA3-gobs.fa'
+        elif 'cerev' in organism.lower():
+            gff3 = '/home/jordan/GENOMES/S288C/saccharomyces_cerevisiae_R64-2-1_20150113.gff3'
+            fa = '/home/jordan/GENOMES/S288C/S288C_genome.fa'
+        elif 'pombe' in organism.lower():
+            gff3 = '/home/jordan/GENOMES/POMBE/schizosaccharomyces_pombe.chr.gff3'
+            fa = '/home/jordan/GENOMES/POMBE/Schizosaccharomyces_pombe.ASM294v2.30.dna.genome.fa'
+    else:
+        if fa is None or gff3 is None:
+            print "Must provide fasta file and gff3 if not using built in organism!"
+            return None
+    
+    processes = []
+    for bam in [x for x in os.listdir('./') if x.endswith('bam')]:
+        out_name = bam.split('_S')[0]
+        if out_name+'.quant' not in os.listdir('./'):
+            print out_name
+            args = "python {0} --bam_file {1} --gff3 {2} --extend {3} --remove_pA_adj_reads --fasta {4} --insert_size {5} --name {4}".format(script_location, bam, gff3, extend, fa, insert_size, out_name)
+            processes.append(subprocess.Popen(args.split(' ')))
         
+        if len(processes) == threads:
+            for p in processes:
+                p.wait()
+    
+    for p in processes:
+        p.wait()
+            
 def main():
     '''Runs the first part of this module to align, sort, index and count reads'''
     # Input will be RNAseq_tools.py directory number_of_threads_tophat --organism organism_name <--PE>
@@ -300,8 +331,9 @@ def main():
     threads = 1
     STAR = False
     no_introns = False
+    quant_seq = False
     if '--help' in sys.argv or '-h' in sys.argv:
-        print "Usage: python RNAseq_tools.py --directory directory --threads num_tophat_threads --organism organism_name <--PE> <--STAR> <--no_introns>"
+        print "Usage: python RNAseq_tools.py --directory directory --threads num_tophat_threads --organism organism_name <--PE> <--STAR> <--no_introns> <--QuantSeq --insert_size avg_library_insertion_size --extend extend_3UTR_n_bp>"
         return None
     
     for n, arg in enumerate(sys.argv):
@@ -328,6 +360,18 @@ def main():
         
     if '--no_introns' in sys.argv:
         no_introns = True
+        
+    if '--QuantSeq' in sys.argv:
+        quant_seq = True
+        if '--extend' in sys.argv:
+            extend = sys.argv[sys.argv.index('--extend')+1]
+        else:
+            extend = 200
+        
+        if '--insert_size' in sys.argv:
+            insert_size = sys.argv[sys.argv.index('--insert_size')+1]
+        else:
+            insert_size = 200
     
     if organism is None:
         organism = 'crypto'
@@ -343,8 +387,12 @@ def main():
         index_STAR_bam(directory)
         
     
-    print "********Counting reads in transcripts with HTseq********\n"
-    count_with_HTseq(directory, organism=organism)
+    if not quant_seq:
+        print "********Counting reads in transcripts with HTseq********\n"
+        count_with_HTseq(directory, organism=organism)
+    else:
+        print "********Counting reads in transcripts with QuantSeq_counting********\n"
+        count_for_QuantSeq(directory, organism=organism, threads=threads, extend=extend, insert_size=insert_size)
     
 if __name__ == "__main__":
     main()
