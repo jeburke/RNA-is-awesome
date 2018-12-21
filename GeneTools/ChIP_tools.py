@@ -225,6 +225,7 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
     ----------
     WCE_bam : str or list
             Whole cell extract bam file, or list of WCE bam files - must be in the same order as the WT and Mut bam files.
+            Example of list: ['WCE_WT1_sorted.bam','WCE_WT2_sorted.bam','WCE_Mut1_sorted.bam','WCE_Mut2_sorted.bam']
     WT1_bam : str
             Wild type (or first condition) bam file - replicate 1
     WT2_bam : str
@@ -260,24 +261,26 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
     
     for bam in chip_list:
         df = prep_bam(df, bam, tx_dict)
+    #print df.columns
     
     for bam in wce_list:
         df = prep_bam(df, bam, tx_dict)
-
+    #print df.columns
+        
     for column in df:
         df[column] = pd.to_numeric(df[column])
     
     names = df.columns
     if len(wce_list) == 4:
-        df[names[1]+' Normalized'] = df[names[0]]/df[names[4]]
-        df[names[2]+' Normalized'] = df[names[1]]/df[names[5]]
-        df[names[3]+' Normalized'] = df[names[2]]/df[names[6]]
-        df[names[4]+' Normalized'] = df[names[3]]/df[names[7]]
+        df[names[0]+' Normalized'] = df[names[0]]/df[names[4]]
+        df[names[1]+' Normalized'] = df[names[1]]/df[names[5]]
+        df[names[2]+' Normalized'] = df[names[2]]/df[names[6]]
+        df[names[3]+' Normalized'] = df[names[3]]/df[names[7]]
     elif len(wce_list) == 1:
-        df[names[1]+' Normalized'] = df[names[0]]/df[names[4]]
-        df[names[2]+' Normalized'] = df[names[1]]/df[names[4]]
-        df[names[3]+' Normalized'] = df[names[2]]/df[names[4]]
-        df[names[4]+' Normalized'] = df[names[3]]/df[names[4]]
+        df[names[0]+' Normalized'] = df[names[0]]/df[names[4]]
+        df[names[1]+' Normalized'] = df[names[1]]/df[names[4]]
+        df[names[2]+' Normalized'] = df[names[2]]/df[names[4]]
+        df[names[3]+' Normalized'] = df[names[3]]/df[names[4]]
 
     df['Enrichment 1'] = df[names[2]+' Normalized']/df[names[0]+' Normalized']
     df['Enrichment 2'] = df[names[3]+' Normalized']/df[names[1]+' Normalized']
@@ -291,7 +294,7 @@ def ChIP_rpkm_scatter(WCE_bam, WT1_bam, WT2_bam, Mut1_bam, Mut2_bam, gff3, plot_
         if 'Normalized' in column:
             for_plot2.append(column)
             df['log2 RPKM '+column.split(' ')[0]] = df[column].apply(np.log2)
-            for_plot.append('log2 RPKM '+columWn.split(' ')[0])
+            for_plot.append('log2 RPKM '+column.split(' ')[0])
         elif 'Enrichment' in column:
             df['Z-score '+column] = pd.Series(stats.mstats.zscore(df[column]), index=df.index)
             Z_scores.append('Z-score '+column)
