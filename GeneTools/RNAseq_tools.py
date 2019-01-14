@@ -478,7 +478,7 @@ def load_HTSeq_results(csv_list):
     
     return df
 
-def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10, use_hdbscan=False, min_cluster_size=15):
+def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10, use_hdbscan=False, min_cluster_size=15, save_name=None):
     '''Generates a clustered heatmap using kmeans clustering and returns a dataframe with cluster indeces.
     
     Parameters
@@ -561,6 +561,8 @@ def RNAseq_clustered_heatmap(dataframe, sample_names=None, n_clusters=10, use_hd
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
     fig.colorbar(pcm, cax=cax)
+    if save_name is not None:
+        fig.savefig(save_name+'.pdf', format='pdf')
     plt.show()
     
     new_df = dataframe.merge(pd.DataFrame(data[('cluster','cluster')]), right_index=True, left_index=True)
