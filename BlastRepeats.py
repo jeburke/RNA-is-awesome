@@ -15,13 +15,13 @@ rgb = ["2,181,160","255,211,92","234,62,112",
        "180,176,173","194,187,169","127,255,212",
        "25,25,112","216,191,216","205,133,63"]
 
-def blast_repeats(fasta, ref_fasta, out, min_e=0.01, min_coverage=0.5):
+def blast_repeats(fasta, ref_fasta, out, min_e=0.01, min_coverage=0.5, top_n_results='All'):
     db_script = ['makeblastdb', '-in '+ref_fasta, '-parse_seqids', '-dbtype nucl']
     db_script = ' '.join(db_script)
     call(db_script, shell=True)
 
     script = ["blastn","-db "+ref_fasta,
-              "-query {0}".format(fasta),'-task "blastn-short"',"-out {0}.out".format(out), "-outfmt 6"]
+              "-query {0}".format(fasta),'-task "blastn"',"-out {0}.out".format(out), "-outfmt 6"]
     script = ' '.join(script)
     call(script, shell=True)
     
@@ -45,7 +45,7 @@ def blast_repeats(fasta, ref_fasta, out, min_e=0.01, min_coverage=0.5):
         
     results.loc[:,'Coverage'] = results['Length']/results['Q_length']
     results = results[(results['evalue'] <= min_e) & (results['Coverage'] >= min_coverage)]
-    results = results.reset_index(drop=True)
+    results = results.sort_values('Coverage', ascending=False).reset_index(drop=True)
     
     print "Number of hits"
     print "--------------"
@@ -56,8 +56,16 @@ def blast_repeats(fasta, ref_fasta, out, min_e=0.01, min_coverage=0.5):
         print name+": "+str(freq)
         results.loc[results[results['Query']==name].index, 'Frequency'] = freq
    
-    results = results.sort_values('Frequency', ascending=False)
+    if top_n_results == 'All':
+        results = results.sort_values('Frequency', ascending=False)
+    elif type(top_n_results) == int:
+        top_results = pd.DataFrame(columns=results.columns)
+        for name in set(results['Query']):
+            top_n = results[results['Query'] == name].iloc[:top_n_results,:]
+            top_results = top_results.append(top_n)
+        results = top_results
     
+    results = results.reset_index(drop=True)
     return results
 
 def gff3_from_blast(blast_df, gff3_name, old_gff3=None):
@@ -127,14 +135,49 @@ def bed_from_blast(blast_df, bed_name, old_gff3=None):
                         color, '\n']
             line = '\t'.join(line)
             fout.write(line)
+
+##
+def reverse_complement(seq):
+    complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A','N':'N', 'Y':'R', 'R':'Y'} 
+    bases = list(seq[::-1]) 
+    bases = [complement[base] for base in bases] 
+    s = ''.join(bases)
+    return s
+        
+def fasta_from_blast(blast_df, fasta_file, fasta_name):
+    fa_dict = {}
+    with open(fasta_file) as f:
+        for line in f:
+            if line.startswith('>'):
+                name = line.split(' ')[0].strip('>').strip()
+                fa_dict[name] = ''
+            else:
+                fa_dict[name] = fa_dict[name]+line.strip()
+    
+    with open(fasta_name, 'w') as fout:
+        for ix, r in blast_df.iterrows():
+            if r['Ref_start'] < r['Ref_end']:
+                name = '>'+r['Query']+' '+r['Contig']+':'+str(r['Ref_start'])+'-'+str(r['Ref_end'])
+                sequence = fa_dict[r['Contig']][r['Ref_start']:r['Ref_end']]
+            else:
+                name = '>'+r['Query']+' '+r['Contig']+':'+str(r['Ref_end'])+'-'+str(r['Ref_start'])
+                sequence = fa_dict[r['Contig']][r['Ref_end']:r['Ref_start']]
+                sequence = reverse_complement(sequence)
+            
+            fout.write(name+'\n')
+            fout.write(sequence+'\n')
+            
     
 def main():
     if sys.argv[1] == '--help' or sys.argv[1] == '-h':
         print "Usage:"
-        print "python BlastRepeats.py --query_fasta fasta_path --ref_fasta fasta_path --out output_prefix [--gff3 original_gff3] [--min_e minimum_evalue] [--min_cov minimum_coverage]"
+        print "python BlastRepeats.py --query_fasta fasta_path --ref_fasta fasta_path --out output_prefix [--gff3 original_gff3] [--min_e minimum_evalue] [--min_cov minimum_coverage] [--top_results n] [--make_fasta genome_fasta_sequence]"
         print "--gff3 default: None"
         print "--min_e default: 0.01"
         print "--min_cov default: 0.5"
+        print "--top_results default: 'All', provide an integer to only return the top few blast results for each query"
+        print "--make_fasta, will output a fasta with an entry for each hit, must provide a fasta file for your genome."
+        return None
         
     fasta = sys.argv[sys.argv.index('--query_fasta')+1]
     print fasta
@@ -146,16 +189,23 @@ def main():
     gff3 = None
     min_e = 0.01
     min_cov = 0.5
+    fasta_file = None
+    top_n_results = 'All'
     if '--gff3' in sys.argv: gff3 = sys.argv[sys.argv.index('--gff3')+1]
     if '--min_e' in sys.argv: min_e = float(sys.argv[sys.argv.index('--min_e')+1])
     if '--min_cov' in sys.argv: min_cov = float(sys.argv[sys.argv.index('--min_cov')+1])
+    if '--make_fasta' in sys.argv: fasta_file = sys.argv[sys.argv.index('--make_fasta')+1]
+    if '--top_results' in sys.argv: top_n_results = int(sys.argv[sys.argv.index('--top_results')+1])
         
-    blast_df = blast_repeats(fasta, ref, out, min_e=min_e, min_coverage=min_cov)
+    blast_df = blast_repeats(fasta, ref, out, min_e=min_e, min_coverage=min_cov, top_n_results=top_n_results)
     
     gff3_name = out+'.gff3'
     gff3_from_blast(blast_df, gff3_name, old_gff3=gff3)
     bed_name = out+'.bed'
     bed_from_blast(blast_df, bed_name, old_gff3=gff3)
+    if fasta_file is not None:
+        fasta_name = out+'.fasta'
+        fasta_from_blast(blast_df, fasta_file, fasta_name)
 
 if __name__ == "__main__":
     main()
