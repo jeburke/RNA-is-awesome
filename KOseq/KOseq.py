@@ -76,6 +76,7 @@ def build_custom_index(file_name, file_format='fasta', genome_fasta=None, flank_
 
 def add_UMI((UMI_fq, read1_fq, read2_fq)):
     new_read1 = read1_fq.split('.f')[0]+'_umi.fq.gz'
+    new_read2 = read2_fq.split('.f')[0]+'_umi.fq.gz'
     
     # Open new fastq for writing in zipped format
     with gzip.open(new_read1, 'wb') as fout:
@@ -90,13 +91,31 @@ def add_UMI((UMI_fq, read1_fq, read2_fq)):
                         new_name = r1.strip()
                     # 2nd out of ever 4 lines has read sequence - grab from the UMI and add to read 1 name
                     elif n%4 == 1:
-                        new_name = new_name+' '+u
+                        new_name = new_name+'_'+u
                         fout.write(new_name)
                         fout.write(r1)
                     else:
                         fout.write(r1)
+                        
+    with gzip.open(new_read2, 'wb') as fout:
+        # Open UMI file
+        with gzip.open(UMI_fq, 'rb') as umi:
+            # Open read 1 file
+            with gzip.open(read2_fq, 'rb') as f2:
+                # Iterate through UMI and read 1 files together and count lines
+                for n, (u, r2) in enumerate(zip(umi, f2)):
+                    # 1st out of every 4 lines has read name - remember it from read 2
+                    if n%4 == 0:
+                        new_name = r2.strip()
+                    # 2nd out of ever 4 lines has read sequence - grab from the UMI and add to read 2 name
+                    elif n%4 == 1:
+                        new_name = new_name+'_'+u
+                        fout.write(new_name)
+                        fout.write(r2)
+                    else:
+                        fout.write(r2)
 
-    return (new_read1, read2_fq)
+    return (new_read1, new_read2)
 
 def trim_filter((read1_fq, read2_fq), bound_seq1="GCCGCATCCCTGCATCCAAC", bound_seq2="CGCCTAGCAGCGGATCCAAC"):
     out1 = read1_fq.split('.f')[0]+'_trim.fq'
@@ -104,11 +123,13 @@ def trim_filter((read1_fq, read2_fq), bound_seq1="GCCGCATCCCTGCATCCAAC", bound_s
     
     # Trim for right flank
     args1 = "cutadapt -g A -G {0} --trimmed-only -m 15 -o {1} -p {2} {3} {4}".format(bound_seq1, out1, out2, read1_fq, read2_fq)
+    #args1 = "cutadapt -G {0} --trimmed-only -m 15 -o {1} -p {2} {3} {4}".format(bound_seq1, out1, out2, read1_fq, read2_fq)
     p = Popen(args1.split(' '))
     p.wait()
     
     # Trim for left flank
     args1 = "cutadapt -g A -G {0} --trimmed-only -m 15 -o {1} -p {2} {3} {4}".format(bound_seq2, out1+'B', out2+'B', read1_fq, read2_fq)
+    #args1 = "cutadapt -G {0} --trimmed-only -m 15 -o {1} -p {2} {3} {4}".format(bound_seq2, out1+'B', out2+'B', read1_fq, read2_fq)
     p = Popen(args1.split(' '))
     p.wait()
     
@@ -123,13 +144,18 @@ def trim_filter((read1_fq, read2_fq), bound_seq1="GCCGCATCCCTGCATCCAAC", bound_s
     return (out1, out2)
 
 def call_bowtie(mate, index, threads=1):
-    sam_name = mate[0].split('_S')[0]+'.sam'
-    args = ["bowtie", "-v2", "-m1", "--fr", "-X200" "-p"+str(threads), index, "-1", mate[0], "-2", mate[1],
+    # Output name for bowtie
+    sam_name = mate[0].split('_umi_trim')[0]+'.sam'
+    
+    # Arguments for callign bowtie
+    args = ["bowtie", "-v2", "-m1", "--fr", "-X500", "-p"+str(threads), index, "-1", mate[0], "-2", mate[1],
             "--sam", sam_name]
     #print ' '.join(args)
         
     p = Popen(args, stdout=PIPE, stderr=PIPE)
     p.wait()
+    for line in p.stdout:
+        print(line.strip())
     for line in p.stderr:
         print(line.strip())
     return sam_name
@@ -141,9 +167,10 @@ def collapse_and_count_reads(sam):
         if r.is_read1:
             if r.reference_name not in ref_sets:
                 ref_sets[r.reference_name] = set()
-            UMI = r.query_name.split(' ')[-1]
+            UMI = r.query_name.split('_')[-1]
             read_info = (r.reference_start, r.reference_end, UMI)
             ref_sets[r.reference_name].add(read_info)
+            
     ref_counts = pd.DataFrame.from_dict({k:len(v) for k,v in ref_sets.items()}, orient='index')
     # Need to name column that's generated
     ref_counts = ref_counts.rename(columns={0:sam.split('_R1')[0].split('/')[-1]})
@@ -170,6 +197,7 @@ def main():
     parser_align.add_argument("--index", help="Bowtie index prefix (from build_index option)")
     parser_align.add_argument("--directory", default='./', help="Working directory containing fastq files")
     parser_align.add_argument("--threads", type=int, default=1, help="Number of processors")
+    parser_align.add_argument("--out", type=str, default='read_counts', help="Name for output file")
     
     args = parser.parse_args()
     
@@ -180,12 +208,14 @@ def main():
 
     elif args.subcommand == 'align':
         #Find all file sets in the directory
+        #### May need to change how this done
         fq_sets = []
         for file in os.listdir(args.directory):
             if file.endswith('fq.gz') or file.endswith('fastq.gz'):
                 if '_R1' in file:
                     r1 = file
                     r2 = r1.split('_R1')[0]+'_R2'+r1.split('_R1')[1]
+                    ### May need to change depending on how index fastq is named
                     umi = r1.split('_R1')[0]+'_I2'+r1.split('_R1')[1]
                     fq_sets.append((args.directory+umi,args.directory+r1,args.directory+r2)) 
         
@@ -201,10 +231,7 @@ def main():
         # Run bowtie
         print("Aligning with Bowtie...")
         sams = []
-        for (r1, r2) in barcoded:
-            pair = (r1.split('.f')[0]+'_trim.fq',r2.split('.f')[0]+'_trim.fq')
-            print('\n'+pair[0]+' + '+pair[1])
-            print('-'*len(pair[0]+' + '+pair[1]))
+        for pair in trimmed:
             sam = call_bowtie(pair, args.index, threads=args.threads)
             sams.append(sam)
         
@@ -213,14 +240,18 @@ def main():
         
         all_counts = p.map(collapse_and_count_reads, sams)
         
+        print('\nReads after collapsing')
+        print('----------------------')
         count_df = None
         for df in all_counts:
+            print(df.columns[0]+': '+str(sum(df.iloc[:,0])))
             if count_df is None:
                 count_df = df
             else:
                 count_df = count_df.join(df, how='outer')
         count_df = count_df.replace(np.NaN, 0)
-        count_df.to_csv('test.csv')
+        count_df.to_csv(args.out+'.csv')
+        
 
         remove_files(args.directory)
 

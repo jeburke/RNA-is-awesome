@@ -555,7 +555,35 @@ def count_reads_from_gff3(bam_list, gff3, stranded='no', feature_type='gene', rp
         return None
     else:
         return htseq_df
-            
-            
-            
+                     
+def count_UTR_reads(bams, gff3, rpkm=True, library_direction='unstranded'):
+    '''Counts the number of reads in 5prime UTRs (by default calculates RPKM)
+    
+    Parameters
+    ----------
+    bams : list
+            List of bam file locations for analysis
+    gff3 : str
+            GFF3 file containing transcript annotation
+    rpkm : bool, default `True`
+            Calcluate RPKM. If False, will just report read counts
+    library_direction : str, default 'unstranded'
+            Direction of sequencing. If stranded, use 'reverse' or 'forward'
+    
+    Returns
+    ------
+    df : pandas.DataFrame
+            DataFrame containing RPKM or read counts for each BAM file in each 5prime UTRs'''
+    
+    gff3_df = populate_transcript_df(gff3)
+    gff3_df = gff3_df.iloc[:1000,:]
+    
+    count_df = pd.DataFrame(index = gff3_df['transcript'], 
+                            columns = [x.split('/')[-1].split('_sorted')[0] for x in bams])
+    for ix, r in gff3_df.iterrows():
+        tx = GT.Transcript(r['transcript'], r['chromosome'], r['start'], r['end'], r['strand'], organism='crypto')
+        counts = tx.UTR_5prime_count_reads(bams, rpkm=True, library_direction=library_direction)
+        for bam, n in counts.iteritems():
+            count_df.loc[r['transcript'], bam.split('/')[-1].split('_sorted')[0]] = n
+    return count_df          
         

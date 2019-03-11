@@ -1699,7 +1699,12 @@ def plot_metaregion(df, samples, out_name, colors=['#222f3e','#ee5253','#5f27cd'
     for n, sample in enumerate(samples):
         ax.plot(df.index, df[sample].rolling(smooth_window).mean(), color=colors[n])
     ax.set_ylabel('Fold enrichment over WCE')
-    ax.set_xlabel('Distance from end (bp)')
+    if len(df[df.index < 0]) >= 5:
+        anchor = 'center'
+    else:
+        anchor = 'end'
+    ax.set_xlabel('Distance from '+anchor+' (bp)')
+    ax.legend()
     
     plt.show()
     fig.savefig(out_name+'.pdf', format='pdf', bbox_inches='tight')
