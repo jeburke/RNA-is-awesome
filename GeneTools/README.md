@@ -3,6 +3,7 @@
 Starting with fastq.gz files, aligns to genome with Tophat (using Bowtie 1), generates sorted, indexed bam files and counts reads in annotated transcripts using htseq-count. Generates all files necessary to proceed with DESeq2 analysis.
 ### Usage:  
 ```Usage: python RNAseq_tools.py --directory directory --threads num_tophat_threads --organism organism_name <--PE> <--STAR> <--no_introns> <--QuantSeq --insert_size avg_library_insertion_size --extend extend_3UTR_n_bp>```
+
 Required arguments:  
 >--directory : directory containing fastq.gz files (e.g. ./ or /data/jordan/JEB001/)  
 >--threads : processors to be used when running Tophat  
